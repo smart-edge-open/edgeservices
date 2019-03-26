@@ -11,11 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-	
+
 module github.com/smartedgemec/appliance-ce
 
 require (
 	github.com/golang/protobuf v1.3.0
+	github.com/gorilla/mux v1.7.0
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	golang.org/x/net v0.0.0-20190311183353-d8887717615a
