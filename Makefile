@@ -14,16 +14,33 @@
 
 export GO111MODULE = on
 
-.PHONY: help clean lint test
+.PHONY: help clean build build-docker lint test
+TMP_DIR:=$(shell mktemp -d)
+BUILD_DIR:=dist
+#TODO: Version
+VER:=0.1
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
 	@echo "  clean          to clean up build artifacts and docker"
+	@echo "  build          to build the appliance application"
+	@echo "  build-docker   to build the release docker image"
 	@echo "  lint           to run linters and static analysis on the code"
 	@echo "  test           to run unit tests"
 
 clean:
-	rm -rf dist
+	rm -rf "${BUILD_DIR}"
+
+build:
+	mkdir -p "${BUILD_DIR}"
+	CGO_ENABLED=0 GOOS=linux go build -o "${BUILD_DIR}/appliance" ./cmd/appliance
+
+build-docker: build
+	cp build/pkg/Dockerfile "${TMP_DIR}"
+	cp "${BUILD_DIR}/appliance" "${TMP_DIR}"
+	docker build -t appliance:${VER} "${TMP_DIR}"
+	ls "${TMP_DIR}"
+	rm -rf "${TMP_DIR}"
 
 lint:
 	golangci-lint run
