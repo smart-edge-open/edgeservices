@@ -16,13 +16,14 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"reflect"
 	"runtime"
 	"sync"
 	"syscall"
+
+	"github.com/smartedgemec/appliance-ce/pkg/logger"
 )
 
 // ServiceStartFunction is func typedef for starting service
@@ -31,24 +32,15 @@ type ServiceStartFunction func(context.Context) error
 // EdgeServices array contains function pointers to services start functions
 var EdgeServices = []ServiceStartFunction{}
 
-var (
-	// Error is Logger object for logging ERROR level messages
-	Error *log.Logger
-	// Warn is Logger object for logging WARN level messages
-	Warn *log.Logger
-	// Info is Logger object for logging INFO level messages
-	Info *log.Logger
-	// Trace is Logger object for logging TRACE level messages
-	Trace *log.Logger
-)
+var log = logger.NewLogger("main")
 
 func init() {
-	Error = log.New(os.Stdout, "MAIN ERROR ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-	Warn = log.New(os.Stdout, "MAIN WARN ", log.Ldate|log.Ltime|log.Lshortfile)
-	Info = log.New(os.Stdout, "MAIN INFO ", log.Ldate|log.Ltime|log.Lshortfile)
-	Trace = log.New(os.Stdout, "MAIN TRACE ",
-		log.Ldate|log.Ltime|log.Lshortfile)
+	//TODO: Load logger configuration from a config file
+	//Configure a connection to the local syslog server
+	err := logger.ConfigSyslog(log, "", "", "")
+	if err != nil {
+		log.Errorf("Failed to configure syslog: %s", err.Error())
+	}
 }
 
 func waitForServices(wg *sync.WaitGroup,
@@ -67,7 +59,7 @@ func waitForServices(wg *sync.WaitGroup,
 			return ret
 		case err := <-errors:
 			if err != nil {
-				Trace.Printf("Cancelling services because of error"+
+				log.Tracef("Cancelling services because of error"+
 					" from one of the services: %#v", err)
 				cancel()
 				ret = false
@@ -86,15 +78,15 @@ func runServices(services []ServiceStartFunction) bool {
 	signal.Notify(osSignals, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		sig := <-osSignals
-		Info.Printf("Received signal: %#v", sig)
+		log.Infof("Received signal: %#v", sig)
 		cancel()
 	}()
 
 	results := make(chan error)
 
-	Info.Printf("Starting services")
+	log.Infof("Starting services")
 	for _, runner := range services {
-		Info.Printf("Starting: %v",
+		log.Infof("Starting: %v",
 			runtime.FuncForPC(reflect.ValueOf(runner).Pointer()).Name())
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, start ServiceStartFunction) {
@@ -104,7 +96,7 @@ func runServices(services []ServiceStartFunction) bool {
 		}(&wg, runner)
 	}
 
-	Info.Printf("Services started")
+	log.Infof("Services started")
 
 	return waitForServices(&wg, results, cancel)
 }
@@ -114,5 +106,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	Info.Printf("Services stopped gracefully")
+	log.Infof("Services stopped gracefully")
 }
