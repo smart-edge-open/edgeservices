@@ -16,11 +16,22 @@ package logger
 
 import (
 	"errors"
-	"log/syslog"
-
 	"github.com/sirupsen/logrus"
 	syslogHook "github.com/sirupsen/logrus/hooks/syslog"
+	"log/syslog"
 )
+
+// Logger configuration structure
+type Config struct {
+	Level string `json:"level"`
+
+	SyslogConfig struct {
+		Enable   bool   `json:"enable"`
+		Protocol string `json:"protocol"`
+		Address  string `json:"address"`
+		Tag      string `json:"tag"`
+	} `json:"syslog"`
+}
 
 // NewLogger creates a new instance of a logrus logger.
 // It disables colors and enables full timestamps.
@@ -80,4 +91,24 @@ func ConfigSyslog(logEntry *logrus.Entry, net, addr, tag string) error {
 	}
 	logEntry.Logger.Hooks.Add(hook)
 	return nil
+}
+
+// ConfigLogger configures an underlying logger using
+// ConfigSyslog and SetLevel functions.
+// All required fields are passed through cfg parameter.
+func ConfigLogger(logEntry *logrus.Entry, cfg *Config) error {
+	if logEntry == nil {
+		return errors.New("log entry is not valid(nil)")
+	}
+
+	syslogCfg := &cfg.SyslogConfig
+	if syslogCfg.Enable {
+		err := ConfigSyslog(logEntry,
+			syslogCfg.Protocol, syslogCfg.Address, syslogCfg.Tag)
+		if err != nil {
+			return err
+		}
+	}
+
+	return SetLevel(logEntry, cfg.Level)
 }

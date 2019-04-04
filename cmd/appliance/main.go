@@ -16,30 +16,50 @@ package main
 
 import (
 	"context"
+	"flag"
 	"os"
 	"os/signal"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 
+	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/logger"
 )
 
 // ServiceStartFunction is func typedef for starting service
-type ServiceStartFunction func(context.Context) error
+type ServiceStartFunction func(context.Context, string) error
 
 // EdgeServices array contains function pointers to services start functions
 var EdgeServices = []ServiceStartFunction{}
 
 var log = logger.NewLogger("main")
 
+var cfg mainConfig
+
+type mainConfig struct {
+	Log      logger.Config     `json:"log"`
+	Services map[string]string `json:"services"`
+}
+
 func init() {
-	//TODO: Load logger configuration from a config file
-	//Configure a connection to the local syslog server
-	err := logger.ConfigSyslog(log, "", "", "")
+	var cfgPath string
+	flag.StringVar(&cfgPath, "config", "configs/appliance.json",
+		"config file path")
+	flag.Parse()
+
+	err := config.LoadJSONConfig(cfgPath, &cfg)
 	if err != nil {
-		log.Errorf("Failed to configure syslog: %s", err.Error())
+		log.Errorf("Failed to load config: %s", err.Error())
+		os.Exit(1)
+	}
+
+	err = logger.ConfigLogger(log, &cfg.Log)
+	if err != nil {
+		log.Errorf("Failed to configure the logger: %s", err.Error())
+		os.Exit(1)
 	}
 }
 
@@ -86,17 +106,17 @@ func runServices(services []ServiceStartFunction) bool {
 
 	log.Infof("Starting services")
 	for _, runner := range services {
-		log.Infof("Starting: %v",
-			runtime.FuncForPC(reflect.ValueOf(runner).Pointer()).Name())
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, start ServiceStartFunction) {
-			defer wg.Done()
-			err := start(ctx)
-			results <- err
-		}(&wg, runner)
-	}
+		funcName := runtime.FuncForPC(reflect.ValueOf(runner).Pointer()).Name()
+		srvName := funcName[:strings.LastIndex(funcName, ".")]
 
-	log.Infof("Services started")
+		log.Infof("Starting: %v", srvName)
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, start ServiceStartFunction, cfg string) {
+			defer wg.Done()
+			err := start(ctx, cfg)
+			results <- err
+		}(&wg, runner, cfg.Services[srvName])
+	}
 
 	return waitForServices(&wg, results, cancel)
 }

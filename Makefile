@@ -17,8 +17,7 @@ export GO111MODULE = on
 .PHONY: help clean build build-docker lint test
 TMP_DIR:=$(shell mktemp -d)
 BUILD_DIR:=dist
-#TODO: Version
-VER:=0.1
+VER:=1.0
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
@@ -37,6 +36,7 @@ build:
 
 build-docker: build
 	cp build/pkg/Dockerfile "${TMP_DIR}"
+	cp -r configs "${TMP_DIR}"
 	cp "${BUILD_DIR}/appliance" "${TMP_DIR}"
 	docker build -t appliance:${VER} "${TMP_DIR}"
 	ls "${TMP_DIR}"

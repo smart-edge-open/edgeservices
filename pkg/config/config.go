@@ -1,4 +1,4 @@
-// Copyright 2019 Smart-Edge.com, Inc. All rights reserved.
+// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module github.com/smartedgemec/appliance-ce
+package config
 
-require (
-	github.com/Flaque/filet v0.0.0-20190209224823-fc4d33cfcf93
-	github.com/golang/protobuf v1.3.0
-	github.com/gorilla/mux v1.7.0
-	github.com/onsi/ginkgo v1.8.0
-	github.com/onsi/gomega v1.5.0
-	github.com/sirupsen/logrus v1.4.0
-	github.com/spf13/afero v1.2.2 // indirect
-	golang.org/x/net v0.0.0-20190311183353-d8887717615a
-	google.golang.org/grpc v1.19.0
+import (
+	"encoding/json"
+	"io/ioutil"
 )
+
+// LoadJSONConfig reads a file located at configPath and unmarshals it to
+// config structure
+func LoadJSONConfig(configPath string, config interface{}) error {
+	cfgData, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(cfgData, config)
+}

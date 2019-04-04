@@ -63,3 +63,25 @@ var _ = Describe("ConfigSyslog", func() {
 			})
 	})
 })
+
+var _ = Describe("ConfigLogger", func() {
+	log := NewLogger("Test")
+
+	Describe("Configure logger", func() {
+		It("Will set a level and configure the syslog connection",
+			func() {
+				cfg := Config{
+					Level: "error",
+				}
+
+				Expect(ConfigLogger(nil, &cfg)).NotTo(BeNil())
+				Expect(ConfigLogger(log, &cfg)).To(BeNil())
+				cfg.Level = "unsupported"
+				Expect(ConfigLogger(log, &cfg)).NotTo(BeNil())
+				cfg.SyslogConfig.Enable = true
+				cfg.SyslogConfig.Protocol = "udp"
+				cfg.SyslogConfig.Address = "unreachable"
+				Expect(ConfigLogger(log, &cfg)).NotTo(BeNil())
+			})
+	})
+})

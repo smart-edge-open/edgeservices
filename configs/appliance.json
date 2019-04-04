@@ -1,0 +1,13 @@
+{
+    "log": {
+        "level": "info",
+        "syslog": {
+            "enable": false,
+            "protocol": "",
+            "address": "",
+            "tag": "Appliance"
+        }
+    },
+    "services": {
+    }
+}
