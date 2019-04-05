@@ -1,0 +1,126 @@
+// Copyright 2019 Smart-Edge.com, Inc. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/empty.proto";
+
+service Control {
+    rpc SetAuthoritativeHost(HostRecordSet) returns (google.protobuf.Empty) {}
+    rpc DeleteAuthoritative(RecordSet) returns (google.protobuf.Empty) {}
+}
+
+message HostRecordSet {
+    RType record_type = 1;
+    string fqdn = 2;
+    repeated bytes addresses = 3;
+}
+
+// RecordSet represents all values associated with an FQDN and type
+//
+// Example: An A record for foo.example.org may have one or more addresses,
+// and the corresponding RecordSet includes all addresses.
+message RecordSet {
+    RType record_type = 1;
+    string fqdn = 2;
+}
+
+// DNS Resource Record (https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4)
+enum RType {
+    None       = 0;
+    A          = 1;
+    NS         = 2;
+    MD         = 3;
+    MF         = 4;
+    CNAME      = 5;
+    SOA        = 6;
+    MB         = 7;
+    MG         = 8;
+    MR         = 9;
+    NULL       = 10;
+    PTR        = 12;
+    HINFO      = 13;
+    MINFO      = 14;
+    MX         = 15;
+    TXT        = 16;
+    RP         = 17;
+    AFSDB      = 18;
+    X25        = 19;
+    ISDN       = 20;
+    RT         = 21;
+    NSAPPTR    = 23;
+    SIG        = 24;
+    KEY        = 25;
+    PX         = 26;
+    GPOS       = 27;
+    AAAA       = 28;
+    LOC        = 29;
+    NXT        = 30;
+    EID        = 31;
+    NIMLOC     = 32;
+    SRV        = 33;
+    ATMA       = 34;
+    NAPTR      = 35;
+    KX         = 36;
+    CERT       = 37;
+    DNAME      = 39;
+    OPT        = 41; // EDNS
+    DS         = 43;
+    SSHFP      = 44;
+    RRSIG      = 46;
+    NSEC       = 47;
+    DNSKEY     = 48;
+    DHCID      = 49;
+    NSEC3      = 50;
+    NSEC3PARAM = 51;
+    TLSA       = 52;
+    SMIMEA     = 53;
+    HIP        = 55;
+    NINFO      = 56;
+    RKEY       = 57;
+    TALINK     = 58;
+    CDS        = 59;
+    CDNSKEY    = 60;
+    OPENPGPKEY = 61;
+    SPF        = 99;
+    UINFO      = 100;
+    UID        = 101;
+    GID        = 102;
+    UNSPEC     = 103;
+    NID        = 104;
+    L32        = 105;
+    L64        = 106;
+    LP         = 107;
+    EUI48      = 108;
+    EUI64      = 109;
+    URI        = 256;
+    CAA        = 257;
+    AVC        = 258;
+
+    TKEY = 249;
+    TSIG = 250;
+
+    // valid Question.Q only
+    IXFR  = 251;
+    AXFR  = 252;
+    MAILB = 253;
+    MAILA = 254;
+    ANY   = 255;
+
+    TA       = 32768;
+    DLV      = 32769;
+    Reserved = 65535;
+}

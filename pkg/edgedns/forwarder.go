@@ -12,19 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module github.com/smartedgemec/appliance-ce
+package edgedns
 
-require (
-	github.com/Flaque/filet v0.0.0-20190209224823-fc4d33cfcf93
-	github.com/golang/protobuf v1.3.0
-	github.com/gorilla/mux v1.7.0
-	github.com/miekg/dns v1.1.8
-	github.com/onsi/ginkgo v1.8.0
-	github.com/onsi/gomega v1.5.0
-	github.com/pkg/errors v0.8.1
-	github.com/sirupsen/logrus v1.4.0
-	github.com/spf13/afero v1.2.2 // indirect
-	go.etcd.io/bbolt v1.3.2
-	golang.org/x/net v0.0.0-20190311183353-d8887717615a
-	google.golang.org/grpc v1.19.0
+import (
+	"fmt"
+
+	"github.com/miekg/dns"
 )
+
+// Send existing query to specified nameserver
+func forwardRequest(q *dns.Msg, ns string) (*dns.Msg, error) {
+
+	if len(ns) == 0 {
+		return nil, fmt.Errorf("Missing forwarder address")
+	}
+
+	c := new(dns.Client)
+	qn := q.Question[0].Name
+	fmt.Printf("[FORWARDER] Forwarding %s to %s\n", qn, ns)
+	m, rtt, err := c.Exchange(q, ns+":53")
+
+	if err != nil {
+		return nil, fmt.Errorf("%s unable to resolve: %s: %s", ns, qn, err)
+	}
+
+	fmt.Printf("[FORWARDER] Upstream query time: %v\n", rtt)
+	return m, nil
+}
