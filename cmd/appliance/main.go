@@ -26,6 +26,7 @@ import (
 	"syscall"
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
+	"github.com/smartedgemec/appliance-ce/pkg/eaa"
 	"github.com/smartedgemec/appliance-ce/pkg/logger"
 )
 
@@ -33,7 +34,7 @@ import (
 type ServiceStartFunction func(context.Context, string) error
 
 // EdgeServices array contains function pointers to services start functions
-var EdgeServices = []ServiceStartFunction{}
+var EdgeServices = []ServiceStartFunction{eaa.Run}
 
 var log = logger.NewLogger("main")
 
