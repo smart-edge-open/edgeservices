@@ -1,0 +1,63 @@
+/*******************************************************************************
+* Copyright 2019 Intel Corporation. All rights reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*******************************************************************************/
+
+#ifndef NES_DNS_DECL_H_
+#define NES_DNS_DECL_H_
+
+//#undef FILE_NAME
+#ifndef FILE_NAME
+	#define FILE_NAME nes_dns
+#endif
+
+#include "mock.h"
+MOCK_DECL(nes_lookup_entry_find);
+#define nes_lookup_entry_find MOCK_NAME(mocked_nes_lookup_entry_find)
+
+MOCK_DECL(rte_pktmbuf_free);
+#define rte_pktmbuf_free MOCK_NAME(mocked_rte_pktmbuf_free)
+
+MOCK_DECL(nts_acl_cfg_lookup_prepare);
+#define nts_acl_cfg_lookup_prepare MOCK_NAME(mocked_nts_acl_cfg_lookup_prepare)
+
+MOCK_DECL(nts_acl_cfg_overlaps);
+#define nts_acl_cfg_overlaps MOCK_NAME(mocked_nts_acl_cfg_overlaps)
+
+MOCK_DECL(rte_malloc);
+#define rte_malloc MOCK_NAME(mocked_rte_malloc)
+
+MOCK_DECL(rte_free);
+#define rte_free MOCK_NAME(mocked_rte_free)
+
+MOCK_DECL(nes_acl_find_rule_id);
+#define nes_acl_find_rule_id MOCK_NAME(mocked_nes_acl_find_rule_id)
+
+MOCK_DECL(nes_acl_add_entries);
+#define nes_acl_add_entries MOCK_NAME(mocked_nes_acl_add_entries)
+
+MOCK_DECL(nes_sq_enq);
+#define nes_sq_enq MOCK_NAME(mocked_nes_sq_enq)
+
+MOCK_DECL(rte_mempool_create);
+#define rte_mempool_create MOCK_NAME(mocked_rte_mempool_create)
+
+int nes_dns_agent_decap(struct rte_mbuf *m, struct ipv4_hdr *inner_ipv4);
+int nes_dns_agent_encap(struct rte_mbuf *m, nts_enc_entry_t *encap_entry);
+int nes_dns_agent_flow(__attribute__((unused))nts_route_entry_t *self,struct rte_mbuf *src_mbuf,
+	int is_upstream, void *ptr);
+int nes_dns_agent_setup(const char *tap_name);
+void nes_dns_tap_loop(void);
+
+#endif
