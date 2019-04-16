@@ -33,14 +33,21 @@ clean:
 build:
 	mkdir -p "${BUILD_DIR}"
 	CGO_ENABLED=0 GOOS=linux go build -o "${BUILD_DIR}/appliance" ./cmd/appliance
+	GOOS=linux go build -a --ldflags '-extldflags "-static"' -tags netgo -installsuffix netgo -o "${BUILD_DIR}/edgednssvr" ./cmd/edgednssvr
 
 build-docker: build
-	cp build/pkg/Dockerfile "${TMP_DIR}"
+	cp build/appliance/Dockerfile "${TMP_DIR}/Dockerfile_appliance"
 	cp -r configs "${TMP_DIR}"
 	cp "${BUILD_DIR}/appliance" "${TMP_DIR}"
-	docker build -t appliance:${VER} "${TMP_DIR}"
+	cp build/edgednssvr/Dockerfile "${TMP_DIR}/Dockerfile_edgednssvr"
+	cp "${BUILD_DIR}/edgednssvr" "${TMP_DIR}"
+	cp docker-compose.yml "${TMP_DIR}"
+	cd "${TMP_DIR}" && VER=${VER} docker-compose build
 	ls "${TMP_DIR}"
 	rm -rf "${TMP_DIR}"
+
+run-docker:
+	VER=${VER} docker-compose up --no-build
 
 lint:
 	golangci-lint run

@@ -1,0 +1,21 @@
+version: '3'
+services:
+  appliance:
+    build: 
+      context: .
+      dockerfile: "Dockerfile_appliance"
+    image: "appliance:${VER}"
+  edgednssvr:
+    build:
+      context: .
+      dockerfile: "Dockerfile_edgednssvr"
+    image: "edgednssvr:${VER}"
+    ports:
+     - "53:53/udp"
+    volumes:
+     - "/var/lib/edgedns:/var/lib/edgedns"
+     - "/run:/run"
+    environment:
+     - http_proxy
+     - https_proxy
+     - DNS_FWDR=8.8.8.8
