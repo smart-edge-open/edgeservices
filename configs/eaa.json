@@ -1,0 +1,20 @@
+{
+    "log": {
+        "level": "info",
+        "syslog": {
+            "enable": false,
+            "protocol": "",
+            "address": "",
+            "tag": "Appliance"
+        }
+    },
+    "serverAddr": {
+        "hostname": "localhost",
+        "port": "8081"
+    },
+    "certs": {
+        "caRootPath": "certs/eaa/rootCA.pem",
+        "serverCertPath": "certs/eaa/server.crt",
+        "serverKeyPath": "certs/eaa/server.key"
+    }
+}

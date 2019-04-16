@@ -17,14 +17,11 @@ package eaa
 import (
 	"context"
 	"errors"
-	"github.com/smartedgemec/appliance-ce/pkg/logger"
 	"net"
 	"net/http"
-)
 
-const (
-	eaaServerIP   = "localhost"
-	eaaServerPort = "8080"
+	"github.com/smartedgemec/appliance-ce/pkg/config"
+	"github.com/smartedgemec/appliance-ce/pkg/logger"
 )
 
 type services map[string]Service
@@ -33,7 +30,12 @@ type eaaContext struct {
 	serviceInfo services
 }
 
-var eaaCtx eaaContext
+var (
+	cfg    Config
+	eaaCtx eaaContext
+
+	log = logger.NewLogger("eaa")
+)
 
 // Initialize EAA context structures
 func Init() error {
@@ -45,9 +47,19 @@ func Init() error {
 	return nil
 }
 
-var (
-	log = logger.NewLogger("eaa")
-)
+func configLogger(cfgPath string) error {
+	err := config.LoadJSONConfig(cfgPath, &cfg)
+	if err != nil {
+		return err
+	}
+
+	err = logger.ConfigLogger(log, &cfg.Log)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // Start Edge Application Agent server listening on port read from config file
 func RunServer(parentCtx context.Context) error {
@@ -56,7 +68,8 @@ func RunServer(parentCtx context.Context) error {
 		return errors.New("Running EAA module failure: " + err.Error())
 	}
 
-	lis, err := net.Listen("tcp", eaaServerIP+":"+eaaServerPort)
+	lis, err := net.Listen("tcp",
+		cfg.ServerAddr.Hostname+":"+cfg.ServerAddr.Port)
 	if err != nil {
 		log.Errorf("net.Listen error: %#v", err)
 		return err
@@ -72,7 +85,8 @@ func RunServer(parentCtx context.Context) error {
 
 	defer log.Info("Stopped serving")
 
-	log.Infof("EAA Server started and listening on port %s", eaaServerPort)
+	log.Infof("EAA Server started and listening on port %s",
+		cfg.ServerAddr.Port)
 	if err = server.Serve(lis); err != http.ErrServerClosed {
 		log.Errorf("server.Serve error: %#v", err)
 		return err
@@ -81,9 +95,12 @@ func RunServer(parentCtx context.Context) error {
 	return nil
 }
 
-func Run(parentCtx context.Context, cfg string) error {
+func Run(parentCtx context.Context, configFile string) error {
 
-	//TODO add config check
+	if err := configLogger(configFile); err != nil {
+		log.Errorf("Failed to config logger: %#v", err)
+		return err
+	}
+
 	return RunServer(parentCtx)
-
 }

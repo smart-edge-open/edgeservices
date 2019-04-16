@@ -15,14 +15,22 @@
 package eaa
 
 import (
-	"errors"
+	"github.com/smartedgemec/appliance-ce/pkg/logger"
 )
 
-func addService(serv Service) error {
-	if eaaCtx.serviceInfo == nil {
-		return errors.New(
-			"EAA context is not initialized. Call Init() function first")
-	}
-	eaaCtx.serviceInfo[serv.URN.ID+"."+serv.URN.Namespace] = serv
-	return nil
+type ServerInfo struct {
+	Hostname string `json:"hostname"`
+	Port     string `json:"port"`
+}
+
+type CertsInfo struct {
+	CaRootPath     string `json:"caRootPath"`
+	ServerCertPath string `json:"serverCertPath"`
+	ServerKeyPath  string `json:"serverKeyPath"`
+}
+
+type Config struct {
+	ServerAddr ServerInfo    `json:"serverAddr"`
+	Certs      CertsInfo     `json:"certs"`
+	Log        logger.Config `json:"log"`
 }
