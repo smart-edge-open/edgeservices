@@ -32,7 +32,7 @@ clean:
 
 build:
 	mkdir -p "${BUILD_DIR}"
-	CGO_ENABLED=0 GOOS=linux go build -o "${BUILD_DIR}/appliance" ./cmd/appliance
+  GOOS=linux go build -o "${BUILD_DIR}/appliance" ./cmd/appliance
 	GOOS=linux go build -a --ldflags '-extldflags "-static"' -tags netgo -installsuffix netgo -o "${BUILD_DIR}/edgednssvr" ./cmd/edgednssvr
 
 build-docker: build

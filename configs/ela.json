@@ -8,7 +8,5 @@
             "tag": "Appliance"
         }
     },
-    "services": {
-        "github.com/smartedgemec/appliance-ce/pkg/ela": "configs/ela.json"
-    }
+    "endpoint": "localhost:42101"
 }

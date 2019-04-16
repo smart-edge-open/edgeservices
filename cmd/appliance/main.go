@@ -28,13 +28,16 @@ import (
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/eaa"
 	"github.com/smartedgemec/appliance-ce/pkg/logger"
+
+	// Imports required to run agents
+	"github.com/smartedgemec/appliance-ce/pkg/ela"
 )
 
 // ServiceStartFunction is func typedef for starting service
 type ServiceStartFunction func(context.Context, string) error
 
 // EdgeServices array contains function pointers to services start functions
-var EdgeServices = []ServiceStartFunction{eaa.Run}
+var EdgeServices = []ServiceStartFunction{ela.Run, eaa.Run}
 
 var log = logger.NewLogger("main")
 
