@@ -15,6 +15,7 @@
 package eaa
 
 import (
+	"encoding/json"
 	"net/http"
 )
 
@@ -44,7 +45,21 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 }
 
 func RegisterApplication(w http.ResponseWriter, r *http.Request) {
+	var serv Service
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	err := json.NewDecoder(r.Body).Decode(&serv)
+	if err != nil {
+		// TODO: Log request payload deserialization error
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err = addService(serv); err != nil {
+		// TODO: Log new service registration failure
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
 

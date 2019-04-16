@@ -16,6 +16,7 @@ package eaa
 
 import (
 	"context"
+	"errors"
 	"github.com/smartedgemec/appliance-ce/pkg/logger"
 	"net"
 	"net/http"
@@ -26,12 +27,35 @@ const (
 	eaaServerPort = "8080"
 )
 
+type services map[string]Service
+
+type eaaContext struct {
+	serviceInfo services
+}
+
+var eaaCtx eaaContext
+
+// Initialize EAA context structures
+func Init() error {
+	if eaaCtx.serviceInfo != nil {
+		return errors.New("EAA is already initialized")
+	}
+
+	eaaCtx.serviceInfo = services{}
+	return nil
+}
+
 var (
 	log = logger.NewLogger("eaa")
 )
 
 // Start Edge Application Agent server listening on port read from config file
 func RunServer(parentCtx context.Context) error {
+	if err := Init(); err != nil {
+		log.Errorf("init error: %#v", err)
+		return errors.New("Running EAA module failure: " + err.Error())
+	}
+
 	lis, err := net.Listen("tcp", eaaServerIP+":"+eaaServerPort)
 	if err != nil {
 		log.Errorf("net.Listen error: %#v", err)
