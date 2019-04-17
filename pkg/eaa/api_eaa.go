@@ -30,7 +30,25 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetServices(w http.ResponseWriter, r *http.Request) {
+	var servList ServiceList
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	if eaaCtx.serviceInfo == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	for _, serv := range eaaCtx.serviceInfo {
+		servList.Services = append(servList.Services, serv)
+	}
+
+	encoder := json.NewEncoder(w)
+	err := encoder.Encode(servList)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
 
