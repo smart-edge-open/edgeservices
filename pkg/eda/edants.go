@@ -26,6 +26,8 @@ package eda
 import "C"
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"net"
 	"unsafe"
@@ -33,6 +35,24 @@ import (
 
 type NtsConnection struct {
 	cConnection C.nes_remote_t
+}
+
+type NtsDeviceStats struct {
+	ReceivedPackets  uint64
+	SentPackets      uint64
+	DroppedPacketsTX uint64
+	DroppedPacketsHW uint64
+	ReceivedBytes    uint64
+	SentBytes        uint64
+	DroppedBytesTX   uint64
+	IPFragment       uint64
+}
+
+type NtsDevice struct {
+	Name    string
+	Index   uint16
+	MacAddr net.HardwareAddr
+	Stats   NtsDeviceStats
 }
 
 func NewNtsConnection() (*NtsConnection, error) {
@@ -96,4 +116,54 @@ func (conn *NtsConnection) RouteRemove(lookupKeys string) error {
 	}
 
 	return nil
+}
+
+func (conn *NtsConnection) GetDevices() ([]NtsDevice, error) {
+
+	cConnP := &(conn.cConnection)
+	devList := C.nes_stats_all_dev(cConnP)
+
+	if devList == nil {
+		return nil, errors.New("Unable to retrieve the stats")
+	}
+
+	var goDevices []NtsDevice
+	var cDevice *C.nes_api_dev_t
+	for current := devList.head; current != nil; current = current.next {
+		cDevice = (*C.nes_api_dev_t)(current.data)
+
+		Device := NtsDevice{
+			Name:  C.GoString(&cDevice.name[0]),
+			Index: (uint16)(cDevice.index),
+			Stats: NtsDeviceStats{
+				ReceivedPackets:  (uint64)(cDevice.stats.rcv_cnt),
+				SentPackets:      (uint64)(cDevice.stats.snd_cnt),
+				DroppedPacketsTX: (uint64)(cDevice.stats.drp_cnt_1),
+				DroppedPacketsHW: (uint64)(cDevice.stats.drp_cnt_2),
+				ReceivedBytes:    (uint64)(cDevice.stats.rcv_bytes),
+				SentBytes:        (uint64)(cDevice.stats.snd_bytes),
+				DroppedBytesTX:   (uint64)(cDevice.stats.drp_bytes_1),
+				IPFragment:       (uint64)(cDevice.stats.ip_fragment),
+			},
+		}
+
+		var buf bytes.Buffer
+		for i := 0; i < C.ETHER_ADDR_LEN; i++ {
+			b := []byte{*((*uint8)(&cDevice.macaddr.ether_addr_octet[i]))}
+			buf.WriteString(hex.EncodeToString(b))
+			if i < (C.ETHER_ADDR_LEN - 1) {
+				buf.WriteString(":")
+			}
+		}
+		macAddrString := buf.String()
+		macHrdwAddr, err := net.ParseMAC(macAddrString)
+		if err != nil {
+			return nil, errors.New("Mac Address conversion failed")
+		}
+
+		Device.MacAddr = macHrdwAddr
+		goDevices = append(goDevices, Device)
+	}
+	C.nes_sq_dtor(devList)
+	return goDevices, nil
 }
