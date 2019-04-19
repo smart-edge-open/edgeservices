@@ -16,7 +16,10 @@ package eaa
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"io/ioutil"
 	"net"
 	"net/http"
 
@@ -61,11 +64,44 @@ func configLogger(cfgPath string) error {
 	return nil
 }
 
+func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
+
+	certPool := x509.NewCertPool()
+
+	certs, err := ioutil.ReadFile(caFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if res := certPool.AppendCertsFromPEM(certs); !res {
+		return nil, errors.New(
+			"Failed to append cert to pool")
+	}
+
+	return certPool, nil
+}
+
 // Start Edge Application Agent server listening on port read from config file
 func RunServer(parentCtx context.Context) error {
 	if err := Init(); err != nil {
 		log.Errorf("init error: %#v", err)
 		return errors.New("Running EAA module failure: " + err.Error())
+	}
+
+	certPool, err := CreateAndSetCACertPool(cfg.Certs.CaRootPath)
+	if err != nil {
+		log.Errorf("Cert Pool error: %#v", err)
+		return err
+	}
+
+	router := NewRouter()
+	server := &http.Server{
+		Addr: cfg.ServerAddr.Hostname + ":" + cfg.ServerAddr.Port,
+		TLSConfig: &tls.Config{
+			ClientAuth: tls.RequireAndVerifyClientCert,
+			ClientCAs:  certPool,
+		},
+		Handler: router,
 	}
 
 	lis, err := net.Listen("tcp",
@@ -74,8 +110,6 @@ func RunServer(parentCtx context.Context) error {
 		log.Errorf("net.Listen error: %#v", err)
 		return err
 	}
-	router := NewRouter()
-	server := http.Server{Handler: router}
 
 	go func() {
 		<-parentCtx.Done()
@@ -87,7 +121,8 @@ func RunServer(parentCtx context.Context) error {
 
 	log.Infof("EAA Server started and listening on port %s",
 		cfg.ServerAddr.Port)
-	if err = server.Serve(lis); err != http.ErrServerClosed {
+	if err = server.ServeTLS(lis, cfg.Certs.ServerCertPath,
+		cfg.Certs.ServerKeyPath); err != http.ErrServerClosed {
 		log.Errorf("server.Serve error: %#v", err)
 		return err
 	}

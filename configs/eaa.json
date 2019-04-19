@@ -10,7 +10,7 @@
     },
     "serverAddr": {
         "hostname": "localhost",
-        "port": "8081"
+        "port": "443"
     },
     "certs": {
         "caRootPath": "certs/eaa/rootCA.pem",
