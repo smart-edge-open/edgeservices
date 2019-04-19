@@ -33,7 +33,6 @@
 #include "ctrl/nes_ctrl.h"
 #include "io/nes_io.h"
 #include "io/nes_dev_addons.h"
-#include "io/nes_dev_egressport.h"
 
 #ifdef UNIT_TESTS
 	#include "nis_io_decl.h"
@@ -89,7 +88,6 @@ NES_STATIC int nis_io_init_traffic_rings(void)
 
 static int nis_io_dwstr_flow(__attribute__((unused)) nes_ring_t *self, void **buf, int rx_cnt)
 {
-	struct ipv4_hdr *ipv4_hdr;
 	struct ether_hdr *eth_hdr;
 	int i;
 
@@ -109,12 +107,9 @@ static int nis_io_dwstr_flow(__attribute__((unused)) nes_ring_t *self, void **bu
 			continue;
 		}
 
-		ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-		nes_ring_t *ring = get_egress_ring_from_dst_ip(ipv4_hdr->dst_addr);
-		if (NULL == ring) {
-			ring = nes_dev_get_egressring_from_port_idx(
+		nes_ring_t *ring = nes_dev_get_egressring_from_port_idx(
 				((struct rte_mbuf *)buf[i])->port);
-		}
+
 		if (likely(NULL != ring))
 			ring->enq(ring, buf[i]);
 		else {
@@ -127,7 +122,6 @@ static int nis_io_dwstr_flow(__attribute__((unused)) nes_ring_t *self, void **bu
 
 static int nis_io_upstr_flow(__attribute__((unused)) nes_ring_t *self, void **buf, int rx_cnt)
 {
-	struct ipv4_hdr *ipv4_hdr;
 	struct ether_hdr *eth_hdr;
 	int i;
 
@@ -148,12 +142,8 @@ static int nis_io_upstr_flow(__attribute__((unused)) nes_ring_t *self, void **bu
 			continue;
 		}
 
-		ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-		nes_ring_t *ring = get_egress_ring_from_src_ip(ipv4_hdr->src_addr);
-		if (NULL == ring) {
-			ring = nes_dev_get_egressring_from_port_idx(
+		nes_ring_t *ring =  nes_dev_get_egressring_from_port_idx(
 				((struct rte_mbuf *)buf[i])->port);
-		}
 		if (likely(NULL != ring))
 			ring->enq(ring, buf[i]);
 		else

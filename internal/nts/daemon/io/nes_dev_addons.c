@@ -49,6 +49,19 @@ nes_dev_t *nes_dev_get_device_by_idx(int idx)
 	return (nes_dev_t *)devices_tab[idx].device;
 }
 
+nes_dev_t *nes_dev_get_device_by_tx_ring(const nes_ring_t *ring_ptr)
+{
+	int i;
+	if (NULL == ring_ptr)
+		return NULL;
+	for (i = 0; i < NES_TABQ_MAX_ELEMENTS; i++) {
+		if (NULL != devices_tab[i].device)
+			if (devices_tab[i].device->tx_ring == ring_ptr)
+				return (nes_dev_t *)devices_tab[i].device;
+	}
+	return NULL;
+}
+
 int nes_dev_add_device(nes_dev_t *device)
 {
 	if (ETH == device->dev_type) {

@@ -40,7 +40,6 @@
 #include "libnes_cfgfile.h"
 #include "nts/nts_io.h"
 #include "nes_dev_addons.h"
-#include "io/nes_dev_egressport.h"
 
 #ifdef UNIT_TESTS
 	#include "nes_dev_port_decl.h"
@@ -56,7 +55,6 @@ static nes_queue_t * nes_io_devices;
 
 static nes_queue_t *nts_io_rings;
 static int no_of_ports = 0;
-nes_lookup_table_t *egress_port_table = NULL;
 
 int count_port_devices(void)
 {
@@ -157,11 +155,22 @@ enum scatter_flags
 	SCATTER_FL_BOTH = 1<<5,
 };
 
+
+// For ports with BOTH direction upstream traffic rule has to be set to be able
+// to determine traffic direction
+static uint8_t is_upstream(struct rte_mbuf *m, uint8_t is_gtp) {
+	nes_ring_t *dst_ring = nts_get_dst_ring(m, is_gtp);
+	nes_dev_t *dev = nes_dev_get_device_by_tx_ring(dst_ring);
+	if (NULL == dev)
+		return 0;
+	return 1;
+}
+
 /* ALL FLAGS SHOULD BE OPTIMIZED */
 static FORCE_INLINE void scatter_eth_packets(struct nes_dev_s *self, int flags)
 {
 	uint16_t i, udp_port = 0;
-	nes_ring_t *ring_from_dstip;
+	uint8_t is_upstream_dir;
 	uint64_t   cur_tsc =  rte_rdtsc();
 
 	for (i = 0; i < self->rx_cnt; i++) {
@@ -218,11 +227,11 @@ static FORCE_INLINE void scatter_eth_packets(struct nes_dev_s *self, int flags)
 
 		if (flags & SCATTER_FL_LTE) {
 			if (flags & SCATTER_FL_BOTH)
-				ring_from_dstip = get_egress_ring_from_dst_ip(ipv4_hdr->dst_addr);
+				is_upstream_dir = is_upstream(self->rx_pkts[i], 1);
 
 			if (ipv4_hdr->next_proto_id == IP_PROTO_SCTP) {
 				if (flags & SCATTER_FL_BOTH) {
-					nes_ring_t *ring = (NULL == ring_from_dstip) ?
+					nes_ring_t *ring = is_upstream_dir ?
 						self->rx_rings[NIS_PORT_UPSTR_SCTP] :
 						self->rx_rings[NIS_PORT_DWSTR_SCTP];
 					ring->enq(ring,self->rx_pkts[i]);       /* for Klockwork */
@@ -238,7 +247,7 @@ static FORCE_INLINE void scatter_eth_packets(struct nes_dev_s *self, int flags)
 			if (ipv4_hdr->next_proto_id != IP_PROTO_UDP) {
 				if (flags & SCATTER_FL_IP) {
 					if (flags & SCATTER_FL_BOTH) {
-						nes_ring_t *ring = (NULL == ring_from_dstip) ?
+						nes_ring_t *ring = is_upstream(self->rx_pkts[i], 0) ?
 							self->rx_rings[NTS_PORT_UPSTR_IP] :
 							self->rx_rings[NTS_PORT_DWSTR_IP];
 						ring->enq(ring,
@@ -264,7 +273,7 @@ static FORCE_INLINE void scatter_eth_packets(struct nes_dev_s *self, int flags)
 			ip_len = ipv4_hdr->version_ihl & 0xf;
 			udp_hdr = (struct udp_hdr*)((uint32_t *)ipv4_hdr + ip_len);
 			if (flags & SCATTER_FL_BOTH) {
-				udp_port = (NULL == ring_from_dstip) ?
+				udp_port = is_upstream_dir ?
 					udp_hdr->dst_port : udp_hdr->src_port;
 			} else if (flags & SCATTER_FL_UPSTREAM)
 				udp_port = udp_hdr->dst_port;
@@ -275,7 +284,7 @@ static FORCE_INLINE void scatter_eth_packets(struct nes_dev_s *self, int flags)
 			if (udp_port == rte_cpu_to_be_16(UDP_GTPU_PORT) &&
 				((gtpuHdr_t*)(udp_hdr + 1))->msg_type == GTPU_MSG_GPDU) {
 				if (flags & SCATTER_FL_BOTH) {
-					nes_ring_t *ring = (NULL == ring_from_dstip) ?
+					nes_ring_t *ring = is_upstream_dir ?
 						self->rx_rings[NTS_PORT_UPSTR_GTPU] :
 						self->rx_rings[NTS_PORT_DWSTR_GTPU];
 					ring->enq(ring, self->rx_pkts[i]);       /* for Klockwork */
@@ -288,7 +297,7 @@ static FORCE_INLINE void scatter_eth_packets(struct nes_dev_s *self, int flags)
 				}
 			} else if (udp_port == rte_cpu_to_be_16(UDP_GTPC_PORT)) {
 				if (flags & SCATTER_FL_BOTH) {
-					nes_ring_t *ring = (NULL == ring_from_dstip) ?
+					nes_ring_t *ring = is_upstream_dir ?
 						self->rx_rings[NIS_PORT_UPSTR_GTPC] :
 						self->rx_rings[NIS_PORT_DWSTR_GTPC];
 					ring->enq(ring, self->rx_pkts[i]);       /* for Klockwork */
@@ -302,7 +311,7 @@ static FORCE_INLINE void scatter_eth_packets(struct nes_dev_s *self, int flags)
 			} else {
 				if (flags & SCATTER_FL_IP) {
 					if (flags & SCATTER_FL_BOTH) {
-						nes_ring_t *ring = (NULL == ring_from_dstip) ?
+						nes_ring_t *ring = is_upstream_dir ?
 							self->rx_rings[NTS_PORT_UPSTR_IP] :
 							self->rx_rings[NTS_PORT_DWSTR_IP];
 						ring->enq(ring,
@@ -325,9 +334,7 @@ static FORCE_INLINE void scatter_eth_packets(struct nes_dev_s *self, int flags)
 			}
 		} else if (flags & SCATTER_FL_IP) {
 			if (flags & SCATTER_FL_BOTH) {
-				nes_ring_t *ring_from_dstip =
-					get_egress_ring_from_dst_ip(ipv4_hdr->dst_addr);
-				nes_ring_t *ring = (NULL == ring_from_dstip) ?
+				nes_ring_t *ring = is_upstream(self->rx_pkts[i], 0) ?
 					self->rx_rings[NTS_PORT_UPSTR_IP] :
 					self->rx_rings[NTS_PORT_DWSTR_IP];
 				ring->enq(ring, self->rx_pkts[i]);       /* for Klockwork */
@@ -676,28 +683,11 @@ int nes_dev_port_new_device(void)
 	const char      *name;
 	uint64_t        frag_cycles;
 
-	struct nes_lookup_params_s lookup_table_params = {
-		.name = "egress_port_lookup_table",
-		.number_of_entries = 1024,
-		.key_len = sizeof(struct in_addr),
-		.entry_len = sizeof(egress_port_t)
-	};
 
 	/* search for all logical ports */
 	int i = 0;
 	uint8_t dpdk_port_id = 0;
 	char port_name[PORT_NAME_SIZE];
-
-	egress_port_table = rte_malloc("Egress port lookup table", sizeof(nes_lookup_table_t), 0);
-	if (NULL == egress_port_table) {
-		NES_LOG(ERR, "Unable to allocate memory for egress port lookup table.\n");
-		return NES_FAIL;
-	}
-	if (NES_SUCCESS != nes_lookup_ctor(egress_port_table, &lookup_table_params)) {
-		NES_LOG(ERR, "Unable to create egress port lookup table.\n");
-		rte_free(egress_port_table);
-		return NES_FAIL;
-	}
 
 	nes_io_dev_queue_get(&nes_io_devices);
 	nts_io_ring_queue_get(&nts_io_rings);
@@ -783,64 +773,6 @@ int nes_dev_port_new_device(void)
 			port_dev->egres_port = atoi(buffer);
 			/* rx ring for egress port */
 			nes_ring_per_port_set(port_dev->egres_port, &port_dev->rx_default_ring);
-			/* get ip addresses */
-			if (TD_DOWNSTREAM != port_dev->traffic_dir) {
-				if (NES_SUCCESS == nes_cfgfile_entry(port_name, IP_ADDRESSES,
-						&buffer)) {
-					char *token, *port_ptr, ip[INET_ADDRSTRLEN];
-					int port_nr;
-					struct in_addr ip_addr;
-					egress_port_t *remote, data;
-					token = strtok((char*)(uintptr_t)buffer, ",");
-					while (NULL != token) {
-						/* check if port is specified */
-						port_ptr = strrchr(token, ':');
-						if (NULL == port_ptr)
-							break;
-
-						memset(ip, 0, INET_ADDRSTRLEN);
-						strncpy(ip, token, port_ptr-token);
-						port_nr = atoi(port_ptr + 1);
-						if (0 != inet_aton(ip, &ip_addr)) {
-							if (NES_SUCCESS == nes_lookup_entry_find(
-									egress_port_table, &ip_addr,
-									(void**)&remote)) {
-								/* error */
-								NES_LOG(ERR,
-									"IP address (%s) for port %d already reserved\n",
-									buffer, i);
-								break;
-							} else {
-								nes_ring_t *ring;
-								data.src.ring = NULL;
-								data.src.from_config = 0;
-								nes_ring_per_port_set(port_nr,
-									&ring);
-								data.src.ring = ring;
-								data.src.from_config = 1;
-								data.dst.ring = port_dev->tx_ring;
-								if (NES_FAIL == nes_lookup_entry_add(
-										egress_port_table,
-										&ip_addr, &data)) {
-									NES_LOG(ERR, "Unable to add IP address (%s) for port %d to lookup table\n", buffer, i);
-									break;
-								}
-							}
-						} else
-							break;
-
-						token = strtok(NULL, ",");
-					}
-					/* check if error occurred in the while loop */
-					if (NULL != token)
-						break;
-				} else {
-					NES_LOG(ERR,
-						"Unable to find "IP_ADDRESSES" entry for port %d\n",
-						i);
-					break;
-				}
-			}
 		}
 
 		/* get pci address */
@@ -995,9 +927,5 @@ void nes_dev_port_dtor(void)
 			}
 			break;
 		}
-	}
-	if (NULL != egress_port_table) {
-		nes_lookup_dtor(egress_port_table);
-		egress_port_table = NULL;
 	}
 }

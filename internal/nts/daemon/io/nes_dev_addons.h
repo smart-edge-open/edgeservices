@@ -53,6 +53,7 @@ int nes_dev_tabq_init(void);
 nes_dev_t *nes_dev_get_device_by_idx(int idx);
 int nes_dev_add_device(nes_dev_t *device);
 int nes_dev_del_device(nes_dev_t *device);
+nes_dev_t *nes_dev_get_device_by_tx_ring(const nes_ring_t *ring_ptr);
 
 #ifdef __cplusplus
 }

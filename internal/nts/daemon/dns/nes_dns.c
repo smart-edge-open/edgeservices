@@ -38,7 +38,6 @@
 #include "nes_arp.h"
 #include "io/nes_io.h"
 #include "io/nes_dev_addons.h"
-#include "io/nes_dev_egressport.h"
 
 #ifdef UNIT_TESTS
 	#include "nes_dns_decl.h"
@@ -280,13 +279,7 @@ nes_dns_agent_flow(__attribute__((unused))nts_route_entry_t *self, struct rte_mb
 						external_dns_ip);
 
 					nes_ring_t *egress_ring =
-						get_egress_ring_from_src_ip(
-							params->inner_ipv4_hdr->src_addr);
-					if (NULL == egress_ring) {
-						egress_ring =
-							nes_dev_get_egressring_from_port_idx(
-								src_mbuf->port);
-					}
+						nes_dev_get_egressring_from_port_idx(src_mbuf->port);
 					if (NULL == egress_ring)
 						rte_pktmbuf_free(src_mbuf);
 					else

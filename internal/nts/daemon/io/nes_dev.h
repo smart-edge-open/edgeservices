@@ -68,7 +68,6 @@ extern "C" {
 #define MTU_ENTRY               "MTU"
 
 #define EGRESS_PORT             "egress-port"
-#define IP_ADDRESSES            "ip-addresses"
 #define MAC_ENTRY               "mac"
 #define PCI_ADDRESS             "pci-address"
 #define PORT_TX_QUEUE_NAME_TEMPLATE "PORT_%d_IO_ANY"
@@ -189,7 +188,6 @@ typedef struct nes_dev_s {
 
 } nes_dev_t;
 
-extern nes_lookup_table_t *egress_port_table;
 /**
 * Early initialization for vhost
 * Mempool initialization, CUSE driver registration and starting session

@@ -61,7 +61,6 @@ static struct rte_cfgfile_entry  entries1[] = {
 	{ .name = "traffic-direction", .value = "both", },
 	{ .name = "traffic-type", .value = "mixed", },
 	{ .name = "egress-port", .value = "1", },
-	{ .name = "ip-addresses", .value = "192.168.0.1:1", },
 };
 
 static struct rte_cfgfile_entry  entries2[] = {
@@ -69,7 +68,6 @@ static struct rte_cfgfile_entry  entries2[] = {
 	{ .name = "traffic-direction", .value = "both", },
 	{ .name = "traffic-type", .value = "mixed", },
 	{ .name = "egress-port", .value = "0", },
-	{ .name = "ip-addresses", .value = "192.168.1.1:0", },
 };
 
 int
@@ -347,11 +345,6 @@ nts_packet_edit_enq_test(void) {
 		{
 			.ring_name = "test",
 			.dst_ring = NULL,
-			.edit = NULL
-		},
-		{
-			.ring_name = NULL,
-			.dst_ring = (nes_ring_t *) & fake,
 			.edit = NULL
 		},
 		{

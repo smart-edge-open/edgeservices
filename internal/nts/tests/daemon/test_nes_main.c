@@ -86,7 +86,6 @@ static void test_nes_init_interfaces(void)
 		{ .name = "traffic-direction", .value = "upstream", },
 		{ .name = "traffic-type", .value = "LTE", },
 		{ .name = "egress-port", .value = "1", },
-		{ .name = "ip-addresses", .value = "192.168.0.1:1", },
 	};
 
 	static struct rte_cfgfile_entry  entries2[] = {
@@ -94,7 +93,6 @@ static void test_nes_init_interfaces(void)
 		{ .name = "traffic-direction", .value = "downstream", },
 		{ .name = "traffic-type", .value = "LTE", },
 		{ .name = "egress-port", .value = "0", },
-		{ .name = "ip-addresses", .value = "192.168.1.1:0", },
 	};
 
 	static struct rte_cfgfile_entry  entries3[] = {

@@ -125,6 +125,8 @@ int nts_route_entry_edit_set(nts_route_entry_t *, nts_edit_modes_t);
 
 int nts_route_entry_edit_get(nts_route_entry_t *entry);
 
+nes_ring_t *nts_get_dst_ring(struct rte_mbuf *m, uint8_t is_gtp);
+
 #ifdef __cplusplus
 }
 #endif

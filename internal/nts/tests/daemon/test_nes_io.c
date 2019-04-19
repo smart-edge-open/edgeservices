@@ -81,7 +81,6 @@ static struct rte_cfgfile_entry  entries1[] = {
 	{ .name = "traffic-direction", .value = "both", },
 	{ .name = "traffic-type", .value = "mixed", },
 	{ .name = "egress-port", .value = "1", },
-	{ .name = "ip-addresses", .value = "192.168.0.1:1", },
 };
 
 static struct rte_cfgfile_entry  entries2[] = {

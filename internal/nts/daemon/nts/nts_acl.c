@@ -128,8 +128,6 @@ int
 nts_acl_lookup_init(nes_acl_ctx_t* lookup_ctx) {
 	assert(lookup_ctx);
 
-	int ret = NES_SUCCESS;
-
 	if (NES_SUCCESS != nes_acl_ctor(lookup_ctx, NTS_ACL_NAME, sizeof (nes_sq_t),
 			NES_MAX_ROUTING_RULES, nts_acl_lookup_fields,
 			RTE_DIM(nts_acl_lookup_fields))) {
@@ -144,14 +142,16 @@ nts_acl_lookup_init(nes_acl_ctx_t* lookup_ctx) {
 		}
 	}
 
-	NES_LOG(INFO, "Loading routes from a configuration file is disabled.\n");
+	if (NES_SUCCESS != nts_acl_add_dataplane_entries(lookup_ctx)) {
+		NES_LOG(ERR, "Failed to add dataplane rules.\n");
+		return NES_FAIL;
+	}
 
-	if (NES_SUCCESS == is_lbp_enabled())
-		ret = nts_acl_add_lbp_entries(lookup_ctx);
-	else
+	if (NES_SUCCESS != is_lbp_enabled())
 		NES_LOG(INFO, "LBP is disabled\n");
 
-	return ret;
+
+	return NES_SUCCESS;
 }
 
 NES_STATIC int
@@ -344,6 +344,101 @@ nts_acl_lookup_add_impl(nes_acl_ctx_t* lookup_ctx, char* lookup_str, const char*
 }
 
 static int
+nts_acl_lookup_add_one_dir(nes_acl_ctx_t* lookup_ctx, char* lookup_str, const char* ring_name,
+	struct ether_addr mac_addr, nts_edit_modes_t edit_mode) {
+	assert(lookup_ctx);
+
+	struct nts_acl_lookup_field rule, ignored_rule;
+	struct nts_acl_lookup_field *rule_ptr;
+	nts_route_entry_t *route = NULL;
+	nes_sq_t *entry = NULL;
+	int rule_id;
+
+	if (NULL == lookup_str) {
+		NES_LOG(ERR, "Lookup string is empty\n");
+		return NES_FAIL;
+	}
+
+	if (NES_SUCCESS != nts_acl_cfg_lookup_prepare(&rule, &ignored_rule,
+			lookup_str)) {
+		NES_LOG(ERR, "Failed parsing: %s\n", lookup_str);
+		return NES_FAIL;
+	}
+	if (NTS_ACL_LOOKUPS_DIFFER != nts_acl_cfg_overlaps(lookup_ctx, &rule))
+		NES_LOG(WARNING, "Overlapping rule: %s\n", lookup_str);
+
+	if ((route = rte_malloc("route entry", sizeof (nts_route_entry_t), 0)) == NULL) {
+		NES_LOG(ERR, "Unable to allocate new route entries\n");
+		return NES_FAIL;
+	}
+
+	if (NES_SUCCESS != nts_acl_cfg_route_entry_prepare(ring_name, mac_addr,
+			route, edit_mode)) {
+		if (NULL == ring_name)
+			NES_LOG(ERR, "Failed to add route entry\n");
+		else
+			NES_LOG(ERR, "Failed to add route entry for %s\n", ring_name);
+		return NES_FAIL;
+	}
+
+	rule_id = nes_acl_find_rule_id(lookup_ctx, (struct rte_acl_rule*) &rule);
+	if (rule_id >= 0) {
+		entry = lookup_ctx->entries[
+			lookup_ctx->rules[rule_id]->data.userdata - USER_DATA_OFFSET];
+	}
+
+	if (NULL == entry) {
+		if ((entry = rte_malloc("route entry",
+				lookup_ctx->entry_size, 0)) == NULL) {
+			NES_LOG(ERR, "Failed to allocate new entry\n");
+			return NES_FAIL;
+		}
+		nes_sq_ctor(entry);
+
+		rule_ptr = &rule;
+		if (NES_SUCCESS != nes_acl_add_entries(lookup_ctx, (void**) &entry,
+				(struct rte_acl_rule**) &rule_ptr, 1))
+			NES_LOG(ERR, "Failed to add upstream entry\n");
+
+		// entry is copied and not used anymore
+		rte_free(entry);
+		rule_id = nes_acl_find_rule_id(lookup_ctx, (struct rte_acl_rule*) &rule);
+		entry = lookup_ctx->entries[
+			lookup_ctx->rules[rule_id]->data.userdata - USER_DATA_OFFSET];
+	}
+
+	if (NES_SUCCESS != nes_acl_add_entry(entry, route)) {
+		NES_LOG(ERR, "Could not add routing entry");
+		return NES_FAIL;
+	}
+	return NES_SUCCESS;
+}
+
+static int
+nts_acl_add_single_dataplane_entry(nes_acl_ctx_t* lookup_ctx, char *port_name, char *tx_ring_name)
+{
+	struct rte_cfgfile_entry  cfg_entries[MAX_LOOKUPS_PER_VM];
+	int i;
+	struct ether_addr ignored_mac_addr = {{0}};
+
+	if (NES_SUCCESS != nes_cfgfile_get_entries(port_name, cfg_entries, MAX_LOOKUPS_PER_VM)) {
+		NES_LOG(ERR, "Failed to get entries for %s\n", port_name);
+		return NES_FAIL;
+	}
+
+	for (i = 0; i < nes_cfgfile_section_num_entries(port_name); i++) {
+		if (strncmp(cfg_entries[i].name, NTS_ACL_CFG_ENTRY_NAME, sizeof(NTS_ACL_CFG_ENTRY_NAME)) == 0) {
+			if (NES_SUCCESS != nts_acl_lookup_add_one_dir(lookup_ctx, cfg_entries[i].value,
+					tx_ring_name, ignored_mac_addr, NTS_EDIT_NULL_CALLBACK)) {
+				NES_LOG(ERR, "Failed to add a rule from %s\n", port_name);
+				return NES_FAIL;
+			}
+		}
+	}
+	return NES_SUCCESS;
+}
+
+static int
 nts_acl_add_single_lbp_entry(nes_acl_ctx_t* lookup_ctx, char *port_name, char *tx_ring_name)
 {
 	struct rte_cfgfile_entry  cfg_entries[MAX_LOOKUPS_PER_VM];
@@ -379,7 +474,7 @@ nts_acl_add_single_lbp_entry(nes_acl_ctx_t* lookup_ctx, char *port_name, char *t
 	return NES_SUCCESS;
 }
 
-int nts_acl_add_lbp_entries(nes_acl_ctx_t* lookup_ctx)
+int nts_acl_add_dataplane_entries(nes_acl_ctx_t* lookup_ctx)
 {
 	assert(entries);
 	assert(rules);
@@ -396,19 +491,20 @@ int nts_acl_add_lbp_entries(nes_acl_ctx_t* lookup_ctx)
 			break;
 
 		if (NES_SUCCESS == nes_cfgfile_entry(port_name, TRAFFIC_DIRECTION, &buffer)) {
+            snprintf(tx_ring_name, sizeof(tx_ring_name),
+                PORT_TX_QUEUE_NAME_TEMPLATE, portid);
 			if (0 == strncmp(buffer, TRAFFIC_DIRECTION_LBP,
 					sizeof(TRAFFIC_DIRECTION_LBP))) {
-
-				snprintf(tx_ring_name, sizeof(tx_ring_name),
-					PORT_TX_QUEUE_NAME_TEMPLATE, portid);
 				if (NES_SUCCESS != nts_acl_add_single_lbp_entry(lookup_ctx,
 						port_name, tx_ring_name))
-					return NES_FAIL;
-			}
+						return NES_FAIL;
+			} else if (NES_SUCCESS != nts_acl_add_single_dataplane_entry(lookup_ctx,
+                    port_name, tx_ring_name))
+                return NES_FAIL;
+
 		}
 		portid++;
 	}
-	NES_LOG(INFO, "LBP entries initialized\n");
 	return NES_SUCCESS;
 }
 
@@ -511,10 +607,8 @@ void nts_acl_flush(nes_acl_ctx_t* lookup_ctx) {
 			NES_LOG(ERR, "Failed to setup DNS routing\n");
 	}
 
-	if (NES_SUCCESS == is_lbp_enabled()) {
-		if (NES_SUCCESS != nts_acl_add_lbp_entries(lookup_ctx))
-			NES_LOG(ERR, "Failed to add LBP entries\n");
-	}
+	if (NES_SUCCESS != nts_acl_add_dataplane_entries(lookup_ctx))
+		NES_LOG(ERR, "Failed to add dataplane entries\n");
 }
 
 void

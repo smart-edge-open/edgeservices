@@ -46,7 +46,6 @@
 #include "nis/nis_routing_data.h"
 #include "io/nes_dev_addons.h"
 #include "io/nes_mac_lookup.h"
-#include "io/nes_dev_egressport.h"
 
 #ifdef UNIT_TESTS
 	#include "nts_edit_decl.h"
@@ -304,9 +303,12 @@ nts_packet_edit_enq(nes_sq_t *entries, struct rte_mbuf *mbuf, routing_params_t *
 					(void*) params)))
 				continue;
 		} else {
-			NES_LOG(ERR, "Missing callback edit on routing entry %s.\n",
-				entry->ring_name);
-			continue;
+			if (unlikely(NULL == entry->dst_ring)) {
+				NES_LOG(ERR, "Missing callback edit on routing entry %s.\n",
+					entry->ring_name);
+				continue;
+			}
+			entry->dst_ring->enq(entry->dst_ring, mbuf);
 		}
 		retval = NES_SUCCESS;
 	}
@@ -333,10 +335,7 @@ nts_flow_upstream_gtp(nes_ring_t *ingress_ring, void **buffer, int mbuf_num) {
 		nts_edit_hdr_parse_gtp(mbufs[i], &new_entry.upstream,
 			&tuples[i], &inner_ipv4_hdr, NES_UPSTREAM);
 		fwd_params[i].inner_ipv4_hdr = inner_ipv4_hdr;
-		egress_ring = get_egress_ring_from_ips(tuples_ptrs[i]->outer_ip_src,
-			tuples_ptrs[i]->outer_ip_dst);
-		if (NULL == egress_ring)
-			egress_ring = nes_dev_get_egressring_from_port_idx(mbufs[i]->port);
+		egress_ring = nes_dev_get_egressring_from_port_idx(mbufs[i]->port);
 
 		fwd_params[i].egress_ring = egress_ring;
 		new_entry.upstream.dst_ring = egress_ring;
@@ -395,10 +394,7 @@ nts_flow_downstream_gtp(nes_ring_t *ingress_ring, void **buffer, int mbuf_num) {
 		nts_edit_hdr_parse_gtp(mbufs[i], &new_entry.downstream,
 			&tuples[i], &inner_ipv4_hdr, NES_DOWNSTREAM);
 		fwd_params[i].inner_ipv4_hdr = inner_ipv4_hdr;
-		egress_ring = get_egress_ring_from_ips(tuples_ptrs[i]->outer_ip_src,
-			tuples_ptrs[i]->outer_ip_dst);
-		if (NULL == egress_ring)
-			egress_ring = nes_dev_get_egressring_from_port_idx(mbufs[i]->port);
+		egress_ring = nes_dev_get_egressring_from_port_idx(mbufs[i]->port);
 		fwd_params[i].egress_ring = egress_ring;
 		new_entry.downstream.dst_ring = egress_ring;
 		nes_lookup_entry_find(lookup->learning, &inner_ipv4_hdr->dst_addr, (void**) &entry);
@@ -432,6 +428,27 @@ nts_flow_downstream_gtp(nes_ring_t *ingress_ring, void **buffer, int mbuf_num) {
 	return NES_SUCCESS;
 }
 
+nes_ring_t *
+nts_get_dst_ring(struct rte_mbuf *m, uint8_t is_gtp) {
+	nts_acl_tuple_t tuple, *tuple_ptr = &tuple;
+	struct ipv4_hdr *inner_ipv4_hdr;
+	nes_sq_t *route_entry;
+	nts_enc_entry_t ignored;
+
+	if (is_gtp)
+		nts_edit_hdr_parse_gtp(m, &ignored.upstream,
+			&tuple, &inner_ipv4_hdr, NES_UPSTREAM);
+	else
+		nts_edit_hdr_parse_ip(m, &ignored.upstream, &tuple, &inner_ipv4_hdr);
+
+	nes_acl_lookup(&nes_ctrl_acl_ctx, (const uint8_t**) &tuple_ptr,
+		1, (void**)&route_entry);
+	if (NULL == route_entry)
+		return NULL;
+	nts_route_entry_t *entry = nes_sq_data(nes_sq_head(route_entry));
+	return entry->dst_ring;
+}
+
 NES_STATIC int
 nts_flow_upstream_ip(nes_ring_t *ingress_ring, void **buffer, int mbuf_num) {
 	nts_enc_entry_t *entry;
@@ -451,9 +468,7 @@ nts_flow_upstream_ip(nes_ring_t *ingress_ring, void **buffer, int mbuf_num) {
 		tuples_ptrs[i] = &tuples[i];
 		nts_edit_hdr_parse_ip(mbufs[i], &new_entry.upstream, &tuples[i], &inner_ipv4_hdr);
 		fwd_params[i].inner_ipv4_hdr = inner_ipv4_hdr;
-		egress_ring = get_egress_ring_from_src_ip(tuples_ptrs[i]->inner_ip_src);
-		if (NULL == egress_ring)
-			egress_ring = nes_dev_get_egressring_from_port_idx(mbufs[i]->port);
+		egress_ring = nes_dev_get_egressring_from_port_idx(mbufs[i]->port);
 		fwd_params[i].egress_ring = egress_ring;
 		new_entry.upstream.dst_ring = egress_ring;
 		nes_lookup_entry_find(lookup->learning, &inner_ipv4_hdr->src_addr, (void**) &entry);
@@ -511,9 +526,7 @@ nts_flow_downstream_ip(nes_ring_t *ingress_ring, void **buffer, int mbuf_num) {
 		tuples_ptrs[i] = &tuples[i];
 		nts_edit_hdr_parse_ip(mbufs[i], &new_entry.downstream, &tuples[i], &inner_ipv4_hdr);
 		fwd_params[i].inner_ipv4_hdr = inner_ipv4_hdr;
-		egress_ring = get_egress_ring_from_dst_ip(tuples_ptrs[i]->inner_ip_dst);
-		if (NULL == egress_ring)
-			egress_ring = nes_dev_get_egressring_from_port_idx(mbufs[i]->port);
+		egress_ring = nes_dev_get_egressring_from_port_idx(mbufs[i]->port);
 
 		fwd_params[i].egress_ring = egress_ring;
 		new_entry.downstream.dst_ring = egress_ring;

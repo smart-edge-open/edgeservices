@@ -17,6 +17,13 @@
 #ifndef NES_DEV_PORT_DECL_H_
 #define NES_DEV_PORT_DECL_H_
 
+#ifndef FILE_NAME
+	#define FILE_NAME nes_dev_port
+#endif
+#include "mock.h"
+
+MOCK_DECL(nts_get_dst_ring);
+#define nts_get_dst_ring MOCK_NAME(mocked_nts_get_dst_ring)
 void check_eth_port_link_status(uint8_t portid);
 int ctor_eth_port(struct nes_dev_s *self, void *data);
 int init_eth_port(uint8_t port_num, uint8_t queue_num);

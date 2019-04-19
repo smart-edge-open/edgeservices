@@ -24,10 +24,10 @@
 #include "io/nes_dev.h"
 #include "libnes_cfgfile.h"
 #include "libnes_queue.h"
+#include "nts/nts_edit.h"
 #include "nes_dev_port_decl.h"
 #include "nes_dev_eth_decl.h"
 #include "packet_burst_generator.h"
-#include "nts/nts_edit.h"
 #include "io/nes_io.h"
 #include "libnes_queue.h"
 #include "nes_ring_lookup.h"
@@ -46,6 +46,8 @@
 #define VALID_PORT      0
 #define VALID_QUEUE     0
 
+MOCK_INIT(mocked_nts_get_dst_ring);
+
 static struct rte_mempool *pkt_pktmbuf_pool;
 struct rte_cfgfile *cfg_bak;
 extern struct rte_cfgfile *nes_cfgfile;
@@ -61,7 +63,6 @@ static struct rte_cfgfile_entry  entries1[] = {
 	{ .name = "traffic-direction", .value = "both", },
 	{ .name = "traffic-type", .value = "mixed", },
 	{ .name = "egress-port", .value = "1", },
-	{ .name = "ip-addresses", .value = "192.168.0.1:1", },
 	{ .name = "mac", .value = "00:00:00:00:00:00", },
 	{ .name = "pci-address", .value = "0000:00:00.0", },
 };
@@ -71,7 +72,6 @@ static struct rte_cfgfile_entry  entries2[] = {
 	{ .name = "traffic-direction", .value = "both", },
 	{ .name = "traffic-type", .value = "mixed", },
 	{ .name = "egress-port", .value = "0", },
-	{ .name = "ip-addresses", .value = "192.168.1.1:0", },
 	{ .name = "mac", .value = "00:00:00:00:00:00", },
 	{ .name = "pci-address", .value = "0000:00:00.0", },
 };
@@ -84,8 +84,14 @@ static struct rte_cfgfile_entry  entries3[] = {
 	{ .name = "pci-address", .value = "0000:00:00.0", },
 };
 
+static nes_ring_t *
+nts_get_dst_ring_stub(struct rte_mbuf *m, uint8_t is_gtp)  {
+	return NULL;
+}
+
 int init_suite_nes_dev_port(void)
 {
+	MOCK_SET(mocked_nts_get_dst_ring, nts_get_dst_ring_stub);
 	pkt_pktmbuf_pool = rte_mempool_create(
 		PKTMBUF_POOL_NAME,
 		1,
@@ -125,6 +131,7 @@ int init_suite_nes_dev_port(void)
 
 int cleanup_suite_nes_dev_port(void)
 {
+	MOCK_RESET(mocked_nts_get_dst_ring);
 	free(nes_cfgfile->sections);
 	free(nes_cfgfile);
 	nes_cfgfile = cfg_bak;
@@ -216,7 +223,6 @@ static void test_nes_dev_port_new_device(void)
 	change_entry_in_cfg("PORT1", "traffic-type", (char*)(uintptr_t)"IP");
 	CU_ASSERT_EQUAL(nes_dev_port_new_device(), NES_SUCCESS);
 	nes_dev_port_dtor();
-	change_key_in_cfg("PORT0", "ip-addresse", (char*)(uintptr_t)"ip-addresses");
 
 	change_key_in_cfg("PORT0", "traffic-type", (char*)(uintptr_t)"traffic-ty");
 	CU_ASSERT_EQUAL(nes_dev_port_new_device(), NES_FAIL);
@@ -235,7 +241,6 @@ static void test_nes_dev_port_new_device(void)
 
 	change_entry_in_cfg("PORT0", "traffic-direction", (char*)(uintptr_t)"downstream");
 	change_entry_in_cfg("PORT0", "traffic-type", (char*)(uintptr_t)"LTE");
-	change_entry_in_cfg("PORT0", "ip-addresses", (char*)(uintptr_t)"192.168.0.1:0");
 	change_entry_in_cfg("PORT1", "traffic-direction", (char*)(uintptr_t)"upstream");
 	change_entry_in_cfg("PORT1", "traffic-type", (char*)(uintptr_t)"IP");
 	CU_ASSERT_EQUAL(nes_dev_port_new_device(), NES_SUCCESS);
@@ -260,24 +265,9 @@ static void test_nes_dev_port_new_device(void)
 	CU_ASSERT_EQUAL(nes_dev_port_new_device(), NES_FAIL);
 	nes_dev_port_dtor();
 
-	change_entry_in_cfg("PORT0", "traffic-type", (char*)(uintptr_t)"LTE");
-	change_entry_in_cfg("PORT1", "traffic-type", (char*)(uintptr_t)"LTE");
-	change_entry_in_cfg("PORT0", "traffic-direction", (char*)(uintptr_t)"upstream");
-	change_entry_in_cfg("PORT0", "ip-addresses", (char*)(uintptr_t)"192.168.0.1:0");
-	change_entry_in_cfg("PORT1", "ip-addresses", (char*)(uintptr_t)"192.168.0.1:0");
-	CU_ASSERT_EQUAL(nes_dev_port_new_device(), NES_FAIL);
-	nes_dev_port_dtor();
-	change_entry_in_cfg("PORT0", "ip-addresses", (char*)(uintptr_t)"192.168.0.1");
-	change_entry_in_cfg("PORT1", "ip-addresses", (char*)(uintptr_t)"ERROR");
-	CU_ASSERT_EQUAL(nes_dev_port_new_device(), NES_FAIL);
-	nes_dev_port_dtor();
-	change_entry_in_cfg("PORT0", "ip-addresses", (char*)(uintptr_t)"192.168.0.1:1");
-	change_entry_in_cfg("PORT1", "ip-addresses", (char*)(uintptr_t)"ERROR:0");
 	CU_ASSERT_EQUAL(nes_dev_port_new_device(), NES_FAIL);
 	nes_dev_port_dtor();
 	change_entry_in_cfg("PORT0", "name", (char*)(uintptr_t)"");
-	change_entry_in_cfg("PORT0", "ip-addresses", (char*)(uintptr_t)"192.168.0.1:0");
-	change_entry_in_cfg("PORT1", "ip-addresses", (char*)(uintptr_t)"192.168.1.1:0");
 	change_entry_in_cfg("PORT0", "traffic-direction", (char*)(uintptr_t)"both");
 	change_entry_in_cfg("PORT1", "traffic-direction", (char*)(uintptr_t)"both");
 	change_entry_in_cfg("PORT0", "traffic-type", (char*)(uintptr_t)"mixed");
@@ -285,12 +275,10 @@ static void test_nes_dev_port_new_device(void)
 	CU_ASSERT_EQUAL(nes_dev_port_new_device(), NES_FAIL);
 
 	change_entry_in_cfg("PORT0", "name", (char*)(uintptr_t)"ENB");
-	change_entry_in_cfg("PORT0", "ip-addresses", (char*)(uintptr_t)"192.168.0.1:0");
 	change_entry_in_cfg("PORT0", "traffic-direction", (char*)(uintptr_t)"both");
 	change_entry_in_cfg("PORT0", "traffic-type", (char*)(uintptr_t)"mixed");
 	change_entry_in_cfg("PORT1", "traffic-direction", (char*)(uintptr_t)"lbp");
 	change_entry_in_cfg("PORT1", "traffic-type", (char*)(uintptr_t)"IP");
-	change_entry_in_cfg("PORT1", "ip-addresses", (char*)(uintptr_t)"192.168.1.1:0");
 	CU_ASSERT_EQUAL(nes_dev_port_new_device(), NES_SUCCESS);
 	nes_dev_port_dtor();
 
@@ -303,8 +291,6 @@ static void test_nes_dev_port_new_device(void)
 	nes_dev_port_dtor();
 
 	change_entry_in_cfg("PORT0", "name", (char*)(uintptr_t)"ENB");
-	change_entry_in_cfg("PORT0", "ip-addresses", (char*)(uintptr_t)"192.168.0.1:0");
-	change_entry_in_cfg("PORT1", "ip-addresses", (char*)(uintptr_t)"192.168.1.1:0");
 	change_entry_in_cfg("PORT0", "traffic-direction", (char*)(uintptr_t)"both");
 	change_entry_in_cfg("PORT1", "traffic-direction", (char*)(uintptr_t)"both");
 	change_entry_in_cfg("PORT0", "traffic-type", (char*)(uintptr_t)"mixed");
