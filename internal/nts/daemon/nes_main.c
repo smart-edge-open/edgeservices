@@ -145,11 +145,6 @@ int NES_MAIN(int argc, char** argv)
 	sa.sa_flags = SA_RESTART;
 	sigfillset(&sa.sa_mask);
 
-	/*if (-1 == daemonize()) {
-		NES_LOG(ERR, "Initialization procedure failed.\n");
-		return NES_FAIL;
-	}*/
-
 	if (sigaction(SIGTERM, &sa, NULL) == -1 || sigaction(SIGINT, &sa, NULL) == -1) {
 		NES_LOG(ERR, "Cannot handle signals");
 		return NES_FAIL;
@@ -160,17 +155,6 @@ int NES_MAIN(int argc, char** argv)
 	eal_args = rte_eal_init(argc, argv);
 	argc -= eal_args;
 	argv += eal_args;
-
-	FILE *log_file = NULL;
-	log_file = fopen(NES_LOG_FILE, "w");
-	NES_LOG(INFO, "Redirecting nes-daemon log to %s\n", NES_LOG_FILE);
-	if (NULL == log_file || 0 != rte_openlog_stream(log_file)) {
-		NES_LOG(ERR, "Failed to open %s, exiting...\n", NES_LOG_FILE);
-		if (log_file)
-			fclose(log_file);
-
-		return NES_FAIL;
-	}
 
 	/* check if environment variable NES_SERVER_CONF exists */
 	nes_conf_path = getenv("NES_SERVER_CONF");
@@ -183,13 +167,11 @@ int NES_MAIN(int argc, char** argv)
 
 		if (NES_FAIL == nes_cfgfile_load(argv[1])) {
 			NES_LOG(ERR, "Could not load config file %s.\n", argv[1]);
-			fclose(log_file);
 			return NES_FAIL;
 		}
 	}
 	if (NES_FAIL == nes_mempool_init()) {
 		NES_LOG(ERR, "Could not initialize memory pool.\n");
-		fclose(log_file);
 		return NES_FAIL;
 	}
 
@@ -197,7 +179,6 @@ int NES_MAIN(int argc, char** argv)
 
 	if (NES_FAIL == nes_init_interfaces()) {
 		NES_LOG(ERR, "Could not initialize interfaces.\n");
-		fclose(log_file);
 		return NES_FAIL;
 	}
 	rte_eal_remote_launch(nes_io_main, NULL, io_lcore);
@@ -211,22 +192,18 @@ int NES_MAIN(int argc, char** argv)
 			if (NES_SUCCESS != nes_dev_kni_init()) {
 				NES_LOG(ERR,
 					"Failed to initialize KNI, is rte_kni module loaded?\n");
-				fclose(log_file);
 				return NES_FAIL;
 			}
 			NES_LOG(INFO, "KNI initialized\n");
 		}
 		if (NES_SUCCESS != nes_dev_vhost_early_init()) {
-			fclose(log_file);
 			return NES_FAIL;
 		}
 	}
 	if (rte_eal_wait_lcore(io_lcore) < 0) {
-		fclose(log_file);
 		return NES_FAIL;
 	}
 
 	nes_cfgfile_close();
-	fclose(log_file);
 	return NES_SUCCESS;
 }
