@@ -24,8 +24,14 @@ import (
 )
 
 var (
-	// EDA is an object that communicates with EDA endpoint
-	EDA EDAClient = &edaClient{}
+	// DialEDASet is function implementing gRPC dial to EDA
+	DialEDASet = func(context.Context,
+		*pb.TrafficPolicy) (*empty.Empty, error) {
+
+		// TODO: Pass request to EDA
+		return &empty.Empty{},
+			status.Error(codes.Unimplemented, "not yet implemented")
+	}
 
 	// MACFetcher is an object that gets a MAC for application
 	MACFetcher MACAddressProvider = &MACFetcherImpl{}
@@ -35,30 +41,6 @@ var (
 // from application ID
 type MACAddressProvider interface {
 	GetMacAddress(ctx context.Context, applicationID string) (string, error)
-}
-
-// EDAClient is an interface for calling EDA agent
-type EDAClient interface {
-	Set(context.Context, *pb.TrafficPolicy) (*empty.Empty, error)
-	Get(context.Context, *pb.ApplicationID) (*pb.TrafficPolicy, error)
-}
-
-type edaClient struct{}
-
-func (*edaClient) Set(context.Context,
-	*pb.TrafficPolicy) (*empty.Empty, error) {
-
-	// TODO: Pass request to EDA
-	return &empty.Empty{},
-		status.Error(codes.Unimplemented, "not yet implemented")
-}
-
-func (*edaClient) Get(context.Context,
-	*pb.ApplicationID) (*pb.TrafficPolicy, error) {
-
-	// TODO: Pass request to EDA
-	return &pb.TrafficPolicy{},
-		status.Error(codes.Unimplemented, "not yet implemented")
 }
 
 type ApplicationPolicyServiceServerImpl struct{}
@@ -102,14 +84,5 @@ func (srv *ApplicationPolicyServiceServerImpl) Set(ctx context.Context,
 		trafficRule.Target.Mac = &pb.MACModifier{MacAddress: destMacAddress}
 	}
 
-	return EDA.Set(ctx, trafficPolicy)
-}
-
-func (srv *ApplicationPolicyServiceServerImpl) Get(ctx context.Context,
-	appID *pb.ApplicationID) (*pb.TrafficPolicy, error) {
-
-	log.Info("ApplicationPolicyService Get: Received request")
-	// TODO: Check if application is deployed
-
-	return EDA.Get(ctx, appID)
+	return DialEDASet(ctx, trafficPolicy)
 }

@@ -29,16 +29,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type fakeEDAClient struct{}
-
-func (*fakeEDAClient) Set(context.Context,
+var fakeDialEDASet = func(context.Context,
 	*pb.TrafficPolicy) (*empty.Empty, error) {
-	return &empty.Empty{}, status.Error(codes.OK, "")
-}
 
-func (*fakeEDAClient) Get(context.Context,
-	*pb.ApplicationID) (*pb.TrafficPolicy, error) {
-	return &pb.TrafficPolicy{}, status.Error(codes.OK, "")
+	return &empty.Empty{}, status.Error(codes.OK, "")
 }
 
 type fakeMACAddressProvider struct{}
@@ -52,7 +46,7 @@ func (*fakeMACAddressProvider) GetMacAddress(context.Context,
 var _ = Describe("Application Policy gRPC Server", func() {
 	When("Starts", func() {
 		It("is callable", func() {
-			ela.EDA = &fakeEDAClient{}
+			ela.DialEDASet = fakeDialEDASet
 			ela.MACFetcher = &fakeMACAddressProvider{}
 
 			srvCtx, srvCancel := context.WithCancel(context.Background())
@@ -86,22 +80,12 @@ var _ = Describe("Application Policy gRPC Server", func() {
 
 			_, err = client.Set(setCtx, tp, grpc.WaitForReady(true))
 			Expect(err).ShouldNot(HaveOccurred())
-
-			// Call Get()
-			// assert that no error occurs (request is passed to EDA fake)
-			getCtx, getCancel := context.WithTimeout(context.Background(),
-				3*time.Second)
-			defer getCancel()
-
-			_, err = client.Get(getCtx, &pb.ApplicationID{Id: "001"},
-				grpc.WaitForReady(true))
-			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 })
 
 var _ = Describe("Application Policy Server Implementation", func() {
-	ela.EDA = &fakeEDAClient{}
+	ela.DialEDASet = fakeDialEDASet
 	ela.MACFetcher = &fakeMACAddressProvider{}
 	service := ela.ApplicationPolicyServiceServerImpl{}
 
@@ -130,18 +114,6 @@ var _ = Describe("Application Policy Server Implementation", func() {
 
 				Expect(err).ShouldNot(HaveOccurred())
 			})
-		})
-
-	})
-
-	When("Get() is called", func() {
-		It("passes request to EDA", func() {
-			ela.EDA = &fakeEDAClient{}
-
-			_, err := service.Get(context.Background(),
-				&pb.ApplicationID{Id: "001"})
-
-			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 })
@@ -261,7 +233,7 @@ var _ = Describe("Traffic rules are verified.", func() {
 	Describe("Traffic selector is verified:", func() {
 		When("MAC address is set", func() {
 			It("returns an error", func() {
-				ts := &pb.TrafficSelector{Mac: &pb.MACFilter{}}
+				ts := &pb.TrafficSelector{Macs: &pb.MACFilter{}}
 
 				Expect(ela.VerifyTrafficSelector(ts)).
 					Should(MatchError(
@@ -405,7 +377,7 @@ var _ = Describe("Traffic rules are verified.", func() {
 		When("Source selector is set but invalid", func() {
 			It("return an error", func() {
 				tr := &pb.TrafficRule{
-					Source: &pb.TrafficSelector{Mac: &pb.MACFilter{}},
+					Source: &pb.TrafficSelector{Macs: &pb.MACFilter{}},
 				}
 				Expect(ela.VerifyTrafficRule(tr)).
 					Should(MatchError("TrafficRule.Source: " +
@@ -417,7 +389,7 @@ var _ = Describe("Traffic rules are verified.", func() {
 			It("return an error", func() {
 				tr := &pb.TrafficRule{
 					Destination: &pb.TrafficSelector{
-						Mac: &pb.MACFilter{}}}
+						Macs: &pb.MACFilter{}}}
 				Expect(ela.VerifyTrafficRule(tr)).
 					Should(MatchError("TrafficRule.Destination: " +
 						"TrafficSelector.Mac is set but not supported"))

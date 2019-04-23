@@ -84,7 +84,7 @@ func VerifyGTPFilter(gtp *pb.GTPFilter) error {
 
 // VerifyTrafficSelector checks if TrafficSelector is correct
 func VerifyTrafficSelector(ts *pb.TrafficSelector) error {
-	if ts.Mac != nil {
+	if ts.Macs != nil {
 		return errors.New("TrafficSelector.Mac is set but not supported")
 	}
 
