@@ -21,7 +21,16 @@ import (
 
 func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+	clientCert := r.TLS.PeerCertificates[0]
+	commonName := clientCert.Subject.CommonName
+	statCode, err := removeService(commonName)
+
+	w.WriteHeader(statCode)
+
+	if err != nil {
+		log.Errorf("Error in Service Deregistration: %s", err.Error())
+	}
 }
 
 func GetNotifications(w http.ResponseWriter, r *http.Request) {

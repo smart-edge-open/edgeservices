@@ -16,6 +16,7 @@ package eaa
 
 import (
 	"errors"
+	"net/http"
 )
 
 func addService(serv Service) error {
@@ -25,4 +26,26 @@ func addService(serv Service) error {
 	}
 	eaaCtx.serviceInfo[serv.URN.ID+"."+serv.URN.Namespace] = serv
 	return nil
+}
+
+func removeService(commonName string) (int, error) {
+	if eaaCtx.serviceInfo == nil {
+
+		return http.StatusInternalServerError,
+			errors.New("500: EAA context not initialized. ")
+	}
+
+	urn, err := CommonNameStringToURN(commonName)
+	if err != nil {
+		return http.StatusUnauthorized,
+			err
+	}
+	_, servicefound := eaaCtx.serviceInfo[urn.ID+"."+urn.Namespace]
+	if servicefound {
+		delete(eaaCtx.serviceInfo, urn.ID+"."+urn.Namespace)
+		return http.StatusNoContent, nil
+	}
+
+	return http.StatusNotFound,
+		errors.New(http.StatusText(http.StatusNotFound))
 }
