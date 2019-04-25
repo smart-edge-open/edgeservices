@@ -1,6 +1,18 @@
-/************************************************************************************
-* <COPYRIGHT_TAG>
-************************************************************************************/
+/*******************************************************************************
+* Copyright 2019 Intel Corporation. All rights reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*******************************************************************************/
 /**
 * @file libnes_api.c
 * @brief NES API library
@@ -191,7 +203,7 @@ int nes_conn_close(nes_remote_t *self)
 
 	if (self->state != eConnected || close(self->socket_fd) != 0)
 		return NES_FAIL;
-	
+
 
 	self->state = eDisconnected;
 	return NES_SUCCESS;
@@ -541,13 +553,13 @@ nes_route_add_impl(nes_remote_t *self, struct ether_addr vm_mac_addr, char *look
 	assert(self);
 
 	if (self->state != eConnected)
- 
+
 		return NES_FAIL;
 
 	if (NULL == lookup_keys)
-	
+
 		return NES_FAIL;
-	
+
 	struct add_route_data {
 		struct ether_addr vm_mac_addr;
 		char lookup[];

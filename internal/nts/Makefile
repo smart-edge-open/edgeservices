@@ -37,5 +37,6 @@ include $(RTE_SDK)/mk/rte.vars.mk
 
 DIRS-y += libs
 DIRS-y += daemon
+DIRS-y += client
 
 include $(RTE_SDK)/mk/rte.extsubdir.mk
