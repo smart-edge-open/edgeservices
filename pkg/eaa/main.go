@@ -30,7 +30,8 @@ import (
 type services map[string]Service
 
 type eaaContext struct {
-	serviceInfo services
+	serviceInfo      services
+	subscriptionInfo NotificationSubscriptions
 }
 
 var (
@@ -42,11 +43,13 @@ var (
 
 // Initialize EAA context structures
 func Init() error {
-	if eaaCtx.serviceInfo != nil {
+	if eaaCtx.serviceInfo != nil || eaaCtx.subscriptionInfo != nil {
 		return errors.New("EAA is already initialized")
 	}
 
 	eaaCtx.serviceInfo = services{}
+	eaaCtx.subscriptionInfo = NotificationSubscriptions{}
+
 	return nil
 }
 
@@ -138,4 +141,28 @@ func Run(parentCtx context.Context, configFile string) error {
 	}
 
 	return RunServer(parentCtx)
+}
+
+// TestSubDataInitialization function is meant to satisfy lint checks
+// before handlers using the subscription data structures are implemented
+// TODO: remove
+func TestSubDataInitialization() {
+	namespace := NotificationSubscriptions{}
+
+	namespace["testNamespace:notName:notVersion"] =
+		ConsumerSubscription{
+			serviceSubscriptions: make(map[string]SubscriberIds),
+		}
+
+	namespace["testNamespace:notName:notVersion"].
+		serviceSubscriptions["testProducerId"] = SubscriberIds{}
+
+	namespace["testNamespace:notName:notVersion"] =
+		ConsumerSubscription{
+			namespaceSubscriptions: append(
+				namespace["testNamespace:notName:notVersion"].
+					serviceSubscriptions["testProducerId"], "id1", "id2"),
+			serviceSubscriptions: namespace["testNamespace:notName:notVersion"].
+				serviceSubscriptions,
+		}
 }
