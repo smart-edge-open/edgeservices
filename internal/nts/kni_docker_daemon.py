@@ -264,13 +264,19 @@ def docker_poll(nes_context, docker_cli, name_filter):
 
     for event in events:
         try:
-            _LOG.debug("PM event: {}".format(event))
             if event['Type'] == 'container':
 
-                sandbox_id = event['Actor']['ID']
+                if 'io.kubernetes.docker.type' in event['Actor']['Attributes']:
+                    if event['Actor']['Attributes']['io.kubernetes.docker.type'] != 'container':
+                        continue
+                    sandbox_id = event['Actor']['Attributes']['io.kubernetes.sandbox.id']
+                    pod_name = event['Actor']['Attributes']['io.kubernetes.pod.name']
+                else:
+                    sandbox_id = event['Actor']['ID']
+                    pod_name = event['Actor']['Attributes']['name']
+
                 sandbox = docker_cli.containers.get(sandbox_id)
                 ip_ns_path = sandbox.attrs['NetworkSettings']['SandboxKey']
-                pod_name = event['Actor']['Attributes']['name']
 
                 if not filter_name(pod_name, name_filter):
                     continue
