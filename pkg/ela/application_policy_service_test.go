@@ -21,6 +21,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/smartedgemec/appliance-ce/pkg/ela"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	"github.com/smartedgemec/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -53,7 +54,7 @@ var _ = Describe("Application Policy gRPC Server", func() {
 			go func() {
 				err := ela.Run(srvCtx, "ela.json")
 				if err != nil {
-					ela.Logger().Errorf("ela.Run exited with error: %#v", err)
+					log.Errf("ela.Run exited with error: %#v", err)
 				}
 			}()
 			defer srvCancel()

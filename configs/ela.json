@@ -1,12 +1,3 @@
 {
-    "log": {
-        "level": "info",
-        "syslog": {
-            "enable": false,
-            "protocol": "",
-            "address": "",
-            "tag": "Appliance"
-        }
-    },
     "endpoint": "localhost:42101"
 }

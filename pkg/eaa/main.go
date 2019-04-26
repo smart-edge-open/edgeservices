@@ -24,7 +24,7 @@ import (
 	"net/http"
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
-	"github.com/smartedgemec/appliance-ce/pkg/logger"
+	logger "github.com/smartedgemec/log"
 )
 
 type services map[string]Service
@@ -38,7 +38,7 @@ var (
 	cfg    Config
 	eaaCtx eaaContext
 
-	log = logger.NewLogger("eaa")
+	log = logger.DefaultLogger.WithField("component", "eaa")
 )
 
 // Initialize EAA context structures
@@ -49,20 +49,6 @@ func Init() error {
 
 	eaaCtx.serviceInfo = services{}
 	eaaCtx.subscriptionInfo = NotificationSubscriptions{}
-
-	return nil
-}
-
-func configLogger(cfgPath string) error {
-	err := config.LoadJSONConfig(cfgPath, &cfg)
-	if err != nil {
-		return err
-	}
-
-	err = logger.ConfigLogger(log, &cfg.Log)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -87,13 +73,13 @@ func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
 // Start Edge Application Agent server listening on port read from config file
 func RunServer(parentCtx context.Context) error {
 	if err := Init(); err != nil {
-		log.Errorf("init error: %#v", err)
+		log.Errf("init error: %#v", err)
 		return errors.New("Running EAA module failure: " + err.Error())
 	}
 
 	certPool, err := CreateAndSetCACertPool(cfg.Certs.CaRootPath)
 	if err != nil {
-		log.Errorf("Cert Pool error: %#v", err)
+		log.Errf("Cert Pool error: %#v", err)
 		return err
 	}
 
@@ -110,7 +96,7 @@ func RunServer(parentCtx context.Context) error {
 	lis, err := net.Listen("tcp",
 		cfg.ServerAddr.Hostname+":"+cfg.ServerAddr.Port)
 	if err != nil {
-		log.Errorf("net.Listen error: %#v", err)
+		log.Errf("net.Listen error: %#v", err)
 		return err
 	}
 
@@ -126,20 +112,19 @@ func RunServer(parentCtx context.Context) error {
 		cfg.ServerAddr.Port)
 	if err = server.ServeTLS(lis, cfg.Certs.ServerCertPath,
 		cfg.Certs.ServerKeyPath); err != http.ErrServerClosed {
-		log.Errorf("server.Serve error: %#v", err)
+		log.Errf("server.Serve error: %#v", err)
 		return err
 	}
 
 	return nil
 }
 
-func Run(parentCtx context.Context, configFile string) error {
-
-	if err := configLogger(configFile); err != nil {
-		log.Errorf("Failed to config logger: %#v", err)
+func Run(parentCtx context.Context, cfgPath string) error {
+	err := config.LoadJSONConfig(cfgPath, &cfg)
+	if err != nil {
+		log.Errf("Failed to load config: %#v", err)
 		return err
 	}
-
 	return RunServer(parentCtx)
 }
 

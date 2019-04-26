@@ -1,13 +1,6 @@
 {
-    "log": {
-        "level": "info",
-        "syslog": {
-            "enable": false,
-            "protocol": "",
-            "address": "",
-            "tag": "Appliance"
-        }
-    },
+    "LogLevel"  : "info",
+    "SyslogAddr": "",
     "services": {
         "github.com/smartedgemec/appliance-ce/pkg/eaa": "configs/eaa.json",
         "github.com/smartedgemec/appliance-ce/pkg/ela": "configs/ela.json"

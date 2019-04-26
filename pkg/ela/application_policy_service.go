@@ -50,7 +50,7 @@ func (srv *ApplicationPolicyServiceServerImpl) Set(ctx context.Context,
 	log.Info("ApplicationPolicyService Set: Received request")
 
 	if err := VerifyTrafficPolicy(trafficPolicy); err != nil {
-		log.Errorf("ApplicationPolicyService Set: Invalid TrafficPolicy: %v",
+		log.Errf("ApplicationPolicyService Set: Invalid TrafficPolicy: %v",
 			err)
 		return nil,
 			status.Errorf(codes.InvalidArgument, err.Error())
@@ -58,7 +58,7 @@ func (srv *ApplicationPolicyServiceServerImpl) Set(ctx context.Context,
 
 	destMacAddress, err := MACFetcher.GetMacAddress(ctx, trafficPolicy.Id)
 	if err != nil {
-		log.Errorf("ApplicationPolicyService Set: "+
+		log.Errf("ApplicationPolicyService Set: "+
 			"MAC not found for '%v' because: %v", trafficPolicy.Id, err)
 
 		return nil,
@@ -70,7 +70,7 @@ func (srv *ApplicationPolicyServiceServerImpl) Set(ctx context.Context,
 		destMacAddress, trafficPolicy.Id)
 
 	if err := VerifyMACAddress(destMacAddress); err != nil {
-		log.Errorf("ApplicationPolicyService Set: "+
+		log.Errf("ApplicationPolicyService Set: "+
 			"Obtained MAC '%s' format is incorrect because: %v",
 			destMacAddress, err)
 

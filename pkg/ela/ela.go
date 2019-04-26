@@ -19,42 +19,27 @@ import (
 	"net"
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
-	"github.com/smartedgemec/appliance-ce/pkg/logger"
+	logger "github.com/smartedgemec/log"
 
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"google.golang.org/grpc"
 )
 
 type Configuration struct {
-	Log      logger.Config `json:"log"`
-	Endpoint string        `json:"endpoint"`
+	Endpoint string `json:"endpoint"`
 }
 
 var (
-	log    = logger.NewLogger("ela")
+	log    = logger.DefaultLogger.WithField("component", "ela")
 	Config Configuration
 )
-
-func configLogger(cfgPath string) error {
-	err := config.LoadJSONConfig(cfgPath, &Config)
-	if err != nil {
-		return err
-	}
-
-	err = logger.ConfigLogger(log, &Config.Log)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
 
 func runServer(ctx context.Context) error {
 	// TODO: Add auth
 	lis, err := net.Listen("tcp", Config.Endpoint)
 
 	if err != nil {
-		log.Errorf("net.Listen error: %#v", err)
+		log.Errf("net.Listen error: %#v", err)
 		return err
 	}
 
@@ -76,7 +61,7 @@ func runServer(ctx context.Context) error {
 	// When Serve() returns, listener is closed
 	err = grpcServer.Serve(lis)
 	if err != nil {
-		log.Errorf("grpcServer.Serve error: %#v", err)
+		log.Errf("grpcServer.Serve error: %#v", err)
 	}
 	return err
 }
@@ -85,11 +70,10 @@ func runServer(ctx context.Context) error {
 func Run(ctx context.Context, cfgPath string) error {
 	log.Infof("Starting with config: '%s'", cfgPath)
 
-	err := configLogger(cfgPath)
+	err := config.LoadJSONConfig(cfgPath, &Config)
 	if err != nil {
-		log.Errorf("Failed to config logger: %#v", err)
+		log.Errf("Failed to load config: %#v", err)
 		return err
 	}
-
 	return runServer(ctx)
 }

@@ -29,7 +29,7 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statCode)
 
 	if err != nil {
-		log.Errorf("Error in Service Deregistration: %s", err.Error())
+		log.Errf("Error in Service Deregistration: %s", err.Error())
 	}
 }
 

@@ -32,7 +32,7 @@ require (
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/pkg/errors v0.8.1
-	github.com/sirupsen/logrus v1.4.0
+	github.com/smartedgemec/log v0.0.0-20190425151715-68de2de26397
 	github.com/spf13/afero v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.2
 	golang.org/x/net v0.0.0-20190311183353-d8887717615a

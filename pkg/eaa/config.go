@@ -14,10 +14,6 @@
 
 package eaa
 
-import (
-	"github.com/smartedgemec/appliance-ce/pkg/logger"
-)
-
 type ServerInfo struct {
 	Hostname string `json:"hostname"`
 	Port     string `json:"port"`
@@ -30,7 +26,6 @@ type CertsInfo struct {
 }
 
 type Config struct {
-	ServerAddr ServerInfo    `json:"serverAddr"`
-	Certs      CertsInfo     `json:"certs"`
-	Log        logger.Config `json:"log"`
+	ServerAddr ServerInfo `json:"serverAddr"`
+	Certs      CertsInfo  `json:"certs"`
 }

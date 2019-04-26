@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/Flaque/filet"
-	"github.com/smartedgemec/appliance-ce/pkg/ela"
+	"github.com/smartedgemec/log"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -44,5 +44,5 @@ func TestEdgeLifecycleAgent(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	ela.Logger().Logger.SetOutput(GinkgoWriter)
+	log.SetOutput(GinkgoWriter)
 })

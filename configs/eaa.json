@@ -1,13 +1,4 @@
 {
-    "log": {
-        "level": "info",
-        "syslog": {
-            "enable": false,
-            "protocol": "",
-            "address": "",
-            "tag": "Appliance"
-        }
-    },
     "serverAddr": {
         "hostname": "localhost",
         "port": "443"

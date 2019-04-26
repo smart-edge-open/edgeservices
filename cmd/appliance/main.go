@@ -27,7 +27,7 @@ import (
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/eaa"
-	"github.com/smartedgemec/appliance-ce/pkg/logger"
+	logger "github.com/smartedgemec/log"
 
 	// Imports required to run agents
 	"github.com/smartedgemec/appliance-ce/pkg/ela"
@@ -39,13 +39,14 @@ type ServiceStartFunction func(context.Context, string) error
 // EdgeServices array contains function pointers to services start functions
 var EdgeServices = []ServiceStartFunction{ela.Run, eaa.Run}
 
-var log = logger.NewLogger("main")
+var log = logger.DefaultLogger.WithField("component", "main")
 
 var cfg mainConfig
 
 type mainConfig struct {
-	Log      logger.Config     `json:"log"`
-	Services map[string]string `json:"services"`
+	SyslogAddr string            `json:"syslogAddr"`
+	LogLevel   string            `json:"logLevel"`
+	Services   map[string]string `json:"services"`
 }
 
 func init() {
@@ -56,15 +57,22 @@ func init() {
 
 	err := config.LoadJSONConfig(cfgPath, &cfg)
 	if err != nil {
-		log.Errorf("Failed to load config: %s", err.Error())
+		log.Errf("Failed to load config: %s", err.Error())
 		os.Exit(1)
 	}
 
-	err = logger.ConfigLogger(log, &cfg.Log)
+	err = logger.ConnectSyslog(cfg.SyslogAddr)
 	if err != nil {
-		log.Errorf("Failed to configure the logger: %s", err.Error())
+		log.Errf("Failed to connect to syslog: %s", err.Error())
 		os.Exit(1)
 	}
+
+	lvl, err := logger.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		log.Errf("Failed to parse log level: %s", err.Error())
+		os.Exit(1)
+	}
+	logger.SetLevel(lvl)
 }
 
 func waitForServices(wg *sync.WaitGroup,
@@ -83,7 +91,7 @@ func waitForServices(wg *sync.WaitGroup,
 			return ret
 		case err := <-errors:
 			if err != nil {
-				log.Tracef("Cancelling services because of error"+
+				log.Errf("Cancelling services because of error"+
 					" from one of the services: %#v", err)
 				cancel()
 				ret = false
