@@ -16,7 +16,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"path"
@@ -25,9 +24,15 @@ import (
 	edgedns "github.com/smartedgemec/appliance-ce/pkg/edgedns"
 	"github.com/smartedgemec/appliance-ce/pkg/edgedns/grpc"
 	"github.com/smartedgemec/appliance-ce/pkg/edgedns/storage"
+	logger "github.com/smartedgemec/log"
 )
 
+var log = logger.DefaultLogger.WithField("component", "main")
+
 func main() {
+	logLvl := flag.String("log", "info", "Log level.\nSupported values: "+
+		"debug, info, notice, warning, error, critical, alert, emergency")
+	syslogAddr := flag.String("syslog", "", "Syslog address")
 	v4 := flag.String("4", "", "IPv4 listener address")
 	port := flag.Int("port", 5053, "listener UDP port")
 	sock := flag.String("sock", "/run/edgedns.sock", "API socket path")
@@ -36,20 +41,33 @@ func main() {
 	fwdr := flag.String("fwdr", "8.8.8.8", "Forwarder")
 	flag.Parse()
 
+	lvl, err := logger.ParseLevel(*logLvl)
+	if err != nil {
+		log.Errf("Failed to parse log level: %s", err.Error())
+		os.Exit(1)
+	}
+	logger.SetLevel(lvl)
+
+	err = logger.ConnectSyslog(*syslogAddr)
+	if err != nil {
+		log.Errf("Failed to connect to syslog: %s", err.Error())
+		os.Exit(1)
+	}
+
 	sockPath := path.Dir(*sock)
-	if _, err := os.Stat(sockPath); os.IsNotExist(err) {
-		err := os.MkdirAll(sockPath, 0750)
+	if _, err = os.Stat(sockPath); os.IsNotExist(err) {
+		err = os.MkdirAll(sockPath, 0750)
 		if err != nil {
-			fmt.Println(err)
+			log.Err(err)
 			os.Exit(1)
 		}
 	}
 
 	dbPath := path.Dir(*db)
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		err := os.MkdirAll(dbPath, 0750)
+	if _, err = os.Stat(dbPath); os.IsNotExist(err) {
+		err = os.MkdirAll(dbPath, 0750)
 		if err != nil {
-			fmt.Println(err)
+			log.Err(err)
 			os.Exit(1)
 		}
 	}
@@ -69,11 +87,11 @@ func main() {
 
 	srv := edgedns.NewResponder(cfg, stg, ctl)
 	srv.SetDefaultForwarder(*fwdr)
-	err := srv.Start()
+	err = srv.Start()
 	defer srv.Stop()
 
 	if err != nil {
-		fmt.Println(err)
+		log.Err(err)
 		os.Exit(1)
 	}
 
@@ -82,8 +100,8 @@ func main() {
 	sig := <-srv.Sig
 	switch sig {
 	case syscall.SIGCHLD:
-		fmt.Println("Child lisenter/service unexpectedly died")
+		log.Err("Child lisenter/service unexpectedly died")
 	default:
-		fmt.Printf("Signal (%v) received, shutting down\n", sig)
+		log.Infof("Signal (%v) received, shutting down", sig)
 	}
 }

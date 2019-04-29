@@ -21,13 +21,15 @@ import (
 
 	edgedns "github.com/smartedgemec/appliance-ce/pkg/edgedns"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/smartedgemec/appliance-ce/pkg/edgedns/pb"
+	logger "github.com/smartedgemec/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+var log = logger.DefaultLogger.WithField("component", "grpc")
 
 // ControlServer implements the ControlServer API
 type ControlServer struct {
@@ -40,7 +42,7 @@ type ControlServer struct {
 func (cs *ControlServer) Start(stg edgedns.Storage) error {
 	cs.storage = stg
 
-	fmt.Printf("Starting API at %s\n", cs.Sock)
+	log.Infof("Starting API at %s", cs.Sock)
 	lis, err := net.Listen("unix", cs.Sock)
 	if err != nil {
 		return fmt.Errorf("Failed to start API listener: %v", err)
@@ -49,7 +51,7 @@ func (cs *ControlServer) Start(stg edgedns.Storage) error {
 	pb.RegisterControlServer(cs.server, cs)
 	go func() {
 		if err := cs.server.Serve(lis); err != nil {
-			fmt.Printf("API listener exited unexpectedly: %s\n", err)
+			log.Errf("API listener exited unexpectedly: %s", err)
 		}
 	}()
 	return nil
@@ -66,7 +68,7 @@ func (cs *ControlServer) GracefulStop() error {
 func (cs *ControlServer) SetAuthoritativeHost(ctx context.Context,
 	rr *pb.HostRecordSet) (*empty.Empty, error) {
 
-	fmt.Printf("[API] SetAuthoritativeHost: %s (%d)\n",
+	log.Debugf("[API] SetAuthoritativeHost: %s (%d)",
 		rr.Fqdn, len(rr.Addresses))
 	if rr.RecordType != pb.RType_A {
 		return &empty.Empty{}, status.Error(codes.Unimplemented,
@@ -76,7 +78,7 @@ func (cs *ControlServer) SetAuthoritativeHost(ctx context.Context,
 		[]byte(rr.Fqdn),
 		rr.Addresses)
 	if err != nil {
-		fmt.Printf("Failed to set authoritative record: %s\n", err)
+		log.Errf("Failed to set authoritative record: %s", err)
 		return &empty.Empty{}, status.Error(codes.Internal,
 			"unknown internal DB error occurred")
 	}
@@ -88,7 +90,7 @@ func (cs *ControlServer) SetAuthoritativeHost(ctx context.Context,
 func (cs *ControlServer) DeleteAuthoritative(ctx context.Context,
 	rr *pb.RecordSet) (*empty.Empty, error) {
 
-	fmt.Printf("[API] DeleteAuthoritative: %s\n", rr.Fqdn)
+	log.Debugf("[API] DeleteAuthoritative: %s", rr.Fqdn)
 	if rr.RecordType == pb.RType_None {
 		return &empty.Empty{}, status.Error(codes.InvalidArgument,
 			"you must specify a record type")
@@ -96,7 +98,7 @@ func (cs *ControlServer) DeleteAuthoritative(ctx context.Context,
 	if err := cs.storage.DelRRSet(uint16(rr.RecordType),
 		[]byte(rr.Fqdn)); err != nil {
 
-		fmt.Printf("Failed to delete authoritative record: %s\n", err)
+		log.Errf("Failed to delete authoritative record: %s", err)
 		return &empty.Empty{}, status.Error(codes.Internal,
 			"unknown internal DB error occurred")
 	}

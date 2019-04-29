@@ -29,13 +29,13 @@ func forwardRequest(q *dns.Msg, ns string) (*dns.Msg, error) {
 
 	c := new(dns.Client)
 	qn := q.Question[0].Name
-	fmt.Printf("[FORWARDER] Forwarding %s to %s\n", qn, ns)
+	log.Debugf("[FORWARDER] Forwarding %s to %s", qn, ns)
 	m, rtt, err := c.Exchange(q, ns+":53")
 
 	if err != nil {
 		return nil, fmt.Errorf("%s unable to resolve: %s: %s", ns, qn, err)
 	}
 
-	fmt.Printf("[FORWARDER] Upstream query time: %v\n", rtt)
+	log.Debugf("[FORWARDER] Upstream query time: %v", rtt)
 	return m, nil
 }

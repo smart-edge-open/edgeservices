@@ -23,7 +23,11 @@ import (
 	"github.com/miekg/dns"
 	"github.com/pkg/errors"
 	bolt "go.etcd.io/bbolt"
+
+	logger "github.com/smartedgemec/log"
 )
+
+var log = logger.DefaultLogger.WithField("component", "storage")
 
 // BoltDB implements the Storage interface
 type BoltDB struct {
@@ -61,7 +65,7 @@ func (rrs *rrSet) encode() ([]byte, error) {
 	enc := gob.NewEncoder(buf)
 	err := enc.Encode(&rrs)
 	if err != nil {
-		fmt.Printf("Encoding error: %s\n", err)
+		log.Errf("Encoding error: %s", err)
 		return nil, err
 	}
 	return buf.Bytes(), nil
@@ -74,7 +78,7 @@ func decode(data []byte) (*rrSet, error) {
 	dec := gob.NewDecoder(buf)
 	err := dec.Decode(&rrs)
 	if err != nil {
-		fmt.Printf("Decoding error: %s\n", err)
+		log.Errf("Decoding error: %s", err)
 		return nil, err
 	}
 	return rrs, nil
@@ -82,7 +86,7 @@ func decode(data []byte) (*rrSet, error) {
 
 // Start will open the DB file for IO
 func (db *BoltDB) Start() error {
-	fmt.Printf("Starting DB from %s\n", db.Filename)
+	log.Infof("Starting DB from %s", db.Filename)
 
 	var err error
 	db.instance, err = bolt.Open(db.Filename, 0660, nil)
@@ -95,7 +99,7 @@ func (db *BoltDB) Start() error {
 		for _, i := range bkts {
 			for _, j := range i {
 				_, err = tx.CreateBucketIfNotExists(j)
-				fmt.Printf("[DB][%s] Ready\n", j)
+				log.Infof("[DB][%s] Ready", j)
 				if err != nil {
 					return fmt.Errorf("Bucket initialization error: %s", err)
 				}
@@ -110,12 +114,12 @@ func (db *BoltDB) Start() error {
 func (db *BoltDB) Stop() error {
 	if db.instance != nil {
 		if err := db.instance.Close(); err != nil {
-			fmt.Printf("DB Shutdown error: %s", err)
+			log.Errf("DB Shutdown error: %s", err)
 			return err
 		}
 		return nil
 	}
-	return fmt.Errorf("DB already stopped")
+	return errors.New("DB already stopped")
 }
 
 // SetHostRRSet creates a resource record
@@ -140,7 +144,7 @@ func (db *BoltDB) SetHostRRSet(rrtype uint16,
 		}
 
 		for i, j := range addrs {
-			fmt.Printf("[DB][%s] %d %s: %s\n",
+			log.Debugf("[DB][%s] %d %s: %s",
 				bkts[Master][rrtype], i+1, fqdn, net.IP(j).String())
 		}
 
@@ -177,7 +181,7 @@ func (db *BoltDB) DelRRSet(rrtype uint16, fqdn []byte) error {
 		}); err != nil {
 			return fmt.Errorf("Delete %s: %s", fqdn, err)
 		}
-		fmt.Printf("[DB][%s] Delete %s\n", bkts[Master][rrtype], fqdn)
+		log.Debugf("[DB][%s] Delete %s", bkts[Master][rrtype], fqdn)
 		return nil
 	}
 	return fmt.Errorf("Invalid query type: %s", dns.TypeToString[rrtype])
@@ -229,7 +233,7 @@ func (db *BoltDB) getAuthoritative(name string, rrtype uint16) (*rrSet, error) {
 			return nil, fmt.Errorf("Failed to decode for %s: %s", fqdn, err)
 		}
 
-		fmt.Printf("[DB][%s] HIT %s\n", bkts[Master][rrtype], fqdn)
+		log.Debugf("[DB][%s] HIT %s", bkts[Master][rrtype], fqdn)
 		return rrs, nil
 	}
 

@@ -21,7 +21,10 @@ import (
 	"syscall"
 
 	"github.com/miekg/dns"
+	logger "github.com/smartedgemec/log"
 )
+
+var log = logger.DefaultLogger.WithField("component", "edgedns")
 
 // Storage is a backend persistence for all records
 type Storage interface {
@@ -78,7 +81,7 @@ func NewResponder(cfg Config, stg Storage, ctl ControlServer) *Responder {
 
 // Start will register and start all services
 func (r *Responder) Start() error {
-	fmt.Println("Starting Edge DNS Server")
+	log.Infof("Starting Edge DNS Server")
 
 	// Start DB backend
 	err := r.storage.Start()
@@ -112,25 +115,25 @@ func (r *Responder) Start() error {
 func (r *Responder) startListeners() {
 
 	if len(r.cfg.Addr4) > 0 {
-		fmt.Printf("Starting IPv4 DNS Listener at %s:%d\n",
+		log.Infof("Starting IPv4 DNS Listener at %s:%d",
 			r.cfg.Addr4, r.cfg.Port)
 		r.server4 = &dns.Server{Addr: r.cfg.Addr4 + ":" +
 			strconv.Itoa(r.cfg.Port), Net: "udp"}
 		go func() {
 			if err := r.server4.ListenAndServe(); err != nil {
-				fmt.Printf("IPv4 listener error: %s\n", err)
+				log.Errf("IPv4 listener error: %s", err)
 				r.Sig <- syscall.SIGCHLD
 			}
 		}()
 	}
 
 	if len(r.cfg.Addr4) == 0 {
-		fmt.Println("Starting DNS Listener on all addresses")
+		log.Infoln("Starting DNS Listener on all addresses")
 		r.server4 = &dns.Server{Addr: ":" +
 			strconv.Itoa(r.cfg.Port), Net: "udp"}
 		go func() {
 			if err := r.server4.ListenAndServe(); err != nil {
-				fmt.Printf("Any-address listener error: %s\n", err)
+				log.Errf("Any-address listener error: %s", err)
 				r.Sig <- syscall.SIGCHLD
 			}
 		}()
@@ -140,26 +143,26 @@ func (r *Responder) startListeners() {
 
 // Stop all listeners
 func (r *Responder) Stop() {
-	fmt.Println("Edge DNS Server shutdown started")
+	log.Debugln("Edge DNS Server shutdown started")
 
 	if r.server4 != nil {
-		fmt.Println("Stopping IPv4 Responder")
+		log.Debugln("Stopping IPv4 Responder")
 		if err := r.server4.Shutdown(); err != nil {
-			fmt.Printf("IPv4 listener shutdown error: %s", err)
+			log.Errf("IPv4 listener shutdown error: %s", err)
 		}
 	}
 
-	fmt.Println("Stopping API")
+	log.Debugln("Stopping API")
 	if err := r.control.GracefulStop(); err != nil {
-		fmt.Printf("Control Server Shutdown error: %s", err)
+		log.Errf("Control Server Shutdown error: %s", err)
 	}
 
-	fmt.Println("Stopping DB")
+	log.Debugln("Stopping DB")
 	if err := r.storage.Stop(); err != nil {
-		fmt.Printf("DB Shutdown error: %s", err)
+		log.Errf("DB Shutdown error: %s", err)
 	}
 
-	fmt.Println("Edge DNS Server stopped")
+	log.Infoln("Edge DNS Server stopped")
 }
 
 // SetDefaultForwarder allows the default forwarder to be changed

@@ -15,7 +15,6 @@
 package edgedns
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -28,7 +27,7 @@ func (r *Responder) handleDNSRequest(w dns.ResponseWriter, q *dns.Msg) {
 
 	switch q.Opcode {
 	case dns.OpcodeQuery:
-		fmt.Printf("[RESOLVER] Lookup %s\n", q.Question[0].Name)
+		log.Debugf("[RESOLVER] Lookup %s", q.Question[0].Name)
 
 		// Authoritative lookup
 		var rrs *[]dns.RR
@@ -43,21 +42,21 @@ func (r *Responder) handleDNSRequest(w dns.ResponseWriter, q *dns.Msg) {
 			// Forwarder lookup
 			m, err = forwardRequest(q, r.cfg.forwarder)
 			if err != nil {
-				fmt.Printf("[RESOLVER] Failed to find answer: %s\n", err)
+				log.Errf("[RESOLVER] Failed to find answer: %s", err)
 				m = new(dns.Msg)
 				m.SetReply(q)
 				m.SetRcode(q, dns.RcodeServerFailure)
 			}
 		}
 	default:
-		fmt.Printf("[RESOLVER] Received unsupported DNS Opcode %s",
+		log.Noticef("[RESOLVER] Received unsupported DNS Opcode %s",
 			dns.OpcodeToString[q.Opcode])
 		m = new(dns.Msg)
 		m.SetRcode(q, dns.RcodeRefused)
 	}
 	err = w.WriteMsg(m)
 	if err != nil {
-		fmt.Printf("[RESOLVER] Failed to reply to client: %s", err)
+		log.Errf("[RESOLVER] Failed to reply to client: %s", err)
 	}
 }
 
