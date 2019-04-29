@@ -28,10 +28,12 @@ import (
 )
 
 type services map[string]Service
+type consumerConns map[string]ConsumerConnection
 
 type eaaContext struct {
-	serviceInfo      services
-	subscriptionInfo NotificationSubscriptions
+	serviceInfo         services
+	consumerConnections consumerConns
+	subscriptionInfo    NotificationSubscriptions
 }
 
 var (
@@ -48,6 +50,7 @@ func Init() error {
 	}
 
 	eaaCtx.serviceInfo = services{}
+	eaaCtx.consumerConnections = consumerConns{}
 	eaaCtx.subscriptionInfo = NotificationSubscriptions{}
 
 	return nil

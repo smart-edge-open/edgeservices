@@ -34,8 +34,20 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetNotifications(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	if eaaCtx.serviceInfo == nil {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	statCode, err := createWsConn(w, r)
+	if err != nil {
+		log.Errf("Error in WebSocket Connection Creation: %#v", err)
+		if statCode != 0 {
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(statCode)
+		}
+		return
+	}
 }
 
 func GetServices(w http.ResponseWriter, r *http.Request) {

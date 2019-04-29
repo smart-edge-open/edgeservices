@@ -24,6 +24,7 @@ require (
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/golang/protobuf v1.3.0
 	github.com/gorilla/mux v1.7.0
+	github.com/gorilla/websocket v1.4.0
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5
 	github.com/libvirt/libvirt-go v5.1.0+incompatible
 	github.com/libvirt/libvirt-go-xml v5.1.0+incompatible
