@@ -86,6 +86,10 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 	var serv Service
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	clientCert := r.TLS.PeerCertificates[0]
+	commonName := clientCert.Subject.CommonName
+
 	err := json.NewDecoder(r.Body).Decode(&serv)
 	if err != nil {
 		// TODO: Log request payload deserialization error
@@ -93,7 +97,7 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = addService(serv); err != nil {
+	if err = addService(commonName, serv); err != nil {
 		// TODO: Log new service registration failure
 		w.WriteHeader(http.StatusInternalServerError)
 		return

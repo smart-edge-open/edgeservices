@@ -19,30 +19,27 @@ import (
 	"net/http"
 )
 
-func addService(serv Service) error {
+func addService(commonName string, serv Service) error {
 	if eaaCtx.serviceInfo == nil {
 		return errors.New(
 			"EAA context is not initialized. Call Init() function first")
 	}
-	eaaCtx.serviceInfo[serv.URN.ID+"."+serv.URN.Namespace] = serv
+
+	eaaCtx.serviceInfo[commonName] = serv
+
 	return nil
 }
 
 func removeService(commonName string) (int, error) {
 	if eaaCtx.serviceInfo == nil {
-
 		return http.StatusInternalServerError,
-			errors.New("500: EAA context not initialized. ")
+			errors.New(
+				"EAA context is not initialized. Call Init() function first")
 	}
 
-	urn, err := CommonNameStringToURN(commonName)
-	if err != nil {
-		return http.StatusUnauthorized,
-			err
-	}
-	_, servicefound := eaaCtx.serviceInfo[urn.ID+"."+urn.Namespace]
+	_, servicefound := eaaCtx.serviceInfo[commonName]
 	if servicefound {
-		delete(eaaCtx.serviceInfo, urn.ID+"."+urn.Namespace)
+		delete(eaaCtx.serviceInfo, commonName)
 		return http.StatusNoContent, nil
 	}
 
