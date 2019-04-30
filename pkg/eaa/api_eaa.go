@@ -16,6 +16,7 @@ package eaa
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"net/http"
 )
 
@@ -106,14 +107,66 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func SubscribeNotifications(w http.ResponseWriter, r *http.Request) {
+func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+	var (
+		notif      []NotificationDescriptor
+		commonName string
+		err        error
+		statCode   int
+	)
+
+	if err = json.NewDecoder(r.Body).Decode(&notif); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Errf("Error in Namespace Notification Registration: %s",
+			err.Error())
+		return
+	}
+
+	commonName = r.TLS.PeerCertificates[0].Subject.CommonName
+
+	vars := mux.Vars(r)
+
+	statCode, err = addSubscriptionToNamespace(commonName,
+		vars["urn.namespace"], notif)
+
+	if err != nil {
+		log.Errf("Error in Namespace Notification Registration: %s",
+			err.Error())
+	}
+
+	w.WriteHeader(statCode)
 }
 
-func SubscribeNotifications2(w http.ResponseWriter, r *http.Request) {
+func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+	var (
+		notif      []NotificationDescriptor
+		commonName string
+		err        error
+		statCode   int
+	)
+
+	if err = json.NewDecoder(r.Body).Decode(&notif); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Errf("Error in Service Notification Registration: %s", err.Error())
+		return
+	}
+
+	commonName = r.TLS.PeerCertificates[0].Subject.CommonName
+
+	vars := mux.Vars(r)
+
+	statCode, err = addSubscriptionToService(commonName,
+		vars["urn.namespace"], vars["urn.id"], notif)
+
+	if err != nil {
+		log.Errf("Error in Service Notification Registration: %s", err.Error())
+	}
+
+	w.WriteHeader(statCode)
 }
 
 func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {

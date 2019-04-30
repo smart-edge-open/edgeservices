@@ -99,17 +99,17 @@ var routes = Routes{
 	},
 
 	Route{
-		"SubscribeNotifications",
+		"SubscribeNamespaceNotifications",
 		strings.ToUpper("Post"),
 		"/subscriptions/{urn.namespace}",
-		SubscribeNotifications,
+		SubscribeNamespaceNotifications,
 	},
 
 	Route{
-		"SubscribeNotifications2",
+		"SubscribeServiceNotifications",
 		strings.ToUpper("Post"),
 		"/subscriptions/{urn.namespace}/{urn.id}",
-		SubscribeNotifications2,
+		SubscribeServiceNotifications,
 	},
 
 	Route{
