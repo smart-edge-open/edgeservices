@@ -16,14 +16,17 @@ package eva
 
 import (
 	"context"
+	"fmt"
+	"github.com/pkg/errors"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	logger "github.com/smartedgemec/log"
 	"google.golang.org/grpc"
 	"net"
+	"os"
 )
 
-var log = logger.DefaultLogger.WithField("component", "eva")
+var log = logger.DefaultLogger.WithField("eva", nil)
 
 // Wait for cancellation event and then stop the server from other goroutine
 func waitForCancel(ctx context.Context, server *grpc.Server) {
@@ -36,7 +39,7 @@ func runEva(ctx context.Context, endpoint string) error {
 	lis, err := net.Listen("tcp", endpoint)
 
 	if err != nil {
-		log.Errf("failed tcp listen on %s: %#v", endpoint, err)
+		log.Errf("failed tcp listen on %s: %v", endpoint, err)
 		return err
 	}
 
@@ -53,7 +56,7 @@ func runEva(ctx context.Context, endpoint string) error {
 	log.Infof("serving on %s", endpoint)
 	err = server.Serve(lis)
 	if err != nil {
-		log.Errf("Failed grpcServe(): %#v", err)
+		log.Errf("Failed grpcServe(): %v", err)
 		return err
 	}
 	log.Info("stopped serving")
@@ -61,18 +64,45 @@ func runEva(ctx context.Context, endpoint string) error {
 	return nil
 }
 
+type evaConfig struct {
+	Endpoint    string
+	MaxCores    int
+	MaxAppMem   int
+	AppImageDir string
+}
+
+func sanitizeConfig(cfg *evaConfig) error {
+	if cfg.MaxCores <= 0 {
+		return fmt.Errorf("MaxCores value invalid: %d", cfg.MaxCores)
+	}
+	if cfg.MaxAppMem <= 0 {
+		return fmt.Errorf("MaxCores value invalid: %d", cfg.MaxAppMem)
+	}
+	file, err := os.Open(cfg.AppImageDir)
+	if err != nil {
+		return errors.Wrap(err, "Unable to open AppImageDir")
+	}
+	file.Close()
+
+	return nil
+}
+
 func Run(ctx context.Context, cfgFile string) error {
-	cfg := struct {
-		Endpoint string
-	}{}
+	var cfg evaConfig
 
 	log.Infof("EVA agent initialized. Using '%s' as config.", cfgFile)
 
 	err := config.LoadJSONConfig(cfgFile, &cfg)
 	if err != nil {
-		log.Errf("Failed to read config %s: %#v", cfgFile, err)
+		log.Errf("Failed to read config %s: %v", cfgFile, err)
 		return err
 	}
+	err = sanitizeConfig(&cfg)
+	if err != nil {
+		log.Errf("Configuration invalid: %v", err)
+		return err
+	}
+	log.Debugf("Configuration read: %+v", cfg)
 
 	return runEva(ctx, cfg.Endpoint)
 }

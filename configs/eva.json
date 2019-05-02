@@ -1,3 +1,6 @@
 {
-    "Endpoint": "localhost:42102"
+	"Endpoint": "localhost:42102",
+	"MaxCores": 8,
+	"MaxAppMem": 42949672960,
+	"AppImageDir": "/tmp"
 }
