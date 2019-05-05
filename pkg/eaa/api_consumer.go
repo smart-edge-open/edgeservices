@@ -56,10 +56,12 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 
 func addSubscriptionToNamespace(commonName string, namespace string,
 	notif []NotificationDescriptor) (int, error) {
+	addNamespaceNotification("namespace", "notif")
 	return http.StatusOK, nil
 }
 
 func addSubscriptionToService(commonName string, namespace string,
 	serviceID string, notif []NotificationDescriptor) (int, error) {
+	addServiceNotification("namespace", "notif", "serviceID")
 	return http.StatusOK, nil
 }
