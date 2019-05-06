@@ -45,6 +45,7 @@ var log = logger.DefaultLogger.WithField("main", nil)
 var cfg mainConfig
 
 type mainConfig struct {
+	UseSyslog  bool              `json:"useSyslog"`
 	SyslogAddr string            `json:"syslogAddr"`
 	LogLevel   string            `json:"logLevel"`
 	Services   map[string]string `json:"services"`
@@ -62,10 +63,12 @@ func init() {
 		os.Exit(1)
 	}
 
-	err = logger.ConnectSyslog(cfg.SyslogAddr)
-	if err != nil {
-		log.Errf("Failed to connect to syslog: %s", err.Error())
-		os.Exit(1)
+	if cfg.UseSyslog {
+		err = logger.ConnectSyslog(cfg.SyslogAddr)
+		if err != nil {
+			log.Errf("Failed to connect to syslog: %s", err.Error())
+			os.Exit(1)
+		}
 	}
 
 	lvl, err := logger.ParseLevel(cfg.LogLevel)

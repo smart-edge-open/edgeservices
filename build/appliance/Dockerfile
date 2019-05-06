@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine:latest
+FROM centos:7.6.1810
 
-RUN apk --no-cache add ca-certificates
+RUN yum install -y libvirt-devel
 WORKDIR /root/
 COPY ./appliance .
 COPY ./configs configs

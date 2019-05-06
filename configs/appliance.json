@@ -1,5 +1,6 @@
 {
     "LogLevel"  : "info",
+    "UseSyslog": false,
     "SyslogAddr": "",
     "services": {
         "github.com/smartedgemec/appliance-ce/pkg/eaa": "configs/eaa.json",
