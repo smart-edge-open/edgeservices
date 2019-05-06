@@ -31,7 +31,7 @@ type Configuration struct {
 }
 
 var (
-	log    = logger.DefaultLogger.WithField("component", "ela")
+	log    = logger.DefaultLogger.WithField("ela", nil)
 	Config Configuration
 )
 

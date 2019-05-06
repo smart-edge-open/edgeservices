@@ -27,7 +27,7 @@ import (
 	logger "github.com/smartedgemec/log"
 )
 
-var log = logger.DefaultLogger.WithField("component", "storage")
+var log = logger.DefaultLogger.WithField("storage", nil)
 
 // BoltDB implements the Storage interface
 type BoltDB struct {

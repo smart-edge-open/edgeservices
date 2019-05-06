@@ -40,7 +40,7 @@ var (
 	cfg    Config
 	eaaCtx eaaContext
 
-	log = logger.DefaultLogger.WithField("component", "eaa")
+	log = logger.DefaultLogger.WithField("eaa", nil)
 )
 
 // Initialize EAA context structures

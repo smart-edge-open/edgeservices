@@ -27,7 +27,7 @@ import (
 	logger "github.com/smartedgemec/log"
 )
 
-var log = logger.DefaultLogger.WithField("component", "main")
+var log = logger.DefaultLogger.WithField("main", nil)
 
 func main() {
 	logLvl := flag.String("log", "info", "Log level.\nSupported values: "+

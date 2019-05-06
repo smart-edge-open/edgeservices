@@ -29,7 +29,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var log = logger.DefaultLogger.WithField("component", "grpc")
+var log = logger.DefaultLogger.WithField("grpc", nil)
 
 // ControlServer implements the ControlServer API
 type ControlServer struct {

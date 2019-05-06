@@ -24,7 +24,7 @@ import (
 	logger "github.com/smartedgemec/log"
 )
 
-var log = logger.DefaultLogger.WithField("component", "edgedns")
+var log = logger.DefaultLogger.WithField("edgedns", nil)
 
 // Storage is a backend persistence for all records
 type Storage interface {

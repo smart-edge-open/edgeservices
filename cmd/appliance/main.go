@@ -40,7 +40,7 @@ type ServiceStartFunction func(context.Context, string) error
 // EdgeServices array contains function pointers to services start functions
 var EdgeServices = []ServiceStartFunction{ela.Run, eaa.Run, eva.Run}
 
-var log = logger.DefaultLogger.WithField("component", "main")
+var log = logger.DefaultLogger.WithField("main", nil)
 
 var cfg mainConfig
 
