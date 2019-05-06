@@ -37,3 +37,4 @@ services:
             - /var/run/docker/netns:/var/run/docker/netns
             - /var/run:/var/run
             - /proc/1/ns:/var/host_ns
+            - /sys/class/net:/var/host_net_devices

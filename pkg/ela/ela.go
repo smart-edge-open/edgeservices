@@ -26,7 +26,8 @@ import (
 )
 
 type Configuration struct {
-	Endpoint string `json:"endpoint"`
+	Endpoint      string `json:"endpoint"`
+	NtsConfigPath string `json:"ntsConfigPath"`
 }
 
 var (

@@ -26,6 +26,7 @@ require (
 	github.com/gorilla/mux v1.7.0
 	github.com/gorilla/websocket v1.4.0
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5
+	github.com/kata-containers/runtime v0.0.0-20190505030513-a7e2bbd31c56
 	github.com/libvirt/libvirt-go v5.1.0+incompatible
 	github.com/libvirt/libvirt-go-xml v5.1.0+incompatible
 	github.com/miekg/dns v1.1.8
@@ -34,9 +35,12 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/smartedgemec/log v0.0.0-20190425151715-68de2de26397
+	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
 	github.com/spf13/afero v1.2.2 // indirect
+	github.com/stretchr/testify v1.3.0 // indirect
 	go.etcd.io/bbolt v1.3.2
 	golang.org/x/net v0.0.0-20190311183353-d8887717615a
 	google.golang.org/genproto v0.0.0-20180831171423-11092d34479b
 	google.golang.org/grpc v1.19.0
+	gopkg.in/ini.v1 v1.42.0
 )
