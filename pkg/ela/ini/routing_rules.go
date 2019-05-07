@@ -331,7 +331,7 @@ func TrafficRuleStringToProto(s string) (*pb.TrafficRule, error) {
 					key, value)
 			}
 		} else {
-			return nil, errors.New("parser not found for '%s'")
+			return nil, errors.Errorf("parser not found for '%s'", key)
 		}
 	}
 

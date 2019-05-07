@@ -59,8 +59,18 @@ type NtsConfig struct {
 	Ports     []Port    `ini:"-"`
 }
 
-// SaveToFile serializes NtsConfig to Ini file
 func (nts *NtsConfig) SaveToFile(filePath string) error {
+	buf, err := nts.WriteToBuffer()
+
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(filePath, buf.Bytes(), 0644)
+}
+
+// WriteToBuffer writes NtsConfig to buffer
+func (nts *NtsConfig) WriteToBuffer() (*bytes.Buffer, error) {
 	iniFile := ini.Empty()
 
 	for idx, port := range nts.Ports {
@@ -68,24 +78,26 @@ func (nts *NtsConfig) SaveToFile(filePath string) error {
 
 		section, err := iniFile.NewSection(sectionName)
 		if err != nil {
-			return errors.Wrapf(err, "Failed to create %s section", sectionName)
+			return nil,
+				errors.Wrapf(err, "Failed to create %s section", sectionName)
 		}
 
 		err = section.ReflectFrom(&port)
 		if err != nil {
-			return errors.Wrapf(err, "Failed to Reflect port %+v", port)
+			return nil,
+				errors.Wrapf(err, "Failed to Reflect port %+v", port)
 		}
 	}
 
 	err := ini.ReflectFrom(iniFile, nts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	buf := new(bytes.Buffer)
 	_, err = iniFile.WriteTo(buf)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Because ini library does not handle serializing shadow values
@@ -95,7 +107,7 @@ func (nts *NtsConfig) SaveToFile(filePath string) error {
 	// route = <r2>
 	output := strings.Replace(buf.String(), "|", "\nroute = ", -1)
 
-	return ioutil.WriteFile(filePath, []byte(output), 0644)
+	return bytes.NewBufferString(output), nil
 }
 
 // NtsConfigFromFile loads file to which path is given
@@ -125,6 +137,15 @@ func NtsConfigFromFile(filePath string) (*NtsConfig, error) {
 
 			c.Ports = append(c.Ports, p)
 		}
+	}
+
+	for idx, p := range c.Ports {
+		if p.EgressPort > len(c.Ports) {
+			return nil, errors.Errorf(
+				"EgressPort %d greater than amount of Ports", p.EgressPort)
+		}
+
+		c.Ports[idx].EgressPortID = c.Ports[p.EgressPort].PciAddress
 	}
 
 	return c, nil
@@ -218,7 +239,7 @@ func InterfaceTypeFromTrafficDirection(
 func (nts *NtsConfig) Update() {
 	for idx, p := range nts.Ports {
 		if p.TrafficDirection != LBP {
-			p.LBPMAC = ""
+			nts.Ports[idx].LBPMAC = ""
 		}
 
 		for idx2, p2 := range nts.Ports {
