@@ -88,7 +88,7 @@ func RunServer(parentCtx context.Context) error {
 
 	router := NewRouter()
 	server := &http.Server{
-		Addr: cfg.ServerAddr.Hostname + ":" + cfg.ServerAddr.Port,
+		Addr: cfg.Endpoint,
 		TLSConfig: &tls.Config{
 			ClientAuth: tls.RequireAndVerifyClientCert,
 			ClientCAs:  certPool,
@@ -96,8 +96,7 @@ func RunServer(parentCtx context.Context) error {
 		Handler: router,
 	}
 
-	lis, err := net.Listen("tcp",
-		cfg.ServerAddr.Hostname+":"+cfg.ServerAddr.Port)
+	lis, err := net.Listen("tcp", cfg.Endpoint)
 	if err != nil {
 		log.Errf("net.Listen error: %#v", err)
 		return err
@@ -111,8 +110,8 @@ func RunServer(parentCtx context.Context) error {
 
 	defer log.Info("Stopped serving")
 
-	log.Infof("EAA Server started and listening on port %s",
-		cfg.ServerAddr.Port)
+	log.Infof("Serving on: %s", cfg.Endpoint)
+
 	if err = server.ServeTLS(lis, cfg.Certs.ServerCertPath,
 		cfg.Certs.ServerKeyPath); err != http.ErrServerClosed {
 		log.Errf("server.Serve error: %#v", err)

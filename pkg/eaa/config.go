@@ -14,11 +14,6 @@
 
 package eaa
 
-type ServerInfo struct {
-	Hostname string `json:"hostname"`
-	Port     string `json:"port"`
-}
-
 type CertsInfo struct {
 	CaRootPath     string `json:"caRootPath"`
 	ServerCertPath string `json:"serverCertPath"`
@@ -26,6 +21,6 @@ type CertsInfo struct {
 }
 
 type Config struct {
-	ServerAddr ServerInfo `json:"serverAddr"`
-	Certs      CertsInfo  `json:"certs"`
+	Endpoint string    `json:"endpoint"`
+	Certs    CertsInfo `json:"certs"`
 }

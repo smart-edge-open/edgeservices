@@ -1,8 +1,5 @@
 {
-    "serverAddr": {
-        "hostname": "localhost",
-        "port": "443"
-    },
+    "endpoint": "localhost:443",
     "certs": {
         "caRootPath": "certs/eaa/rootCA.pem",
         "serverCertPath": "certs/eaa/server.crt",
