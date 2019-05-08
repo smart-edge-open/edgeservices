@@ -16,8 +16,9 @@ package eaa
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +172,14 @@ func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 
 func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
+	statCode, err := removeAllSubscriptions(commonName)
+	if err != nil {
+		log.Errf("Error in UnsubscribeAllNotifications: %s", err.Error())
+	}
+
+	w.WriteHeader(statCode)
 }
 
 func UnsubscribeNotifications(w http.ResponseWriter, r *http.Request) {

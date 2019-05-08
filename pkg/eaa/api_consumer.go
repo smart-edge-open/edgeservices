@@ -16,8 +16,9 @@ package eaa
 
 import (
 	"errors"
-	"github.com/gorilla/websocket"
 	"net/http"
+
+	"github.com/gorilla/websocket"
 )
 
 // Set read and write buffer sizes for websocket connection, these should be
@@ -132,4 +133,28 @@ func addSubscriptionToService(commonName string, namespace string,
 	}
 
 	return http.StatusOK, nil
+}
+
+func removeAllSubscriptions(commonName string) (int, error) {
+	if eaaCtx.subscriptionInfo == nil {
+		return http.StatusInternalServerError,
+			errors.New("EAA context not initialized")
+	}
+
+	for nsNotif, nsSubsInfo := range eaaCtx.subscriptionInfo {
+		mapChanged := false
+		for srvID, srvSubsInfo := range nsSubsInfo.serviceSubscriptions {
+			if srvSubsInfo.RemoveSubscriber(commonName) {
+				nsSubsInfo.serviceSubscriptions[srvID] = srvSubsInfo
+				mapChanged = true
+			}
+		}
+
+		if nsSubsInfo.namespaceSubscriptions.RemoveSubscriber(commonName) ||
+			mapChanged {
+			eaaCtx.subscriptionInfo[nsNotif] = nsSubsInfo
+		}
+	}
+
+	return http.StatusNoContent, nil
 }

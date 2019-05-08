@@ -29,3 +29,16 @@ type ConsumerSubscription struct {
 // NotificationSubscriptions is a map of the namespace string merged
 // with notification name and version to the consumer subscription struct
 type NotificationSubscriptions map[string]ConsumerSubscription
+
+// RemoveSubscriber delete consumer ID from subscribers list
+func (sI *SubscriberIds) RemoveSubscriber(commonName string) bool {
+	isChanged := false
+	for i, subID := range *sI {
+		if subID == commonName {
+			*sI = append((*sI)[:i], (*sI)[i+1:]...)
+			isChanged = true
+		}
+	}
+
+	return isChanged
+}
