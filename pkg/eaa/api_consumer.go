@@ -54,6 +54,15 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 	return 0, nil
 }
 
+func subscribedToNamespace(key string, id string) bool {
+	for _, i := range eaaCtx.subscriptionInfo[key].namespaceSubscriptions {
+		if i == id {
+			return true
+		}
+	}
+	return false
+}
+
 // Checks if consumer is already subscribed to service+namespace+notif set
 func checkServiceForConsumer(key string, serviceID string, consID string) int {
 	for index, subID := range eaaCtx.subscriptionInfo[key].
@@ -68,7 +77,26 @@ func checkServiceForConsumer(key string, serviceID string, consID string) int {
 
 func addSubscriptionToNamespace(commonName string, namespace string,
 	notif []NotificationDescriptor) (int, error) {
-	addNamespaceNotification("namespace", "notif")
+
+	if eaaCtx.subscriptionInfo == nil {
+		return http.StatusInternalServerError,
+			errors.New("Eaa context not initialized. ")
+	}
+
+	for _, n := range notif {
+
+		key := namespace + n.Name + n.Version
+
+		addNamespaceNotification(namespace, n.Name+n.Version)
+
+		if !subscribedToNamespace(key, commonName) {
+			c := eaaCtx.subscriptionInfo[key]
+			c.namespaceSubscriptions = append(c.namespaceSubscriptions,
+				commonName)
+			eaaCtx.subscriptionInfo[key] = c
+		}
+	}
+
 	return http.StatusOK, nil
 }
 
