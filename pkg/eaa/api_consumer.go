@@ -54,6 +54,18 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 	return 0, nil
 }
 
+// Checks if consumer is already subscribed to service+namespace+notif set
+func checkServiceForConsumer(key string, serviceID string, consID string) int {
+	for index, subID := range eaaCtx.subscriptionInfo[key].
+		serviceSubscriptions[serviceID] {
+		if subID == consID {
+			return index
+		}
+	}
+
+	return -1
+}
+
 func addSubscriptionToNamespace(commonName string, namespace string,
 	notif []NotificationDescriptor) (int, error) {
 	addNamespaceNotification("namespace", "notif")
@@ -62,6 +74,34 @@ func addSubscriptionToNamespace(commonName string, namespace string,
 
 func addSubscriptionToService(commonName string, namespace string,
 	serviceID string, notif []NotificationDescriptor) (int, error) {
-	addServiceNotification("namespace", "notif", "serviceID")
+
+	if eaaCtx.subscriptionInfo == nil {
+
+		return http.StatusInternalServerError,
+			errors.New("Eaa context not intialized. ")
+	}
+
+	for _, notification := range notif {
+		notifID := notification.Name + notification.Version
+
+		// If namespace+notif+service set not initialized, do so now
+		addServiceNotification(namespace, notifID, serviceID)
+
+		key := namespace + notifID
+
+		// If Consumer already subscribed, do nothing
+		index := checkServiceForConsumer(key, serviceID, commonName)
+		if index != -1 {
+			log.Infof("%s is already subscribed to %s - %s",
+				commonName, key, serviceID)
+			continue
+		}
+
+		// Add Consumer to Subscriber list
+		eaaCtx.subscriptionInfo[key].serviceSubscriptions[serviceID] =
+			append(eaaCtx.subscriptionInfo[key].serviceSubscriptions[serviceID],
+				commonName)
+	}
+
 	return http.StatusOK, nil
 }
