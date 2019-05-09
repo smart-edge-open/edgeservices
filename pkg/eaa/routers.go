@@ -127,9 +127,9 @@ var routes = Routes{
 	},
 
 	Route{
-		"UnsubscribeNotifications2",
+		"UnsubscribeServiceNotifications",
 		strings.ToUpper("Delete"),
 		"/subscriptions/{urn.namespace}/{urn.id}",
-		UnsubscribeNotifications2,
+		UnsubscribeServiceNotifications,
 	},
 }

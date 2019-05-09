@@ -171,6 +171,49 @@ func addSubscriptionToService(commonName string, namespace string,
 	return http.StatusOK, nil
 }
 
+func removeSubscriptionToService(commonName string, namespace string,
+	serviceID string, notif []NotificationDescriptor) (int, error) {
+
+	if eaaCtx.subscriptionInfo == nil {
+		return http.StatusInternalServerError,
+			errors.New("Eaa context not initialized. ")
+	}
+
+	for _, n := range notif {
+
+		key := namespace + n.Name + n.Version
+
+		if _, exists := eaaCtx.subscriptionInfo[key]; !exists {
+			log.Infof(
+				"Couldn't find key \"%s\" in the subscription map. %s",
+				key, "(Consumer unsubscription process)")
+
+			continue
+		}
+
+		if _, exists := eaaCtx.subscriptionInfo[key].
+			serviceSubscriptions[serviceID]; !exists {
+			log.Infof(
+				"Couldn't find key \"%s\" in the service subscription map. %s",
+				serviceID,
+				"(Consumer unsubscription process)")
+
+			continue
+		}
+
+		if index := checkServiceForConsumer(key, serviceID,
+			commonName); index != -1 {
+			eaaCtx.subscriptionInfo[key].serviceSubscriptions[serviceID] =
+				append(eaaCtx.subscriptionInfo[key].
+					serviceSubscriptions[serviceID][:index],
+					eaaCtx.subscriptionInfo[key].
+						serviceSubscriptions[serviceID][index+1:]...)
+		}
+	}
+
+	return http.StatusNoContent, nil
+}
+
 func removeAllSubscriptions(commonName string) (int, error) {
 	if eaaCtx.subscriptionInfo == nil {
 		return http.StatusInternalServerError,

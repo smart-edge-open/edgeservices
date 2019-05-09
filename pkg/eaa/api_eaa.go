@@ -214,7 +214,33 @@ func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statCode)
 }
 
-func UnsubscribeNotifications2(w http.ResponseWriter, r *http.Request) {
+func UnsubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+	var (
+		sub        Subscription
+		commonName string
+		err        error
+		statCode   int
+	)
+
+	if err = json.NewDecoder(r.Body).Decode(&sub); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Errf("Service Notification Unregistration: %s", err.Error())
+		return
+	}
+
+	commonName = r.TLS.PeerCertificates[0].Subject.CommonName
+
+	vars := mux.Vars(r)
+
+	statCode, err = removeSubscriptionToService(commonName,
+		vars["urn.namespace"], vars["urn.id"], sub.Notifications)
+
+	if err != nil {
+		log.Errf("Service Notification Unregistration: %s",
+			err.Error())
+	}
+
+	w.WriteHeader(statCode)
 }
