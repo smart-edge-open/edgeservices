@@ -55,13 +55,16 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 	return 0, nil
 }
 
-func subscribedToNamespace(key string, id string) bool {
-	for _, i := range eaaCtx.subscriptionInfo[key].namespaceSubscriptions {
-		if i == id {
-			return true
+// getNamespaceSubscriptionIndex returns index of the subscriber id
+// in the namespace slice, returns -1 if not found
+func getNamespaceSubscriptionIndex(key string, id string) int {
+	for index, subID := range eaaCtx.subscriptionInfo[key].
+		namespaceSubscriptions {
+		if subID == id {
+			return index
 		}
 	}
-	return false
+	return -1
 }
 
 // Checks if consumer is already subscribed to service+namespace+notif set
@@ -90,15 +93,48 @@ func addSubscriptionToNamespace(commonName string, namespace string,
 
 		addNamespaceNotification(namespace, n.Name+n.Version)
 
-		if !subscribedToNamespace(key, commonName) {
-			c := eaaCtx.subscriptionInfo[key]
-			c.namespaceSubscriptions = append(c.namespaceSubscriptions,
-				commonName)
-			eaaCtx.subscriptionInfo[key] = c
+		if index := getNamespaceSubscriptionIndex(key,
+			commonName); index == -1 {
+			consumerStruct := eaaCtx.subscriptionInfo[key]
+			consumerStruct.namespaceSubscriptions = append(
+				consumerStruct.namespaceSubscriptions, commonName)
+			eaaCtx.subscriptionInfo[key] = consumerStruct
 		}
 	}
 
 	return http.StatusOK, nil
+}
+
+func removeSubscriptionToNamespace(commonName string, namespace string,
+	notif []NotificationDescriptor) (int, error) {
+
+	if eaaCtx.subscriptionInfo == nil {
+		return http.StatusInternalServerError,
+			errors.New("Eaa context not initialized. ")
+	}
+
+	for _, n := range notif {
+
+		key := namespace + n.Name + n.Version
+
+		if _, exists := eaaCtx.subscriptionInfo[key]; !exists {
+			log.Infof(
+				"Couldn't find key \"%s\" in the subscription map. %s",
+				key, "(Consumer unsubscription process)")
+
+			continue
+		}
+
+		if index := getNamespaceSubscriptionIndex(key,
+			commonName); index != -1 {
+			c := eaaCtx.subscriptionInfo[key]
+			c.namespaceSubscriptions = append(c.namespaceSubscriptions[:index],
+				c.namespaceSubscriptions[index+1:]...)
+			eaaCtx.subscriptionInfo[key] = c
+		}
+	}
+
+	return http.StatusNoContent, nil
 }
 
 func addSubscriptionToService(commonName string, namespace string,

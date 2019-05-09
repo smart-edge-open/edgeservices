@@ -120,10 +120,10 @@ var routes = Routes{
 	},
 
 	Route{
-		"UnsubscribeNotifications",
+		"UnsubscribeNamespaceNotifications",
 		strings.ToUpper("Delete"),
 		"/subscriptions/{urn.namespace}",
-		UnsubscribeNotifications,
+		UnsubscribeNamespaceNotifications,
 	},
 
 	Route{
