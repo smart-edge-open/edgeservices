@@ -179,6 +179,7 @@ const (
 type TrafficDirection string
 
 const (
+	Unknown    TrafficDirection = "unknown"
 	Upstream   TrafficDirection = "upstream"
 	Downstream TrafficDirection = "downstream"
 	Both       TrafficDirection = "both"
@@ -213,7 +214,7 @@ func TrafficDirectionFromInterfaceType(
 	case pb.NetworkInterface_BREAKOUT:
 		return LBP, nil
 	default:
-		return TrafficDirection(0),
+		return Unknown,
 			errors.Errorf("Network interface type %v is not supported", t)
 	}
 }

@@ -29,17 +29,28 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/ini"
+	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 )
 
 type NetworkDevice struct {
 	PCI          string
 	Manufacturer string
-	Name         string
 	MAC          string
 	Description  string
+	Driver       pb.NetworkInterface_InterfaceDriver
+	Direction    pb.NetworkInterface_InterfaceType
+}
+
+func checkIfCommandAvailable(command string) error {
+	cmd := exec.Command("command", "-v", command)
+	return cmd.Run()
 }
 
 func getNetworkPCIs() ([]NetworkDevice, error) {
+	if checkIfCommandAvailable("lspci") != nil {
+		return nil, errors.New("command `lspci` is not available")
+	}
+
 	cmd := exec.Command("bash", "-c",
 		`lspci -Dmm | grep -i "Ethernet\|Network"`)
 	var out bytes.Buffer
@@ -69,7 +80,7 @@ func getNetworkPCIs() ([]NetworkDevice, error) {
 			devs = append(devs, NetworkDevice{
 				PCI:          pci,
 				Manufacturer: manufacturer,
-				Name:         devName,
+				Description:  devName,
 			})
 		}
 	}
@@ -120,8 +131,9 @@ func fillMACAddrForKernelDevs(devs []NetworkDevice) error {
 		for idx := range devs {
 			if devs[idx].PCI == pci {
 				devs[idx].MAC = iface.HardwareAddr.String()
-				devs[idx].Name = fmt.Sprintf("[%s] %s", iface.Name,
-					devs[idx].Name)
+				devs[idx].Description = fmt.Sprintf("[%s] %s", iface.Name,
+					devs[idx].Description)
+				devs[idx].Driver = pb.NetworkInterface_KERNEL
 			}
 		}
 	}
@@ -140,8 +152,13 @@ func fillMACAddrForDPDKDevs(devs []NetworkDevice) error {
 		for idx := range devs {
 			if devs[idx].PCI == port.PciAddress {
 				devs[idx].MAC = port.MAC
-				devs[idx].Name = port.Name
 				devs[idx].Description = port.Description
+
+				dir, _ := ini.InterfaceTypeFromTrafficDirection(
+					port.TrafficDirection)
+
+				devs[idx].Direction = dir
+				devs[idx].Driver = pb.NetworkInterface_USERSPACE
 			}
 		}
 	}
@@ -166,4 +183,32 @@ func GetNetworkDevices() ([]NetworkDevice, error) {
 	}
 
 	return devs, err
+}
+
+func (dev *NetworkDevice) ToNetworkInterface() *pb.NetworkInterface {
+	iface := &pb.NetworkInterface{}
+	iface.Id = dev.PCI
+	iface.Description = dev.Description
+	iface.MacAddress = dev.MAC
+	iface.Driver = dev.Driver
+	iface.Type = dev.Direction
+
+	return iface
+}
+
+func GetNetworkInterfaces() (*pb.NetworkInterfaces, error) {
+	devs, err := GetNetworkDevices()
+	if err != nil {
+		return nil, err
+	}
+
+	ifaces := &pb.NetworkInterfaces{}
+	ifaces.NetworkInterfaces = make([]*pb.NetworkInterface, 0)
+
+	for _, dev := range devs {
+		ifaces.NetworkInterfaces = append(ifaces.NetworkInterfaces,
+			dev.ToNetworkInterface())
+	}
+
+	return ifaces, nil
 }

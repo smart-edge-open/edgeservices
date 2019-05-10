@@ -40,7 +40,7 @@ func runServer(ctx context.Context) error {
 	lis, err := net.Listen("tcp", Config.Endpoint)
 
 	if err != nil {
-		log.Errf("net.Listen error: %#v", err)
+		log.Errf("net.Listen error: %+v", err)
 		return err
 	}
 
@@ -48,6 +48,9 @@ func runServer(ctx context.Context) error {
 	applicationPolicyService := ApplicationPolicyServiceServerImpl{}
 	pb.RegisterApplicationPolicyServiceServer(grpcServer,
 		&applicationPolicyService)
+
+	interfaceService := InterfaceService{}
+	pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
 
 	go func() {
 		<-ctx.Done()
@@ -62,7 +65,7 @@ func runServer(ctx context.Context) error {
 	// When Serve() returns, listener is closed
 	err = grpcServer.Serve(lis)
 	if err != nil {
-		log.Errf("grpcServer.Serve error: %#v", err)
+		log.Errf("grpcServer.Serve error: %+v", err)
 	}
 	return err
 }
@@ -73,7 +76,7 @@ func Run(ctx context.Context, cfgPath string) error {
 
 	err := config.LoadJSONConfig(cfgPath, &Config)
 	if err != nil {
-		log.Errf("Failed to load config: %#v", err)
+		log.Errf("Failed to load config: %+v", err)
 		return err
 	}
 	return runServer(ctx)

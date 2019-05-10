@@ -15,6 +15,7 @@
 package ela_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Flaque/filet"
@@ -24,10 +25,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+var elaTestEndpoint = "localhost:42101"
+
 func TestEdgeLifecycleAgent(t *testing.T) {
 	defer filet.CleanUp(t)
 	RegisterFailHandler(Fail)
-	filet.File(t, "ela.json", `
+	filet.File(t, "ela.json", fmt.Sprintf(`
 	{
 		"log": {
 			"level": "info",
@@ -38,8 +41,8 @@ func TestEdgeLifecycleAgent(t *testing.T) {
 				"tag": "Appliance-ELA"
 			}
 		},
-		"endpoint": "localhost:42101"
-	}`)
+		"endpoint": "%s"
+	}`, elaTestEndpoint))
 	RunSpecs(t, "Edge Life Cycle Agent suite")
 }
 

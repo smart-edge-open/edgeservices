@@ -50,19 +50,21 @@ var _ = Describe("Application Policy gRPC Server", func() {
 			ela.DialEDASet = fakeDialEDASet
 			ela.MACFetcher = &fakeMACAddressProvider{}
 
+			srvErrChan := make(chan error)
 			srvCtx, srvCancel := context.WithCancel(context.Background())
 			go func() {
 				err := ela.Run(srvCtx, "ela.json")
 				if err != nil {
-					log.Errf("ela.Run exited with error: %#v", err)
+					log.Errf("ela.Run exited with error: %+v", err)
 				}
+				srvErrChan <- err
 			}()
-			defer srvCancel()
+			defer func() {
+				srvCancel()
+				<-srvErrChan
+			}()
 
-			// Wait for loading config and serving gRPC
-			time.Sleep(10 * time.Millisecond)
-
-			conn, err := grpc.Dial(ela.Config.Endpoint, grpc.WithInsecure())
+			conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
