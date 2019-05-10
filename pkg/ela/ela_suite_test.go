@@ -15,10 +15,12 @@
 package ela_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/Flaque/filet"
+	"github.com/smartedgemec/appliance-ce/pkg/ela"
 	"github.com/smartedgemec/log"
 
 	. "github.com/onsi/ginkgo"
@@ -43,6 +45,21 @@ func TestEdgeLifecycleAgent(t *testing.T) {
 		},
 		"endpoint": "%s"
 	}`, elaTestEndpoint))
+
+	srvErrChan := make(chan error)
+	srvCtx, srvCancel := context.WithCancel(context.Background())
+	go func() {
+		err := ela.Run(srvCtx, "ela.json")
+		if err != nil {
+			log.Errf("ela.Run exited with error: %+v", err)
+		}
+		srvErrChan <- err
+	}()
+	defer func() {
+		srvCancel()
+		<-srvErrChan
+	}()
+
 	RunSpecs(t, "Edge Life Cycle Agent suite")
 }
 

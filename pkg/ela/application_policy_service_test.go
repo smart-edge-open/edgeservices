@@ -21,7 +21,6 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/smartedgemec/appliance-ce/pkg/ela"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
-	"github.com/smartedgemec/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -49,20 +48,6 @@ var _ = Describe("Application Policy gRPC Server", func() {
 		It("is callable", func() {
 			ela.DialEDASet = fakeDialEDASet
 			ela.MACFetcher = &fakeMACAddressProvider{}
-
-			srvErrChan := make(chan error)
-			srvCtx, srvCancel := context.WithCancel(context.Background())
-			go func() {
-				err := ela.Run(srvCtx, "ela.json")
-				if err != nil {
-					log.Errf("ela.Run exited with error: %+v", err)
-				}
-				srvErrChan <- err
-			}()
-			defer func() {
-				srvCancel()
-				<-srvErrChan
-			}()
 
 			conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
 			Expect(err).NotTo(HaveOccurred())
@@ -230,7 +215,6 @@ var _ = Describe("Traffic rules are verified.", func() {
 				Expect(ela.VerifyGTPFilter(filter)).Should(BeNil())
 			})
 		})
-
 	})
 
 	Describe("Traffic selector is verified:", func() {

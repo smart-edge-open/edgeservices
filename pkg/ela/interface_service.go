@@ -16,6 +16,7 @@ package ela
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -55,8 +56,28 @@ func (*InterfaceService) GetAll(context.Context,
 	return nis, nil
 }
 
-func (*InterfaceService) Get(context.Context,
-	*pb.InterfaceID) (*pb.NetworkInterface, error) {
+func (*InterfaceService) Get(ctx context.Context,
+	id *pb.InterfaceID) (*pb.NetworkInterface, error) {
+	log.Info("InterfaceService Get: received request")
 
-	return nil, status.Errorf(codes.Unimplemented, "not implemented")
+	if id.Id == "" {
+		log.Errf("InterfaceService Get: empty id")
+		return nil,
+			status.Error(codes.InvalidArgument, "empty id")
+	}
+
+	nis, err := GetInterfaces()
+	if err != nil {
+		log.Errf("InterfaceService Get: GetInterfaces() failed: %+v", err)
+		return nil, errors.Wrap(err, "failed to obtain network interfaces")
+	}
+
+	for _, networkInterface := range nis.NetworkInterfaces {
+		if networkInterface.Id == id.Id {
+			return networkInterface, nil
+		}
+	}
+
+	log.Infof("InterfaceService Get: Interface with ID=%s not found", id.Id)
+	return nil, status.Error(codes.NotFound, "interface not found")
 }
