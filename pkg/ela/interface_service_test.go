@@ -88,7 +88,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 
 	Describe("Get method", func() {
 		get := func(id string) (*pb.NetworkInterface, error) {
-			conn, err := grpc.Dial(ela.Config.Endpoint, grpc.WithInsecure())
+			conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 

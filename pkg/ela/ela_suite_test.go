@@ -34,15 +34,6 @@ func TestEdgeLifecycleAgent(t *testing.T) {
 	RegisterFailHandler(Fail)
 	filet.File(t, "ela.json", fmt.Sprintf(`
 	{
-		"log": {
-			"level": "info",
-			"syslog": {
-				"enable": false,
-				"protocol": "",
-				"address": "",
-				"tag": "Appliance-ELA"
-			}
-		},
 		"endpoint": "%s"
 	}`, elaTestEndpoint))
 
