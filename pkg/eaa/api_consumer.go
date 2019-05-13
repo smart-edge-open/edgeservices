@@ -33,7 +33,7 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 	appID := r.TLS.PeerCertificates[0].Subject.CommonName
 
 	// Check if appID matches the Host included in the request header
-	if appID == r.Host {
+	if appID != r.Host {
 		return http.StatusUnauthorized,
 			errors.New("401: Incorrect app ID")
 	}
