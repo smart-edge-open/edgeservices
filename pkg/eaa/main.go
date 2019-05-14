@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	logger "github.com/smartedgemec/log"
@@ -98,7 +99,12 @@ func RunServer(parentCtx context.Context) error {
 
 	lis, err := net.Listen("tcp", cfg.Endpoint)
 	if err != nil {
-		log.Errf("net.Listen error: %#v", err)
+		log.Errf("net.Listen error: %+v", err)
+
+		e, ok := err.(*os.SyscallError)
+		if ok {
+			log.Errf("net.Listen error: %+v", e.Error())
+		}
 		return err
 	}
 

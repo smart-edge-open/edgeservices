@@ -14,26 +14,24 @@
 
 export GO111MODULE = on
 
-.PHONY: help clean build build-docker lint test
+.PHONY: build appliance edgedns clean build-docker lint test help
 TMP_DIR:=$(shell mktemp -d)
-BUILD_DIR:=dist
+BUILD_DIR ?=dist
+
 VER:=1.0
 
-help:
-	@echo "Please use \`make <target>\` where <target> is one of"
-	@echo "  clean          to clean up build artifacts and docker"
-	@echo "  build          to build the appliance application"
-	@echo "  build-docker   to build the release docker image"
-	@echo "  lint           to run linters and static analysis on the code"
-	@echo "  test           to run unit tests"
+build: appliance edgedns
+
+appliance:
+	mkdir -p "${BUILD_DIR}"
+	GOOS=linux go build -o "${BUILD_DIR}/appliance" ./cmd/appliance
+
+edgedns:
+	mkdir -p "${BUILD_DIR}"
+	GOOS=linux go build -a --ldflags '-extldflags "-static"' -tags netgo -installsuffix netgo -o "${BUILD_DIR}/edgednssvr" ./cmd/edgednssvr
 
 clean:
 	rm -rf "${BUILD_DIR}"
-
-build:
-	mkdir -p "${BUILD_DIR}"
-	GOOS=linux go build -o "${BUILD_DIR}/appliance" ./cmd/appliance
-	GOOS=linux go build -a --ldflags '-extldflags "-static"' -tags netgo -installsuffix netgo -o "${BUILD_DIR}/edgednssvr" ./cmd/edgednssvr
 
 build-docker: build
 	cp build/appliance/Dockerfile "${TMP_DIR}/Dockerfile_appliance"
@@ -54,3 +52,14 @@ lint:
 
 test:
 	ginkgo -v -r --randomizeAllSpecs --randomizeSuites --failOnPending --skipPackage=vendor
+
+help:
+	@echo "Please use \`make <target>\` where <target> is one of"
+	@echo "  build          to build the appliance application and edgedns server"
+	@echo "  appliance      to build the appliance application"
+	@echo "  edgedns        to build the edgedns server"
+	@echo "  clean          to clean up build artifacts and docker"
+	@echo "  build-docker   to build the release docker image"
+	@echo "  run-docker     to start containers"
+	@echo "  lint           to run linters and static analysis on the code"
+	@echo "  test           to run unit tests"
