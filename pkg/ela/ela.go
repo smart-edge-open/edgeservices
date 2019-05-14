@@ -49,6 +49,8 @@ func runServer(ctx context.Context) error {
 	pb.RegisterApplicationPolicyServiceServer(grpcServer,
 		&applicationPolicyService)
 
+	dnsService := DNSServiceServer{}
+	pb.RegisterDNSServiceServer(grpcServer, &dnsService)
 	interfaceService := InterfaceService{}
 	pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
 

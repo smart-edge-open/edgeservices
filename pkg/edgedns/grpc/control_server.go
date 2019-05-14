@@ -68,7 +68,7 @@ func (cs *ControlServer) GracefulStop() error {
 func (cs *ControlServer) SetAuthoritativeHost(ctx context.Context,
 	rr *pb.HostRecordSet) (*empty.Empty, error) {
 
-	log.Debugf("[API] SetAuthoritativeHost: %s (%d)",
+	log.Infof("[API] SetAuthoritativeHost: %s (%d)",
 		rr.Fqdn, len(rr.Addresses))
 	if rr.RecordType != pb.RType_A {
 		return &empty.Empty{}, status.Error(codes.Unimplemented,
@@ -90,7 +90,7 @@ func (cs *ControlServer) SetAuthoritativeHost(ctx context.Context,
 func (cs *ControlServer) DeleteAuthoritative(ctx context.Context,
 	rr *pb.RecordSet) (*empty.Empty, error) {
 
-	log.Debugf("[API] DeleteAuthoritative: %s", rr.Fqdn)
+	log.Infof("[API] DeleteAuthoritative: %s", rr.Fqdn)
 	if rr.RecordType == pb.RType_None {
 		return &empty.Empty{}, status.Error(codes.InvalidArgument,
 			"you must specify a record type")

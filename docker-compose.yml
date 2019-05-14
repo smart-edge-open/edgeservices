@@ -22,12 +22,14 @@ services:
     privileged: true
     ports:
      - "42101:42101"
+     - "42102:42102"
+     - "443:443"
     volumes:
+     - "/run:/run"
      - "/var/lib/nts:/var/lib/nts"
      - "/proc/1/ns:/var/host_ns"
      - "/sys/class/net:/var/host_net_devices"
      - "/sys/devices:/devices"
-
   edgednssvr:
     build:
       context: .
