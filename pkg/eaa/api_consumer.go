@@ -57,7 +57,7 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 
 // getNamespaceSubscriptionIndex returns index of the subscriber id
 // in the namespace slice, returns -1 if not found
-func getNamespaceSubscriptionIndex(key string, id string) int {
+func getNamespaceSubscriptionIndex(key NamespaceNotif, id string) int {
 	for index, subID := range eaaCtx.subscriptionInfo[key].
 		namespaceSubscriptions {
 		if subID == id {
@@ -68,7 +68,8 @@ func getNamespaceSubscriptionIndex(key string, id string) int {
 }
 
 // Checks if consumer is already subscribed to service+namespace+notif set
-func checkServiceForConsumer(key string, serviceID string, consID string) int {
+func checkServiceForConsumer(key NamespaceNotif, serviceID string,
+	consID string) int {
 	for index, subID := range eaaCtx.subscriptionInfo[key].
 		serviceSubscriptions[serviceID] {
 		if subID == consID {
@@ -89,16 +90,16 @@ func addSubscriptionToNamespace(commonName string, namespace string,
 
 	for _, n := range notif {
 
-		key := namespace + n.Name + n.Version
+		key := NamespaceNotif{
+			namespace: namespace,
+			notif:     n}
 
-		addNamespaceNotification(namespace, n.Name+n.Version)
+		addNamespaceNotification(key)
 
 		if index := getNamespaceSubscriptionIndex(key,
 			commonName); index == -1 {
-			consumerStruct := eaaCtx.subscriptionInfo[key]
-			consumerStruct.namespaceSubscriptions = append(
-				consumerStruct.namespaceSubscriptions, commonName)
-			eaaCtx.subscriptionInfo[key] = consumerStruct
+			eaaCtx.subscriptionInfo[key].namespaceSubscriptions = append(
+				eaaCtx.subscriptionInfo[key].namespaceSubscriptions, commonName)
 		}
 	}
 
@@ -115,7 +116,9 @@ func removeSubscriptionToNamespace(commonName string, namespace string,
 
 	for _, n := range notif {
 
-		key := namespace + n.Name + n.Version
+		key := NamespaceNotif{
+			namespace: namespace,
+			notif:     n}
 
 		if _, exists := eaaCtx.subscriptionInfo[key]; !exists {
 			log.Infof(
@@ -127,10 +130,10 @@ func removeSubscriptionToNamespace(commonName string, namespace string,
 
 		if index := getNamespaceSubscriptionIndex(key,
 			commonName); index != -1 {
-			c := eaaCtx.subscriptionInfo[key]
-			c.namespaceSubscriptions = append(c.namespaceSubscriptions[:index],
-				c.namespaceSubscriptions[index+1:]...)
-			eaaCtx.subscriptionInfo[key] = c
+			eaaCtx.subscriptionInfo[key].namespaceSubscriptions = append(
+				eaaCtx.subscriptionInfo[key].namespaceSubscriptions[:index],
+				eaaCtx.subscriptionInfo[key].
+					namespaceSubscriptions[index+1:]...)
 		}
 	}
 
@@ -147,12 +150,13 @@ func addSubscriptionToService(commonName string, namespace string,
 	}
 
 	for _, notification := range notif {
-		notifID := notification.Name + notification.Version
 
-		// If namespace+notif+service set not initialized, do so now
-		addServiceNotification(namespace, notifID, serviceID)
+		key := NamespaceNotif{
+			namespace: namespace,
+			notif:     notification}
 
-		key := namespace + notifID
+		// If NamespaceNotif+service set not initialized, do so now
+		addServiceNotification(key, serviceID)
 
 		// If Consumer already subscribed, do nothing
 		index := checkServiceForConsumer(key, serviceID, commonName)
@@ -181,7 +185,9 @@ func removeSubscriptionToService(commonName string, namespace string,
 
 	for _, n := range notif {
 
-		key := namespace + n.Name + n.Version
+		key := NamespaceNotif{
+			namespace: namespace,
+			notif:     n}
 
 		if _, exists := eaaCtx.subscriptionInfo[key]; !exists {
 			log.Infof(
@@ -220,19 +226,14 @@ func removeAllSubscriptions(commonName string) (int, error) {
 			errors.New("EAA context not initialized")
 	}
 
-	for nsNotif, nsSubsInfo := range eaaCtx.subscriptionInfo {
-		mapChanged := false
+	for _, nsSubsInfo := range eaaCtx.subscriptionInfo {
 		for srvID, srvSubsInfo := range nsSubsInfo.serviceSubscriptions {
 			if srvSubsInfo.RemoveSubscriber(commonName) {
 				nsSubsInfo.serviceSubscriptions[srvID] = srvSubsInfo
-				mapChanged = true
 			}
 		}
 
-		if nsSubsInfo.namespaceSubscriptions.RemoveSubscriber(commonName) ||
-			mapChanged {
-			eaaCtx.subscriptionInfo[nsNotif] = nsSubsInfo
-		}
+		nsSubsInfo.namespaceSubscriptions.RemoveSubscriber(commonName)
 	}
 
 	return http.StatusNoContent, nil

@@ -26,9 +26,15 @@ type ConsumerSubscription struct {
 	serviceSubscriptions map[string]SubscriberIds
 }
 
-// NotificationSubscriptions is a map of the namespace string merged
-// with notification name and version to the consumer subscription struct
-type NotificationSubscriptions map[string]ConsumerSubscription
+// NamespaceNotif stores namespace name string and notification data
+type NamespaceNotif struct {
+	namespace string
+	notif     NotificationDescriptor
+}
+
+// NotificationSubscriptions is a map of a namespace notification struct
+// to the consumer subscription struct
+type NotificationSubscriptions map[NamespaceNotif]*ConsumerSubscription
 
 // RemoveSubscriber delete consumer ID from subscribers list
 func (sI *SubscriberIds) RemoveSubscriber(commonName string) bool {

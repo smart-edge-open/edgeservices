@@ -14,34 +14,26 @@
 
 package eaa
 
-// notifID is Name + Version from NotificationDescriptor struct
+// Initializes structs for given NamespaceNotif struct
+// to allow for subscription
+func addNamespaceNotification(key NamespaceNotif) {
 
-// Initializes structs for given namespace + notifID, to allow for subscription
-func addNamespaceNotification(namespace string, notifID string) {
-
-	key := namespace + notifID
-
-	if conSub, ok := eaaCtx.subscriptionInfo[key]; !ok {
-		conSub.namespaceSubscriptions = SubscriberIds{}
-		if conSub.serviceSubscriptions == nil {
-			conSub.serviceSubscriptions = map[string]SubscriberIds{}
-		}
+	if _, ok := eaaCtx.subscriptionInfo[key]; !ok {
+		conSub := &ConsumerSubscription{
+			namespaceSubscriptions: SubscriberIds{},
+			serviceSubscriptions:   map[string]SubscriberIds{}}
 		eaaCtx.subscriptionInfo[key] = conSub
 	}
 }
 
-// Initializes structs for given namespace + notifID + serviceID,
+// Initializes structs for given NamespaceNotif struct + serviceID,
 //	to allow for subscription
-func addServiceNotification(namespace string, notifID string,
-	serviceID string) {
+func addServiceNotification(key NamespaceNotif, serviceID string) {
 
-	addNamespaceNotification(namespace, notifID)
+	addNamespaceNotification(key)
 
-	key := namespace + notifID
-
-	_, ok := eaaCtx.subscriptionInfo[key].serviceSubscriptions[serviceID]
-
-	if !ok {
+	if _, ok := eaaCtx.subscriptionInfo[key].
+		serviceSubscriptions[serviceID]; !ok {
 		eaaCtx.subscriptionInfo[key].serviceSubscriptions[serviceID] =
 			SubscriberIds{}
 	}
