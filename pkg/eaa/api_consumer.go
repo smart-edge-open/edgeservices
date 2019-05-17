@@ -238,3 +238,82 @@ func removeAllSubscriptions(commonName string) (int, error) {
 
 	return http.StatusNoContent, nil
 }
+
+// addNamespaceSubscriptionToList adds a namespace subscription
+// to a list of subscriptions
+func (sL *SubscriptionList) addNamespaceSubscriptionToList(
+	nameNotif NamespaceNotif) {
+	found := false
+
+	for _, s := range sL.Subscriptions {
+
+		if s.URN.ID == "" && s.URN.Namespace == nameNotif.namespace {
+
+			s.Notifications = append(s.Notifications, nameNotif.notif)
+			found = true
+			break
+		}
+	}
+	if !found {
+		sL.Subscriptions = append(sL.Subscriptions,
+			Subscription{
+				URN: &URN{
+					ID:        "",
+					Namespace: nameNotif.namespace},
+				Notifications: []NotificationDescriptor{
+					nameNotif.notif},
+			})
+	}
+}
+
+// addServiceSubscriptionToList adds a service subscription
+// to a list of subscriptions
+func (sL *SubscriptionList) addServiceSubscriptionToList(
+	nameNotif NamespaceNotif, srvID string) {
+	found := false
+
+	for _, s := range sL.Subscriptions {
+		if s.URN.Namespace == nameNotif.namespace &&
+			s.URN.ID == srvID {
+			s.Notifications = append(s.Notifications,
+				nameNotif.notif)
+			found = true
+			break
+		}
+
+	}
+	if !found {
+		sL.Subscriptions = append(sL.Subscriptions,
+			Subscription{
+				URN: &URN{
+					ID:        srvID,
+					Namespace: nameNotif.namespace},
+				Notifications: []NotificationDescriptor{
+					nameNotif.notif},
+			})
+	}
+}
+
+func getConsumerSubscriptions(commonName string) (*SubscriptionList, error) {
+	if eaaCtx.subscriptionInfo == nil {
+		return nil, errors.New("EAA context not initialized")
+	}
+	subs := SubscriptionList{}
+
+	for nameNotif, conSub := range eaaCtx.subscriptionInfo {
+		// if consumer is in namespace subscription, add it to the list
+		if index := getNamespaceSubscriptionIndex(nameNotif,
+			commonName); index != -1 {
+			subs.addNamespaceSubscriptionToList(nameNotif)
+		}
+		for srvID := range conSub.serviceSubscriptions {
+			// if consumer is in service subscription, add it to the list
+			if index := checkServiceForConsumer(nameNotif, srvID,
+				commonName); index != -1 {
+				subs.addServiceSubscriptionToList(nameNotif, srvID)
+			}
+		}
+
+	}
+	return &subs, nil
+}

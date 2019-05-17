@@ -77,6 +77,29 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 
 func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	var (
+		subs       *SubscriptionList
+		commonName string
+		err        error
+	)
+
+	commonName = r.TLS.PeerCertificates[0].Subject.CommonName
+
+	if subs, err = getConsumerSubscriptions(commonName); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Errf("Consumer Subscription List Getter: %s",
+			err.Error())
+		return
+	}
+
+	if err = json.NewEncoder(w).Encode(*subs); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Errf("Consumer Subscription List Getter: %s",
+			err.Error())
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
 
