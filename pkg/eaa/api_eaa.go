@@ -82,7 +82,23 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 
 func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	var notif Notification
+
+	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
+
+	err := json.NewDecoder(r.Body).Decode(&notif)
+	if err != nil {
+		log.Errf("Error in Publish Notification: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	statCode, err := sendNotificationToSubscribers(commonName, notif)
+	if err != nil {
+		log.Errf("Error in Publish Notification: %s", err.Error())
+	}
+
+	w.WriteHeader(statCode)
 }
 
 func RegisterApplication(w http.ResponseWriter, r *http.Request) {

@@ -15,8 +15,12 @@
 package eaa
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
+
+	"github.com/gorilla/websocket"
 )
 
 func addService(commonName string, serv Service) error {
@@ -45,4 +49,100 @@ func removeService(commonName string) (int, error) {
 
 	return http.StatusNotFound,
 		errors.New(http.StatusText(http.StatusNotFound))
+}
+
+func getUniqueSubsList(nsList []string, servList []string) []string {
+	fullList := nsList
+
+	for _, subID := range servList {
+		isNamespaceSubscribed := false
+		for _, nsSubID := range nsList {
+			if res := strings.Compare(subID, nsSubID); res == 0 {
+				isNamespaceSubscribed = true
+				break
+			}
+		}
+		if !isNamespaceSubscribed {
+			fullList = append(fullList, subID)
+		}
+	}
+
+	return fullList
+}
+
+func findServiceNotifIndex(servInfo Service, notif Notification) int {
+	for idx, servNotif := range servInfo.Notifications {
+		nameComp := strings.Compare(notif.Name, servNotif.Name)
+		verComp := strings.Compare(notif.Version, servNotif.Version)
+
+		if nameComp == 0 && verComp == 0 {
+			return idx
+		}
+	}
+
+	return -1
+}
+
+func sendNotificationToSubscribers(commonName string,
+	notif Notification) (int, error) {
+
+	retCode := http.StatusAccepted
+
+	if eaaCtx.serviceInfo == nil {
+		return http.StatusInternalServerError,
+			errors.New("EAA context is not initialized")
+	}
+
+	prodURN, err := CommonNameStringToURN(commonName)
+	if err != nil {
+		return http.StatusUnauthorized, err
+	}
+
+	msgPayload, err := json.Marshal(notif.Payload)
+	if err != nil {
+		return http.StatusUnauthorized, err
+	}
+
+	serviceInfo, serviceFound := eaaCtx.serviceInfo[commonName]
+	if !serviceFound {
+		return http.StatusInternalServerError,
+			errors.New("Unable to find service information")
+	}
+
+	servNotifIdx := findServiceNotifIndex(serviceInfo, notif)
+	if servNotifIdx == -1 {
+		return http.StatusInternalServerError,
+			errors.New("Unable to find notification information")
+	}
+	servNotif := serviceInfo.Notifications[servNotifIdx]
+
+	namespaceKey := NamespaceNotif{
+		namespace: prodURN.Namespace,
+		notif:     servNotif}
+
+	namespaceSubscribersList :=
+		eaaCtx.subscriptionInfo[namespaceKey].namespaceSubscriptions
+
+	serviceSubscribersList :=
+		eaaCtx.subscriptionInfo[namespaceKey].serviceSubscriptions[prodURN.ID]
+
+	subscriberList := getUniqueSubsList(namespaceSubscribersList,
+		serviceSubscribersList)
+
+	for _, subID := range subscriberList {
+		_, connectionFound := eaaCtx.consumerConnections[subID]
+		if connectionFound {
+			messageType := websocket.TextMessage
+			conn := eaaCtx.consumerConnections[subID].connection
+			err = conn.WriteMessage(messageType, msgPayload)
+			if err != nil {
+				retCode = http.StatusForbidden
+			}
+		} else {
+			retCode = http.StatusForbidden
+			err = errors.New("No connection found")
+		}
+	}
+
+	return retCode, err
 }
