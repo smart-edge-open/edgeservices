@@ -70,7 +70,7 @@ func NewNtsConnection() (*NtsConnection, error) {
 	return conn, nil
 }
 
-func (conn *NtsConnection) Close() error {
+func (conn *NtsConnection) Disconnect() error {
 
 	cConnP := &(conn.cConnection)
 	res := int(C.nes_conn_close(cConnP))

@@ -5,6 +5,7 @@
     "services": {
         "github.com/smartedgemec/appliance-ce/pkg/eaa": "configs/eaa.json",
         "github.com/smartedgemec/appliance-ce/pkg/ela": "configs/ela.json",
+        "github.com/smartedgemec/appliance-ce/pkg/eda": "configs/eda.json",
         "github.com/smartedgemec/appliance-ce/pkg/eva": "configs/eva.json"
     }
 }
