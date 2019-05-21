@@ -15,10 +15,11 @@
 package ela
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 )
@@ -126,10 +127,8 @@ func VerifyMACAddress(mac string) error {
 	return nil
 }
 
-// VerifyTrafficTarget checks if Trafarget is valid
+// VerifyTrafficTarget checks if traffic target is valid
 func VerifyTrafficTarget(tt *pb.TrafficTarget) error {
-	// Question: Should we check trafficRule.Target.Description as well?
-
 	if tt == nil {
 		return errors.New("TrafficTarget is nil")
 	}
@@ -193,5 +192,58 @@ func VerifyTrafficPolicy(trafficPolicy *pb.TrafficPolicy) error {
 		}
 	}
 
+	return nil
+}
+
+func ValidateNetworkInterface(iface *pb.NetworkInterface) error {
+	if iface == nil {
+		return errors.New("NetworkInterface is nil")
+	}
+
+	if iface.Id == "" {
+		return errors.New("Id is nil")
+	}
+
+	if iface.Driver == pb.NetworkInterface_KERNEL {
+		return errors.New("driver 'KERNEL' is not supported")
+	}
+
+	if iface.Type == pb.NetworkInterface_NONE {
+		return errors.New("type 'NONE' is not supported")
+	}
+
+	if iface.MacAddress == "" {
+		return errors.New("MacAddress is empty")
+	}
+
+	if err := VerifyMACAddress(iface.MacAddress); err != nil {
+		return err
+	}
+
+	if iface.Vlan != 0 {
+		return errors.New("Vlan is not supported")
+	}
+
+	if len(iface.Zones) != 0 {
+		return errors.New("Zones are not supported")
+	}
+
+	if iface.FallbackInterface == "" {
+		return errors.New("FallbackInterface is empty")
+	}
+
+	return nil
+}
+
+func ValidateNetworkInterfaces(interfaces *pb.NetworkInterfaces) error {
+	if interfaces == nil {
+		return errors.New("NetworkInterfaces is nil")
+	}
+
+	for idx, iface := range interfaces.NetworkInterfaces {
+		if err := ValidateNetworkInterface(iface); err != nil {
+			return errors.Wrapf(err, "NetworkInterface[%d] is invalid", idx)
+		}
+	}
 	return nil
 }

@@ -167,4 +167,166 @@ var _ = Describe("gRPC InterfaceService", func() {
 			})
 		})
 	})
+
+	Describe("BulkUpdate method", func() {
+		bulkUpdate := func(networkInterfaces *pb.NetworkInterfaces) error {
+
+			conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
+			Expect(err).NotTo(HaveOccurred())
+			defer conn.Close()
+
+			client := pb.NewInterfaceServiceClient(conn)
+			ctx, cancel := context.WithTimeout(context.Background(),
+				3*time.Second)
+			defer cancel()
+
+			_, err = client.BulkUpdate(ctx, networkInterfaces,
+				grpc.WaitForReady(true))
+			return err
+		}
+		var nis *pb.NetworkInterfaces
+
+		BeforeEach(func() {
+			nis = &pb.NetworkInterfaces{
+				NetworkInterfaces: []*pb.NetworkInterface{
+					{
+						Id:                "0000:00:00.0",
+						Driver:            pb.NetworkInterface_USERSPACE,
+						Type:              pb.NetworkInterface_UPSTREAM,
+						MacAddress:        "AA:BB:CC:DD:EE:FF",
+						FallbackInterface: "0000:00:00.1",
+					}}}
+		})
+
+		Context("stores request data and runs NTS configuration", func() {
+			When("NTS configuration fails", func() {
+				It("returns an error, but stores the data", func() {
+					ela.NTSConfigurationHandler = func() error {
+						return errors.New("dummy error")
+					}
+
+					err := bulkUpdate(nis)
+
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(
+						And(ContainSubstring("dummy error"),
+							ContainSubstring("failed to configure NTS")))
+
+					Expect(ela.InterfaceConfigurationData.
+						NetworkInterfaces.NetworkInterfaces).
+						To(HaveLen(len(nis.NetworkInterfaces)))
+				})
+			})
+
+			When("NTS configuration succeeds", func() {
+				It("returns no error and stores the data", func() {
+					ela.NTSConfigurationHandler = func() error {
+						return nil
+					}
+
+					err := bulkUpdate(nis)
+
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(ela.InterfaceConfigurationData.
+						NetworkInterfaces.NetworkInterfaces).
+						To(HaveLen(len(nis.NetworkInterfaces)))
+				})
+			})
+		})
+
+		Describe("verifies request data", func() {
+			Context("which contains invalid NetworkInterface", func() {
+				When("id is empty", func() {
+					It("returns an error", func() {
+						nis.NetworkInterfaces[0].Id = ""
+						err := bulkUpdate(nis)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("Id is nil"))
+					})
+				})
+
+				When("kernel driver is requested", func() {
+					It("returns an error", func() {
+						nis.NetworkInterfaces[0].Driver =
+							pb.NetworkInterface_KERNEL
+						err := bulkUpdate(nis)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring(
+							"driver 'KERNEL' is not supported"))
+					})
+				})
+
+				When("none type (direction) is requested", func() {
+					It("returns an error", func() {
+						nis.NetworkInterfaces[0].Type =
+							pb.NetworkInterface_NONE
+						err := bulkUpdate(nis)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring(
+							"type 'NONE' is not supported"))
+					})
+				})
+
+				When("mac address is empty", func() {
+					It("returns an error", func() {
+						nis.NetworkInterfaces[0].MacAddress = ""
+						err := bulkUpdate(nis)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring(
+							"MacAddress is empty"))
+					})
+				})
+
+				When("mac address is invalid", func() {
+					It("returns an error", func() {
+						nis.NetworkInterfaces[0].MacAddress =
+							"11.22.33.44.55.66.77.88"
+						err := bulkUpdate(nis)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring(
+							"invalid MAC address"))
+					})
+				})
+
+				When("vlan is requested", func() {
+					It("returns an error", func() {
+						nis.NetworkInterfaces[0].Vlan = 1
+						err := bulkUpdate(nis)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring(
+							"Vlan is not supported"))
+					})
+				})
+
+				When("zones are requested", func() {
+					It("returns an error", func() {
+						nis.NetworkInterfaces[0].Zones = []string{"dummy"}
+						err := bulkUpdate(nis)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring(
+							"Zones are not supported"))
+					})
+				})
+
+				When("fallback interface is empty", func() {
+					It("returns an error", func() {
+						nis.NetworkInterfaces[0].FallbackInterface = ""
+						err := bulkUpdate(nis)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring(
+							"FallbackInterface is empty"))
+					})
+				})
+			})
+		})
+	})
 })

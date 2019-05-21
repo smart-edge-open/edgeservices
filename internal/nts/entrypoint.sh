@@ -39,13 +39,13 @@ exec /root/nes-daemon \
     --file-prefix=vhost-1 \
     --socket-mem 2048,2048 \
     -- \
-    /root/nes.cfg &
+    /var/lib/nts/nes.cfg &
 nts_pid="$!"
 
 exec /root/kni_docker_daemon.py \
     -v DEBUG \
     --library /root/libnes_api_shared.so \
-    --config /root/nes.cfg &
+    --config /var/lib/nts/nes.cfg &
 kni_pid="$!"
 
 wait $nts_pid

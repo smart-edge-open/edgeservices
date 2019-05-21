@@ -321,6 +321,9 @@ func (p *Port) UpdateFromTrafficPolicy(tp *pb.TrafficPolicy) error {
 			p.PciAddress, tp.Id)
 	}
 
+	p.Name = tp.Id
+	p.PciAddress = tp.Id
+
 	gtpTraffic := false
 	ipTraffic := false
 

@@ -27,6 +27,8 @@ import (
 
 var (
 	GetInterfaces func() (*pb.NetworkInterfaces, error) = GetNetworkInterfaces
+
+	NTSConfigurationHandler = configureNTS
 )
 
 type InterfaceService struct{}
@@ -37,10 +39,26 @@ func (*InterfaceService) Update(context.Context,
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
-func (*InterfaceService) BulkUpdate(context.Context,
-	*pb.NetworkInterfaces) (*empty.Empty, error) {
+func (*InterfaceService) BulkUpdate(ctx context.Context,
+	networkInterfaces *pb.NetworkInterfaces) (*empty.Empty, error) {
+	log.Info("InterfaceService BulkUpdate: received request")
 
-	return nil, status.Errorf(codes.Unimplemented, "not implemented")
+	if err := ValidateNetworkInterfaces(networkInterfaces); err != nil {
+		log.Errf("InterfaceService BulkUpdate: invalid NetworkInterface: %v",
+			err)
+
+		return nil, err
+	}
+
+	InterfaceConfigurationData.NetworkInterfaces = networkInterfaces
+
+	if err := NTSConfigurationHandler(); err != nil {
+		log.Errf("InterfaceService BulkUpdate: Failed to configure NTS: %+v",
+			err)
+		return nil, errors.Wrap(err, "failed to configure NTS")
+	}
+
+	return &empty.Empty{}, nil
 }
 
 func (*InterfaceService) GetAll(context.Context,

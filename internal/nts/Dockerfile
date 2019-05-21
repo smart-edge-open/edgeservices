@@ -20,7 +20,6 @@ RUN yum install -y epel-release && \
     pip install configparser
 
 ADD ./build/nes-daemon /root/
-ADD ./nes.cfg /root/
 ADD ./kni_docker_daemon.py /root/
 ADD ./entrypoint.sh /root/
 ADD ./build/libnes_api_shared.so /root/
