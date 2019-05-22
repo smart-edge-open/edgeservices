@@ -48,3 +48,84 @@ func (sI *SubscriberIds) RemoveSubscriber(commonName string) bool {
 
 	return isChanged
 }
+
+// initNamespaceNotification initializes structs for given
+// NamespaceNotif struct to allow for subscription
+func initNamespaceNotification(key NamespaceNotif) {
+
+	if _, ok := eaaCtx.subscriptionInfo[key]; !ok {
+		conSub := &ConsumerSubscription{
+			namespaceSubscriptions: SubscriberIds{},
+			serviceSubscriptions:   map[string]SubscriberIds{}}
+		eaaCtx.subscriptionInfo[key] = conSub
+	}
+}
+
+// initServiceNotification initializes structs for given
+// NamespaceNotif struct + serviceID, to allow for subscription
+func initServiceNotification(key NamespaceNotif, serviceID string) {
+
+	initNamespaceNotification(key)
+
+	if _, ok := eaaCtx.subscriptionInfo[key].
+		serviceSubscriptions[serviceID]; !ok {
+		eaaCtx.subscriptionInfo[key].serviceSubscriptions[serviceID] =
+			SubscriberIds{}
+	}
+}
+
+// addNamespaceSubscriptionToList adds a namespace subscription
+// to a list of subscriptions
+func (sL *SubscriptionList) addNamespaceSubscriptionToList(
+	nameNotif NamespaceNotif) {
+	found := false
+
+	for _, s := range sL.Subscriptions {
+		if s.URN.ID == "" && s.URN.Namespace == nameNotif.namespace {
+			s.Notifications = append(s.Notifications, nameNotif.notif)
+			found = true
+			break
+		}
+	}
+	if !found {
+		sL.Subscriptions = append(sL.Subscriptions,
+			Subscription{
+				URN: &URN{
+					ID:        "",
+					Namespace: nameNotif.namespace,
+				},
+				Notifications: []NotificationDescriptor{
+					nameNotif.notif,
+				},
+			})
+	}
+}
+
+// addServiceSubscriptionToList adds a service subscription
+// to a list of subscriptions
+func (sL *SubscriptionList) addServiceSubscriptionToList(
+	nameNotif NamespaceNotif, srvID string) {
+	found := false
+
+	for _, s := range sL.Subscriptions {
+		if s.URN.Namespace == nameNotif.namespace &&
+			s.URN.ID == srvID {
+			s.Notifications = append(s.Notifications,
+				nameNotif.notif)
+			found = true
+			break
+		}
+	}
+	if !found {
+		sL.Subscriptions = append(sL.Subscriptions,
+			Subscription{
+				URN: &URN{
+					ID:        srvID,
+					Namespace: nameNotif.namespace,
+				},
+				Notifications: []NotificationDescriptor{
+					nameNotif.notif,
+				},
+			})
+	}
+}
