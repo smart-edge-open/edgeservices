@@ -52,7 +52,7 @@ func (*InterfaceService) BulkUpdate(ctx context.Context,
 
 	InterfaceConfigurationData.NetworkInterfaces = networkInterfaces
 
-	if err := NTSConfigurationHandler(); err != nil {
+	if err := NTSConfigurationHandler(ctx); err != nil {
 		log.Errf("InterfaceService BulkUpdate: Failed to configure NTS: %+v",
 			err)
 		return nil, errors.Wrap(err, "failed to configure NTS")

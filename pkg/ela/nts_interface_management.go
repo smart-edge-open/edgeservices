@@ -15,9 +15,17 @@
 package ela
 
 import (
+	"bytes"
+	"context"
+	"os/exec"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/ini"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 )
 
 type InterfacesData struct {
@@ -25,7 +33,24 @@ type InterfacesData struct {
 	NetworkInterfaces *pb.NetworkInterfaces
 }
 
-var InterfaceConfigurationData = InterfacesData{}
+var (
+	InterfaceConfigurationData = InterfacesData{}
+
+	ntsConfigTemplate = ini.NtsConfig{
+		VMCommon: ini.VMCommon{
+			Max:      32,
+			Number:   2,
+			VHostDev: "/var/lib/nts/usvhost-1",
+		},
+		NtsServer: ini.NtsServer{
+			ControlSocket: "/var/lib/nts/control-socket",
+		},
+		KNI: ini.KNI{
+			Max: 32,
+		},
+		Ports: nil,
+	}
+)
 
 func (data *InterfacesData) validate() error {
 	if data == nil {
@@ -63,9 +88,23 @@ type interfaceData struct {
 	NetworkInterface *pb.NetworkInterface
 }
 
-func restartNTS() error {
-	// TODO: implement
-	return nil
+func startNTS(ctx context.Context) error {
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		return err
+	}
+
+	return cli.ContainerStart(ctx, "nts", types.ContainerStartOptions{})
+}
+
+func stopNTS(ctx context.Context) error {
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		return err
+	}
+
+	timeout := 10 * time.Second
+	return cli.ContainerStop(ctx, "nts", &timeout)
 }
 
 func isAnyAppRunning() (bool, error) {
@@ -74,13 +113,7 @@ func isAnyAppRunning() (bool, error) {
 }
 
 func makeNtsConfig(data map[string]interfaceData) (*ini.NtsConfig, error) {
-	templatePath := "" // TODO: path to cfg's template
-	cfg, err := ini.NtsConfigFromFile(templatePath)
-
-	if err != nil {
-		return nil, errors.Wrapf(err,
-			"failed to load NTS config's template from %s", templatePath)
-	}
+	cfg := ntsConfigTemplate
 
 	for pci, d := range data {
 		port := ini.Port{}
@@ -98,10 +131,33 @@ func makeNtsConfig(data map[string]interfaceData) (*ini.NtsConfig, error) {
 		cfg.AddNewPort(port)
 	}
 
-	return cfg, nil
+	cfg.Update()
+
+	return &cfg, nil
 }
 
-func configureNTS() error {
+func rebindDevices(nts *ini.NtsConfig) error {
+	var bindParams []string
+	bindParams = append(bindParams, "-b", "igb_uio")
+	for _, port := range nts.Ports {
+		bindParams = append(bindParams, port.PciAddress)
+	}
+
+	if len(bindParams) == 2 {
+		return nil
+	}
+
+	cmd := exec.Command("/root/dpdk-devbind.py", bindParams...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrapf(err, "devices bind failure: %v", out.String())
+	}
+	return nil
+}
+
+func configureNTS(ctx context.Context) error {
 	if err := InterfaceConfigurationData.validate(); err != nil {
 		return errors.Wrap(err, "invalid configuration data")
 	}
@@ -127,9 +183,19 @@ func configureNTS() error {
 		return errors.Wrap(err, "failed to write new NTS config")
 	}
 
-	if err := restartNTS(); err != nil {
-		return errors.Wrap(err, "failed to restart NTS")
+	if err := stopNTS(ctx); err != nil {
+		return errors.Wrap(err, "failed to stop NTS")
 	}
+
+	if err := rebindDevices(ntsCfg); err != nil {
+		return errors.Wrap(err, "failed to rebind devices")
+	}
+
+	if err := startNTS(ctx); err != nil {
+		return errors.Wrap(err, "failed to start NTS")
+	}
+
+	InterfaceConfigurationData = InterfacesData{}
 
 	return nil
 }

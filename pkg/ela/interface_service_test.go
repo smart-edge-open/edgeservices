@@ -201,7 +201,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 		Context("stores request data and runs NTS configuration", func() {
 			When("NTS configuration fails", func() {
 				It("returns an error, but stores the data", func() {
-					ela.NTSConfigurationHandler = func() error {
+					ela.NTSConfigurationHandler = func(context.Context) error {
 						return errors.New("dummy error")
 					}
 
@@ -220,7 +220,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 
 			When("NTS configuration succeeds", func() {
 				It("returns no error and stores the data", func() {
-					ela.NTSConfigurationHandler = func() error {
+					ela.NTSConfigurationHandler = func(context.Context) error {
 						return nil
 					}
 
@@ -268,17 +268,6 @@ var _ = Describe("gRPC InterfaceService", func() {
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring(
 							"type 'NONE' is not supported"))
-					})
-				})
-
-				When("mac address is empty", func() {
-					It("returns an error", func() {
-						nis.NetworkInterfaces[0].MacAddress = ""
-						err := bulkUpdate(nis)
-
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring(
-							"MacAddress is empty"))
 					})
 				})
 

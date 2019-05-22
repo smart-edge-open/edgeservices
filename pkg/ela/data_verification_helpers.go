@@ -212,12 +212,10 @@ func ValidateNetworkInterface(iface *pb.NetworkInterface) error {
 		return errors.New("type 'NONE' is not supported")
 	}
 
-	if iface.MacAddress == "" {
-		return errors.New("MacAddress is empty")
-	}
-
-	if err := VerifyMACAddress(iface.MacAddress); err != nil {
-		return err
+	if iface.MacAddress != "" {
+		if err := VerifyMACAddress(iface.MacAddress); err != nil {
+			return err
+		}
 	}
 
 	if iface.Vlan != 0 {

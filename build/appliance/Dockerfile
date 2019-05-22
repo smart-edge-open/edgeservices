@@ -18,5 +18,6 @@ RUN yum install -y libvirt-devel pciutils
 WORKDIR /root/
 COPY ./appliance .
 COPY ./configs configs
+COPY ./dpdk-devbind.py .
 
 CMD ["./appliance"]

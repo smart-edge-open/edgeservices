@@ -44,3 +44,18 @@ services:
      - http_proxy
      - https_proxy
      - DNS_FWDR=8.8.8.8
+  nts:
+    container_name: nts
+    build:
+      context: .
+      dockerfile: "Dockerfile_nts"
+    image: "nts:${VER}"
+    privileged: true
+    network_mode: "host"
+    volumes:
+     - "/dev/hugepages:/hugepages"
+     - "/var/lib/nts:/var/lib/nts"
+     - "/var/run/docker/netns:/var/run/docker/netns"
+     - "/var/run:/var/run"
+     - "/proc/1/ns:/var/host_ns"
+     - "/sys/class/net:/var/host_net_devices"

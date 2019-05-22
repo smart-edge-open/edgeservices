@@ -20,7 +20,7 @@ BUILD_DIR ?=dist
 
 VER:=1.0
 
-build: appliance edgedns
+build: appliance edgedns nts
 
 appliance:
 	mkdir -p "${BUILD_DIR}"
@@ -30,15 +30,26 @@ edgedns:
 	mkdir -p "${BUILD_DIR}"
 	GOOS=linux go build -a --ldflags '-extldflags "-static"' -tags netgo -installsuffix netgo -o "${BUILD_DIR}/edgednssvr" ./cmd/edgednssvr
 
+nts:
+	make -C internal/nts
+
 clean:
 	rm -rf "${BUILD_DIR}"
+	make clean -C internal/nts
 
 build-docker: build
 	cp build/appliance/Dockerfile "${TMP_DIR}/Dockerfile_appliance"
+	cp /opt/dpdk-18.08/usertools/dpdk-devbind.py "${TMP_DIR}"
 	cp -r configs "${TMP_DIR}"
 	cp "${BUILD_DIR}/appliance" "${TMP_DIR}"
 	cp build/edgednssvr/Dockerfile "${TMP_DIR}/Dockerfile_edgednssvr"
 	cp "${BUILD_DIR}/edgednssvr" "${TMP_DIR}"
+	mkdir -p "${TMP_DIR}/nts"
+	cp internal/nts/build/nes-daemon "${TMP_DIR}/nts"
+	cp internal/nts/kni_docker_daemon.py "${TMP_DIR}/nts"
+	cp internal/nts/entrypoint.sh "${TMP_DIR}/nts"
+	cp internal/nts/build/libnes_api_shared.so "${TMP_DIR}/nts"
+	cp internal/nts/Dockerfile "${TMP_DIR}/Dockerfile_nts"
 	cp docker-compose.yml "${TMP_DIR}"
 	cd "${TMP_DIR}" && VER=${VER} docker-compose build
 	ls "${TMP_DIR}"
@@ -55,9 +66,10 @@ test:
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
-	@echo "  build          to build the appliance application and edgedns server"
+	@echo "  build          to build the appliance application, edgedns server and NTS"
 	@echo "  appliance      to build the appliance application"
 	@echo "  edgedns        to build the edgedns server"
+	@echo "  nts            to build the NTS"
 	@echo "  clean          to clean up build artifacts and docker"
 	@echo "  build-docker   to build the release docker image"
 	@echo "  run-docker     to start containers"
