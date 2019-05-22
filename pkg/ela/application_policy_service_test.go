@@ -30,7 +30,7 @@ import (
 )
 
 var fakeDialEDASet = func(context.Context,
-	*pb.TrafficPolicy) (*empty.Empty, error) {
+	*pb.TrafficPolicy, string) (*empty.Empty, error) {
 
 	return &empty.Empty{}, status.Error(codes.OK, "")
 }

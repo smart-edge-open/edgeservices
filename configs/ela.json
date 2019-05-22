@@ -1,4 +1,5 @@
 {
     "endpoint": ":42101",
+    "edaEndpoint": ":50051",
     "ntsConfigPath": "/var/lib/nts/nts.cfg"
 }

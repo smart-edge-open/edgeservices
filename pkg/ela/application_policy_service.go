@@ -16,21 +16,37 @@ package ela
 
 import (
 	"context"
+	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+const edaDialerTimeout = 10 * time.Second
+
 var (
 	// DialEDASet is function implementing gRPC dial to EDA
-	DialEDASet = func(context.Context,
-		*pb.TrafficPolicy) (*empty.Empty, error) {
+	DialEDASet = func(ctx context.Context,
+		policy *pb.TrafficPolicy, endpoint string) (*empty.Empty, error) {
 
-		// TODO: Pass request to EDA
-		return &empty.Empty{},
-			status.Error(codes.Unimplemented, "not yet implemented")
+		ctx, cancel := context.WithTimeout(ctx,
+			edaDialerTimeout)
+		defer cancel()
+		conn, err := grpc.DialContext(ctx,
+			endpoint, grpc.WithInsecure())
+		if err != nil {
+			return nil, errors.Wrapf(err,
+				"Failed to create a connection to %s", endpoint)
+		}
+		defer conn.Close()
+
+		policyCLI := pb.NewApplicationPolicyServiceClient(conn)
+
+		return policyCLI.Set(ctx, policy, grpc.WaitForReady(true))
 	}
 
 	// MACFetcher is an object that gets a MAC for application
@@ -84,5 +100,5 @@ func (srv *ApplicationPolicyServiceServerImpl) Set(ctx context.Context,
 		trafficRule.Target.Mac = &pb.MACModifier{MacAddress: destMacAddress}
 	}
 
-	return DialEDASet(ctx, trafficPolicy)
+	return DialEDASet(ctx, trafficPolicy, Config.EDAEndpoint)
 }
