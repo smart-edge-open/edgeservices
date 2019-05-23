@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"reflect"
@@ -24,7 +25,9 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
+	"github.com/smartedgemec/appliance-ce/pkg/auth"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	logger "github.com/smartedgemec/log"
 
@@ -40,15 +43,37 @@ type ServiceStartFunction func(context.Context, string) error
 // EdgeServices array contains function pointers to services start functions
 var EdgeServices = []ServiceStartFunction{ela.Run, eaa.Run, eva.Run}
 
+const enrollBackoff = time.Second * 10
+
 var log = logger.DefaultLogger.WithField("main", nil)
 
 var cfg mainConfig
+
+type ConnTimeout struct {
+	time.Duration
+}
+
+func (t *ConnTimeout) UnmarshalJSON(data []byte) (err error) {
+	t.Duration, err = time.ParseDuration(strings.Trim(string(data), `"`))
+	return
+}
+
+func (t ConnTimeout) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, t.String())), nil
+}
+
+type enrollConfig struct {
+	Endpoint    string      `json:"endpoint"`
+	ConnTimeout ConnTimeout `json:"connectionTimeout"`
+	CertsDir    string      `json:"certsDirectory"`
+}
 
 type mainConfig struct {
 	UseSyslog  bool              `json:"useSyslog"`
 	SyslogAddr string            `json:"syslogAddr"`
 	LogLevel   string            `json:"logLevel"`
 	Services   map[string]string `json:"services"`
+	Enroll     enrollConfig      `json:"enrollment"`
 }
 
 func init() {
@@ -138,6 +163,19 @@ func runServices(services []ServiceStartFunction) bool {
 }
 
 func main() {
+
+	for {
+		if err := auth.Enroll(cfg.Enroll.CertsDir, cfg.Enroll.Endpoint,
+			cfg.Enroll.ConnTimeout.Duration, auth.EnrollClient{}); err != nil {
+			log.Errf("Enrollment failed %v\n", err)
+			log.Infof("Retrying enrollment in %s...", enrollBackoff)
+			time.Sleep(enrollBackoff)
+		} else {
+			log.Info("Successfully enrolled")
+			break
+		}
+	}
+
 	if !runServices(EdgeServices) {
 		os.Exit(1)
 	}

@@ -25,6 +25,7 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -40,22 +41,25 @@ func TestPKI(t *testing.T) {
 	RunSpecs(t, "PKI Suite")
 }
 
-func genCert() (*x509.Certificate, error) {
-	key, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
-	if err != nil {
-		return nil, err
-	}
+func genCert(key crypto.PrivateKey) (*x509.Certificate, error) {
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
 			Organization: []string{"Test"},
 		},
-		NotBefore: time.Now(),
-		NotAfter:  time.Now().Add(time.Hour),
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Hour),
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+		KeyUsage:              x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
 	}
-
+	s, ok := key.(crypto.Signer)
+	if !ok {
+		return nil, errors.New("Key is not of (crypto.Signer) type")
+	}
 	der, err := x509.CreateCertificate(rand.Reader, &template, &template,
-		&key.PublicKey, key)
+		s.Public(), key)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +140,10 @@ var _ = Describe("Cert management", func() {
 
 	BeforeEach(func() {
 		var err error
-		cert, err = genCert()
+		key, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+		Expect(err).ToNot(HaveOccurred())
+
+		cert, err = genCert(key)
 		Expect(err).ToNot(HaveOccurred())
 		encodedCert = pem.EncodeToMemory(
 			&pem.Block{
@@ -206,7 +213,7 @@ var _ = Describe("Cert management", func() {
 	})
 
 	Describe("SaveCert", func() {
-		It("Should save a cerificate to file", func() {
+		It("Should save a certificate to file", func() {
 			By("Saving certificate")
 			err := auth.SaveCert(certPath, cert)
 			Expect(err).ToNot(HaveOccurred())

@@ -1,7 +1,12 @@
 {
-    "LogLevel"  : "info",
-    "UseSyslog": false,
-    "SyslogAddr": "",
+    "logLevel": "info",
+    "useSyslog": false,
+    "syslogAddr": "",
+    "enrollment": {
+        "endpoint": "",
+        "certsDirectory": "certs",
+        "connectionTimeout": "2s"
+    },
     "services": {
         "github.com/smartedgemec/appliance-ce/pkg/eaa": "configs/eaa.json",
         "github.com/smartedgemec/appliance-ce/pkg/ela": "configs/ela.json",

@@ -26,7 +26,7 @@ import (
 
 const filePerm = os.FileMode(0600)
 
-// readFileWithPerm reads a file after veryfying permissions
+// readFileWithPerm reads a file after verifying permissions
 func readFileWithPerm(path string, perm os.FileMode) ([]byte, error) {
 	f, err := os.Open(path)
 	if err != nil {
