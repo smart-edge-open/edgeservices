@@ -17,23 +17,29 @@ package eva
 import (
 	"context"
 	"fmt"
+	"net"
+	"os"
+	"time"
+
 	"github.com/smartedgemec/appliance-ce/pkg/app-metadata"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	logger "github.com/smartedgemec/log"
 	"google.golang.org/grpc"
-	"net"
-	"os"
+)
+
+var (
+	log = logger.DefaultLogger.WithField("eva", nil)
+	cfg Config
 )
 
 type Config struct {
-	Endpoint    string
-	MaxCores    int32
-	MaxAppMem   int32 /* this is in KB */
-	AppImageDir string
+	Endpoint         string
+	MaxCores         int32
+	MaxAppMem        int32 /* this is in KB */
+	AppImageDir      string
+	heartbeatTimeout int
 }
-
-var log = logger.DefaultLogger.WithField("eva", nil)
 
 // Wait for cancellation event and then stop the server from other goroutine
 func waitForCancel(ctx context.Context, server *grpc.Server) {
@@ -61,6 +67,16 @@ func runEva(ctx context.Context, cfg *Config) error {
 	go waitForCancel(ctx, server) // goroutine to wait for cancellation event
 
 	log.Infof("serving on %s", cfg.Endpoint)
+
+	// Heartbeat routine
+	go func(timeout time.Duration) {
+		for {
+			// TODO: implementation of modules checking
+			log.Infof("Heartbeat")
+			time.Sleep(timeout)
+		}
+	}(time.Second * time.Duration(cfg.heartbeatTimeout))
+
 	err = server.Serve(lis)
 	if err != nil {
 		log.Errf("Failed grpcServe(): %v", err)
@@ -87,7 +103,6 @@ func sanitizeConfig(cfg *Config) error {
 }
 
 func Run(ctx context.Context, cfgFile string) error {
-	var cfg Config
 
 	log.Infof("EVA agent initialized. Using '%s' as config.", cfgFile)
 

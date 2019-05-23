@@ -16,15 +16,18 @@ package eda
 
 import (
 	"context"
+	"net"
+	"time"
+
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	logger "github.com/smartedgemec/log"
 	"google.golang.org/grpc"
-	"net"
 )
 
 type Configuration struct {
 	Endpoint string `json:"endpoint"`
+	Timeout  int    `json:"heartbeatTimeout"`
 }
 
 var (
@@ -54,6 +57,15 @@ func runServer(ctx context.Context) error {
 	defer log.Info("Stopped serving")
 	log.Infof("EDA Server started listening on: %s",
 		Config.Endpoint)
+
+	// Heartbeat routine
+	go func(timeout time.Duration) {
+		for {
+			// TODO: implementation of modules checking
+			log.Infof("Heartbeat")
+			time.Sleep(timeout)
+		}
+	}(time.Second * time.Duration(Config.Timeout))
 
 	if err := server.Serve(lis); err != nil {
 		log.Errf("Failed to serve: %v", err)

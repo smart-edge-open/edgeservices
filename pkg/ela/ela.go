@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"net"
 	"path/filepath"
+	"time"
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	logger "github.com/smartedgemec/log"
@@ -34,6 +35,7 @@ import (
 
 type Configuration struct {
 	Endpoint      string `json:"endpoint"`
+	Timeout       int    `json:"heartbeatTimeout"`
 	EDAEndpoint   string `json:"edaEndpoint"`
 	NtsConfigPath string `json:"ntsConfigPath"`
 	CertsDir      string `json:"certsDirectory"`
@@ -101,6 +103,15 @@ func runServer(ctx context.Context) error {
 	defer log.Info("Stopped serving")
 
 	log.Infof("Serving on: %s", Config.Endpoint)
+
+	// Heartbeat routine
+	go func(timeout time.Duration) {
+		for {
+			// TODO: implementation of modules checking
+			log.Infof("Heartbeat")
+			time.Sleep(timeout)
+		}
+	}(time.Second * time.Duration(Config.Timeout))
 
 	// When Serve() returns, listener is closed
 	err = grpcServer.Serve(lis)
