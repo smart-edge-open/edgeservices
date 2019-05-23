@@ -29,6 +29,14 @@ func addService(commonName string, serv Service) error {
 			"EAA context is not initialized. Call Init() function first")
 	}
 
+	urn, err := CommonNameStringToURN(commonName)
+	if err != nil {
+		return errors.New(
+			"Common name could not be parsed")
+	}
+
+	serv.URN = &urn
+
 	eaaCtx.serviceInfo[commonName] = serv
 
 	return nil

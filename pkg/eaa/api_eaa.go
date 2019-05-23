@@ -133,13 +133,13 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&serv)
 	if err != nil {
-		// TODO: Log request payload deserialization error
+		log.Errf("Register Application: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err = addService(commonName, serv); err != nil {
-		// TODO: Log new service registration failure
+		log.Errf("Register Application: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
