@@ -1,0 +1,40 @@
+---
+base_path: "{{ '../../../.' | realpath }}"
+centos_release: "7.6.1810"
+centos_version: "7"
+centos_rt_repo_gpg_file: "http://linuxsoft.cern.ch/cern/centos/7/os/x86_64/RPM-GPG-KEY-cern"
+centos_rt_repo_file: "http://linuxsoft.cern.ch/cern/centos/{{ centos_version }}/rt/CentOS-RT.repo"
+centos_rt_kernel_package_name: "kernel-rt-kvm"
+centos_rt_tuned_package_link: "ftp://ftp.icm.edu.pl/vol/rzm3/linux-slc/centos/7.5.1804/os/x86_64/Packages/tuned-2.9.0-1.el7.noarch.rpm"
+epel_repository_package_link: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ centos_version }}.noarch.rpm"
+packages_to_install: "curl,yum-utils,device-mapper-persistent-data,lvm2,python-pip,libvirt,libvirt-devel,wget,bridge-utils,boost-devel,openssl-devel,pcre-devel,zlib-devel,glib2-devel,autoconf,automake,libtool,flex,bison,git,cmake,pciutils,python-websocket-client,jsoncpp-devel,fcgi-devel,hiredis-devel,numactl-devel,gcc-c++,psmisc,python-httplib2"
+dpdk_name: "dpdk-18.08"
+dpdk_url: "http://fast.dpdk.org/rel/{{ dpdk_name }}.tar.xz"
+dpdk_downloaddir: "/temp/dpdk_downloaddir"
+dpdk_install_location: "/opt/{{ dpdk_name }}"
+dpdk_make_target: "x86_64-native-linuxapp-gcc"
+grub_cmdline_additional_parameters:
+  - name: hugepagesz
+    value: 1G
+    char: "="
+  - name: hugepages
+    value: 20
+    char: "="
+  - name: default_hugepagesz
+    value: 1G
+    char: "="
+  - name: intel_iommu
+    value: on
+    char: "="
+  - name: iommu
+    value: pt
+    char: "="
+go_lang_version: "1.12.4"
+go_lang_url: "https://dl.google.com/go/go{{ go_lang_version }}.linux-amd64.tar.gz"
+docker_repo_file: "https://download.docker.com/linux/centos/docker-ce.repo"
+docker_repo_gpg_file: "https://download.docker.com/linux/centos/gpg"
+docker_legacy_packages: "docker,docker-client,docker-client-latest,docker-common,docker-latest,docker-latest-logrotate,docker-logrotate,docker-engine"
+docker_packages: "docker-ce,docker-ce-cli,containerd.io"
+
+
+

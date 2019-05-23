@@ -1,0 +1,126 @@
+# Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+- hosts: localhost
+  any_errors_fatal: false
+  tasks:
+  - debug:
+      msg: "--- BUILD IMAGES ---"
+  - include_vars: ../../common/vars/defaults.yml
+  - include_vars: ../vars/defaults.yml
+  - debug:
+      msg: "Base path set to: {{ base_path }}"
+
+  ########################################################################
+  # Running kernel precheck
+  ########################################################################
+  - name: Re-read shell profile file
+    shell: ". /etc/profile"
+    args:
+      executable: /bin/bash
+
+  ########################################################################
+  # Running kernel precheck
+  ########################################################################
+  - name: Check RT rpm kernel version installed
+    shell: rpm -qa | grep ^kernel-rt-[345] | grep -v kvm | sed 's/kernel-rt-//'
+    args:
+      warn: false
+    ignore_errors: true
+    register: kernel_rt_version_installed
+  - debug:
+      msg: "...kernel RT installed: {{ kernel_rt_version_installed.stdout  }} "
+
+  - name: Check kernel version running
+    shell: uname -r
+    register: kernel_rt_version_running
+  - debug:
+      msg: "...kernel currently running: {{ kernel_rt_version_running.stdout }} "
+
+  - fail:
+      msg: "ERROR: RT kernel not running. Please boot with RT kernel and re-run this script again."
+    when:
+      - kernel_rt_version_installed.stdout != kernel_rt_version_running.stdout
+
+  ########################################################################
+  # Remove all docker images and containers
+  ########################################################################
+  - name: Check Docker service
+    shell: systemctl status docker
+    ignore_errors: true
+    args:
+      warn: false
+    register: docker_service_status
+
+  - name: Check Docker containers running
+    shell: docker ps -a -q
+    register: docker_containers_running
+    when: docker_service_status.rc == 0
+
+  - name: Remove Docker containers
+    shell: docker rm -f $(docker ps -a -q)
+    when: 
+      - docker_service_status.rc == 0
+      - docker_containers_running.stdout != ""
+
+  - name: Check Docker images
+    shell: docker images -q
+    register: docker_images_present
+    when: docker_service_status.rc == 0
+    
+  - name: Remove Docker images  
+    shell: docker rmi -f $(docker images -q)
+    when: 
+      - docker_service_status.rc == 0
+      - docker_images_present.stdout != ''
+
+  ########################################################################
+  # Build binaries and Docker images
+  ########################################################################
+  - name: "Build cleanup"
+    make:
+      chdir: "{{ base_path }}"
+      target: clean
+      params: 
+        RTE_SDK: "{{ dpdk_install_location }}"
+      
+  - name: Build binaries
+    shell: source /etc/profile && RTE_SDK={{ dpdk_install_location }} RTE_TARGET={{ dpdk_make_target }} make build
+    args:
+      chdir: "{{ base_path }}"
+
+  - name: Build images
+    shell: source /etc/profile && RTE_SDK={{ dpdk_install_location }} RTE_TARGET={{ dpdk_make_target }} make build-docker
+    args:
+      chdir: "{{ base_path }}"
+
+  ########################################################################
+  # Save Docker images to filesystem
+  ########################################################################
+  - name: Create Docker folder to save images
+    file:
+      path: "{{ docker_images_save_path }}"
+      state: directory
+
+  - debug:
+      msg: "Docker images save path set to: {{ docker_images_save_path }}"
+
+  - name: Export appliance image to filesystem
+    shell: docker save appliance -o "{{ docker_images_save_path }}/appliance.docker"
+
+  - name: Export edgednssvr image to filesystem
+    shell: docker save edgednssvr -o "{{ docker_images_save_path }}/edgednssvr.docker"
+
+  - debug:
+      msg: "Script completed successfully"
