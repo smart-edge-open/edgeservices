@@ -52,11 +52,12 @@ func TestAppMetadata(t *testing.T) {
 var _ = Describe("Application's Metadata", func() {
 	appID := "test-app"
 	var expectedAppPath string
+	var meta metadata.AppMetadata
 
 	BeforeEach(func() {
-		metadata.RootPath = "/tmp/appliance-app-metadata-tests"
-		createDir(metadata.RootPath)
-		expectedAppPath = filepath.Join(metadata.RootPath, appID)
+		meta = metadata.AppMetadata{"/tmp/appliance-app-metadata-tests"}
+		createDir(meta.RootPath)
+		expectedAppPath = filepath.Join(meta.RootPath, appID)
 	})
 
 	AfterEach(func() {
@@ -65,7 +66,7 @@ var _ = Describe("Application's Metadata", func() {
 
 	When("applicationID is empty", func() {
 		It("is nil and error is returned", func() {
-			app, err := metadata.GetApplication("")
+			app, err := meta.Load("")
 			Expect(app).To(BeNil())
 			Expect(err).To(MatchError("ApplicationID is empty"))
 		})
@@ -75,10 +76,10 @@ var _ = Describe("Application's Metadata", func() {
 		Describe("app directory", func() {
 			Context("does not exists", func() {
 				It("returns an error", func() {
-					app, err := metadata.GetApplication(appID)
+					app, err := meta.Load(appID)
 					Expect(app).To(BeNil())
 					Expect(err).
-						To(MatchError("stat " + expectedAppPath +
+						To(MatchError("chdir " + expectedAppPath +
 							": no such file or directory"))
 				})
 			})
@@ -87,27 +88,26 @@ var _ = Describe("Application's Metadata", func() {
 				It("returns an error", func() {
 					createFile(expectedAppPath, "")
 
-					app, err := metadata.GetApplication(appID)
+					app, err := meta.Load(appID)
 					Expect(app).To(BeNil())
 					Expect(err).
-						To(MatchError("Expected '" + expectedAppPath +
-							"' to be a directory"))
+						To(MatchError("chdir " + expectedAppPath +
+							": not a directory"))
 
 				})
 			})
 		})
 
-		Describe(".metadata.json ", func() {
+		Describe("metadata.json", func() {
 			Context("does not exists", func() {
 				It("returns an error", func() {
 					createDir(expectedAppPath)
 
-					app, err := metadata.GetApplication(appID)
+					app, err := meta.Load(appID)
 					Expect(app).To(BeNil())
 					Expect(err).
 						To(MatchError("Failed to load metadata file: open " +
-							expectedAppPath +
-							"/.metadata.json: no such file or directory"))
+							"metadata.json: no such file or directory"))
 				})
 			})
 
@@ -115,9 +115,9 @@ var _ = Describe("Application's Metadata", func() {
 				It("returns an error", func() {
 					createDir(expectedAppPath)
 					createFile(
-						filepath.Join(expectedAppPath, ".metadata.json"), "")
+						filepath.Join(expectedAppPath, "metadata.json"), "")
 
-					app, err := metadata.GetApplication(appID)
+					app, err := meta.Load(appID)
 					Expect(app).To(BeNil())
 					Expect(err).
 						To(MatchError("Failed to unmarshal metadata: " +
@@ -129,30 +129,30 @@ var _ = Describe("Application's Metadata", func() {
 				It("returns an object and no error", func() {
 					createDir(expectedAppPath)
 					createFile(
-						filepath.Join(expectedAppPath, ".metadata.json"),
+						filepath.Join(expectedAppPath, "metadata.json"),
 						`{"type": "DockerContainer"}`)
 
-					app, err := metadata.GetApplication(appID)
+					app, err := meta.Load(appID)
 					Expect(err).To(BeNil())
 					Expect(app).ToNot(BeNil())
 
-					Expect(app.Type).To(Equal(metadata.DockerContainer))
+					Expect(app.Type).To(Equal(metadata.Container))
 				})
 			})
 		})
 	})
 
-	Describe(".deployed file", func() {
+	Describe("deployed file", func() {
 		When("exists", func() {
 			Specify("IsDeployed is true", func() {
 				createDir(expectedAppPath)
 				createFile(
-					filepath.Join(expectedAppPath, ".deployed"), "")
+					filepath.Join(expectedAppPath, "deployed"), " ")
 				createFile(
-					filepath.Join(expectedAppPath, ".metadata.json"),
+					filepath.Join(expectedAppPath, "metadata.json"),
 					`{"type": "DockerContainer"}`)
 
-				app, err := metadata.GetApplication(appID)
+				app, err := meta.Load(appID)
 				Expect(err).To(BeNil())
 				Expect(app).ToNot(BeNil())
 
@@ -164,10 +164,10 @@ var _ = Describe("Application's Metadata", func() {
 			Specify("IsDeployed is false", func() {
 				createDir(expectedAppPath)
 				createFile(
-					filepath.Join(expectedAppPath, ".metadata.json"),
+					filepath.Join(expectedAppPath, "metadata.json"),
 					`{"type": "DockerContainer"}`)
 
-				app, err := metadata.GetApplication(appID)
+				app, err := meta.Load(appID)
 				Expect(err).To(BeNil())
 				Expect(app).ToNot(BeNil())
 

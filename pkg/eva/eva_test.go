@@ -22,24 +22,77 @@ package eva_test
 
 import (
 	"context"
+	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/eva"
 	"sync"
 	"testing"
+
+	"google.golang.org/grpc"
 )
 
+var cfgFile = "../../configs/eva.json"
+
 func TestEva(t *testing.T) {
+	var cfg eva.Config
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 
 	wg.Add(1)
 	go func() {
-		err := eva.Run(ctx, "../../configs/eva.json")
+		err := eva.Run(ctx, cfgFile)
 		wg.Done()
 		if err != nil {
-			t.Errorf("eva.Run() failed: %#v", err)
+			t.Errorf("eva.Run() failed: %v", err)
 		}
 	}()
 
+	if err := config.LoadJSONConfig(cfgFile, &cfg); err != nil {
+		t.Errorf("LoadJSONConfig() failed: %v", err)
+	}
+	conn, err := grpc.Dial(cfg.Endpoint, grpc.WithInsecure())
+	if err != nil {
+		t.Errorf("failed to dial EVA: %v", err)
+		cancel()
+		return
+	}
+
+	/*
+		callDeployApi(t, conn, "app-test-1", "http://localhost/hello-world.img")
+		callDeployApi(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
+		callUndeployApi(t, conn, "app-test-1")
+		callUndeployApi(t, conn, "app-test-2")
+	*/
+
+	conn.Close()
 	cancel()  // stop the EVA running in other thread
 	wg.Wait() // wait for the other thread to terminate!
 }
+
+/*
+func callDeployApi(t *testing.T, conn *grpc.ClientConn, id string,
+	image string) {
+	client := pb.NewApplicationDeploymentServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+	app := pb.Application{Id: id, Cores: 1, Memory: 999, Image: image}
+
+	_, err := client.DeployContainer(ctx, &app, grpc.WaitForReady(true))
+	if err != nil {
+		t.Errorf("DeployContainer failed: %v", err)
+	}
+	cancel()
+}
+
+func callUndeployApi(t *testing.T, conn *grpc.ClientConn, id string) {
+	client := pb.NewApplicationDeploymentServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+	app := pb.ApplicationID{Id: id}
+
+	_, err := client.Undeploy(ctx, &app, grpc.WaitForReady(true))
+	if err != nil {
+		t.Errorf("Undeploy failed: %v", err)
+	}
+	cancel()
+}
+*/

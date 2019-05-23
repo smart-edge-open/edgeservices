@@ -16,81 +16,165 @@ package metadata
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
+	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	logger "github.com/smartedgemec/log"
 	"io/ioutil"
 	"os"
-	"path/filepath"
+	"path"
 )
 
-// RootPath is a string of metadata's root directory
-// TODO: Get from config file
-var RootPath = "/var/lib/appliance/applications"
+var log = logger.DefaultLogger.WithField("meta", nil)
 
 const (
-	metadataFileName = ".metadata.json"
-	deployFileName   = ".deployed"
+	metadataFileName = "metadata.json"
+	deployedFileName = "deployed"
 )
 
-// Application is type storing metadata and additional not serialized data
-type Application struct {
-	ApplicationMetadata
-	IsDeployed bool
+type AppMetadata struct {
+	RootPath string
 }
 
 // ApplicationType is type for specifying type of application
-type ApplicationType string
+type AppType string
 
 const (
-	// LibvirtDomain means that application is libvirt Domain (VM)
-	LibvirtDomain ApplicationType = "LibvirtDomain"
-
-	// DockerContainer means that application is Docker container
-	DockerContainer ApplicationType = "DockerContainer"
+	VM        AppType = "LibvirtDomain"   // VM
+	Container AppType = "DockerContainer" // container
 )
 
-// ApplicationMetadata represents .metadata.json file
-type ApplicationMetadata struct {
-	Type ApplicationType `json:"type"`
+// AppData represents metadata.json file
+type AppData struct {
+	Type AppType
+	App  *pb.Application
+}
+
+// Application is type storing metadata and additional not serialized data
+type DeployedApp struct {
+	AppData
+	IsDeployed bool
+	DeployedID string
+	path       string
+}
+
+func (m *AppMetadata) appPath(appID string) string {
+	return m.RootPath + "/" + appID
 }
 
 // GetApplication loads application's metadata from disk
-func GetApplication(applicationID string) (*Application, error) {
-	if applicationID == "" {
+func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
+	if appID == "" {
 		return nil, errors.New("ApplicationID is empty")
 	}
 
-	appPath := filepath.Join(RootPath, applicationID)
+	appPath := m.appPath(appID)
 
-	dirInfo, err := os.Stat(appPath)
-	if err != nil {
-		return nil, fmt.Errorf("%s", err.Error())
+	if err := os.Chdir(appPath); err != nil {
+		return nil, err
 	}
+	log.Infof("Entered directory %s", appPath)
 
-	if !dirInfo.IsDir() {
-		return nil, fmt.Errorf("Expected '%s' to be a directory", appPath)
-	}
-
-	metaDataFilePath := filepath.Join(appPath, metadataFileName)
-	metaData, err := ioutil.ReadFile(metaDataFilePath)
+	bytes, err := ioutil.ReadFile(metadataFileName)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load metadata file: %s", err.Error())
 	}
 
-	appData := &Application{}
-	err = json.Unmarshal(metaData, appData)
+	dapp := DeployedApp{}
+	err = json.Unmarshal(bytes, &dapp.AppData)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal metadata: %s", err.Error())
 	}
+	dapp.path = appPath
 
-	deployedFilePath := filepath.Join(appPath, deployFileName)
-	if _, err := os.Stat(deployedFilePath); err == nil {
-		appData.IsDeployed = true
-	} else if os.IsNotExist(err) {
-		appData.IsDeployed = false
-	} else {
-		return nil, fmt.Errorf("Failed to stat %s", deployedFilePath)
+	file, err := os.Open(dapp.deployedFilePath())
+	if err != nil {
+		if os.IsNotExist(err) {
+			dapp.IsDeployed = false
+			return &dapp, nil
+		}
+		return nil, fmt.Errorf("Failed to open %s", deployedFileName)
+	}
+	defer file.Close()
+	dapp.IsDeployed = true
+	num, err := file.Read(bytes) // bytes is definitely big enough
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to read %v", file.Name())
 	}
 
-	return appData, nil
+	dapp.DeployedID = string(bytes[0 : num-1]) // cut '\n'
+	log.Infof("Found the deployment ID for %v: %v", appID, dapp.DeployedID)
+
+	return &dapp, nil
+}
+
+func (m *AppMetadata) NewDeployedApp(appType AppType,
+	app *pb.Application) *DeployedApp {
+	a := new(DeployedApp)
+	a.Type = appType
+	a.App = app
+	a.IsDeployed = false
+	a.path = m.appPath(app.Id)
+
+	return a
+}
+
+func (a *DeployedApp) Save() error {
+	/* Serialize the metadata. */
+	bytes, err := json.Marshal(&a.AppData)
+	if err != nil {
+		return errors.Wrap(err, "Failed to serialize application metadata.")
+	}
+	log.Infof("Metadata: %v", string(bytes))
+	bytes = append(bytes, '\n') // serialization doesn't add newline, looks bad
+
+	if err = os.Mkdir(a.path, os.ModePerm); err != nil {
+		if os.IsExist(err) {
+			log.Infof("%v already exists", a.path)
+		} else {
+			return errors.Wrap(err, "Could not create App image directory.")
+		}
+	}
+	if err = os.Chdir(a.path); err != nil {
+		return errors.Wrap(err, "Can not enter the metadata dir")
+	}
+	log.Infof("created and/or entered %v", a.path)
+
+	file, err := os.Create(metadataFileName)
+	if err != nil {
+		return errors.Wrap(err, "failed to create metadata file")
+	}
+
+	_, err = file.Write(bytes)
+	file.Close()
+
+	return err
+}
+
+func (a *DeployedApp) deployedFilePath() string {
+	return path.Join(a.path, deployedFileName)
+}
+
+func (a *DeployedApp) SetDeployed(deployedID string) error {
+	a.DeployedID = deployedID
+	file, err := os.Create(a.deployedFilePath())
+	if err != nil {
+		return errors.Wrap(err, "failed to create the deployed file")
+	}
+	/* We also store the deployed ID in here */
+	bytes := []byte(deployedID)
+	_, err = file.Write(append(bytes, '\n'))
+	file.Close()
+
+	log.Infof("created the deployed indicator: %s", file.Name())
+
+	return err
+}
+
+func (a *DeployedApp) SetUndeployed() error {
+	path := a.deployedFilePath()
+
+	log.Infof("Removing %v", path)
+
+	return os.Remove(path)
 }

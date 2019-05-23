@@ -17,7 +17,7 @@ package eva
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
+	"github.com/smartedgemec/appliance-ce/pkg/app-metadata"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	logger "github.com/smartedgemec/log"
@@ -25,6 +25,13 @@ import (
 	"net"
 	"os"
 )
+
+type Config struct {
+	Endpoint    string
+	MaxCores    int32
+	MaxAppMem   int32 /* this is in KB */
+	AppImageDir string
+}
 
 var log = logger.DefaultLogger.WithField("eva", nil)
 
@@ -35,25 +42,25 @@ func waitForCancel(ctx context.Context, server *grpc.Server) {
 	server.GracefulStop()
 }
 
-func runEva(ctx context.Context, endpoint string) error {
-	lis, err := net.Listen("tcp", endpoint)
+func runEva(ctx context.Context, cfg *Config) error {
+	lis, err := net.Listen("tcp", cfg.Endpoint)
 
 	if err != nil {
-		log.Errf("failed tcp listen on %s: %v", endpoint, err)
+		log.Errf("failed tcp listen on %s: %v", cfg.Endpoint, err)
 		return err
 	}
 
 	server := grpc.NewServer()
 
 	/* Register our interfaces. */
-	var adss pb.UnimplementedApplicationDeploymentServiceServer
+	adss := DeploySrv{cfg, metadata.AppMetadata{RootPath: cfg.AppImageDir}}
 	pb.RegisterApplicationDeploymentServiceServer(server, &adss)
-	var alss pb.UnimplementedApplicationLifecycleServiceServer
+	alss := pb.UnimplementedApplicationLifecycleServiceServer{}
 	pb.RegisterApplicationLifecycleServiceServer(server, &alss)
 
 	go waitForCancel(ctx, server) // goroutine to wait for cancellation event
 
-	log.Infof("serving on %s", endpoint)
+	log.Infof("serving on %s", cfg.Endpoint)
 	err = server.Serve(lis)
 	if err != nil {
 		log.Errf("Failed grpcServe(): %v", err)
@@ -64,31 +71,23 @@ func runEva(ctx context.Context, endpoint string) error {
 	return nil
 }
 
-type evaConfig struct {
-	Endpoint    string
-	MaxCores    int
-	MaxAppMem   int
-	AppImageDir string
-}
-
-func sanitizeConfig(cfg *evaConfig) error {
+func sanitizeConfig(cfg *Config) error {
 	if cfg.MaxCores <= 0 {
 		return fmt.Errorf("MaxCores value invalid: %d", cfg.MaxCores)
 	}
 	if cfg.MaxAppMem <= 0 {
 		return fmt.Errorf("MaxCores value invalid: %d", cfg.MaxAppMem)
 	}
-	file, err := os.Open(cfg.AppImageDir)
+	err := os.MkdirAll(cfg.AppImageDir, 0777)
 	if err != nil {
-		return errors.Wrap(err, "Unable to open AppImageDir")
+		log.Errf("Unable to create AppImageDir: %v", err)
 	}
-	file.Close()
 
 	return nil
 }
 
 func Run(ctx context.Context, cfgFile string) error {
-	var cfg evaConfig
+	var cfg Config
 
 	log.Infof("EVA agent initialized. Using '%s' as config.", cfgFile)
 
@@ -104,5 +103,5 @@ func Run(ctx context.Context, cfgFile string) error {
 	}
 	log.Debugf("Configuration read: %+v", cfg)
 
-	return runEva(ctx, cfg.Endpoint)
+	return runEva(ctx, &cfg)
 }

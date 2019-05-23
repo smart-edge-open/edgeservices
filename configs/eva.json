@@ -1,6 +1,6 @@
 {
 	"Endpoint": "localhost:42102",
 	"MaxCores": 8,
-	"MaxAppMem": 42949672960,
-	"AppImageDir": "/tmp"
+	"MaxAppMem": 2147483647,
+	"AppImageDir": "/var/lib/appliance/applications"
 }
