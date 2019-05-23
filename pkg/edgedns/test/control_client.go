@@ -37,7 +37,7 @@ type ControlClient struct {
 // NewControlClient returns a new Client
 func NewControlClient(sock *string) *ControlClient {
 	if f, err := os.Stat(*sock); err != nil || f.Mode()&os.ModeSocket == 0 {
-		fmt.Printf("Invalid API socket: %s\n", *sock)
+		fmt.Printf("Invalid API socket: %s %v\n", *sock, err)
 		os.Exit(66)
 	}
 

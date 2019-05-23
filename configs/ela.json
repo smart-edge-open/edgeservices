@@ -1,5 +1,6 @@
 {
     "endpoint": ":42101",
     "edaEndpoint": ":50051",
-    "ntsConfigPath": "/var/lib/nts/nts.cfg"
+    "ntsConfigPath": "/var/lib/nts/nts.cfg",
+    "certsDirectory": "certs"
 }

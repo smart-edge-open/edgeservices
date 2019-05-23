@@ -16,19 +16,27 @@ package ela
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"net"
+	"path/filepath"
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	logger "github.com/smartedgemec/log"
 
+	"github.com/pkg/errors"
+	"github.com/smartedgemec/appliance-ce/pkg/auth"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type Configuration struct {
 	Endpoint      string `json:"endpoint"`
-	NtsConfigPath string `json:"ntsConfigPath"`
 	EDAEndpoint   string `json:"edaEndpoint"`
+	NtsConfigPath string `json:"ntsConfigPath"`
+	CertsDir      string `json:"certsDirectory"`
 }
 
 var (
@@ -37,15 +45,40 @@ var (
 )
 
 func runServer(ctx context.Context) error {
-	// TODO: Add auth
+	crtPath := filepath.Join(Config.CertsDir, auth.CertName)
+	keyPath := filepath.Join(Config.CertsDir, auth.KeyName)
+	caPath := filepath.Join(Config.CertsDir, auth.CAPoolName)
+
+	srvCert, err := tls.LoadX509KeyPair(crtPath, keyPath)
+	if err != nil {
+		log.Errf("Failed load server key pair: %v", err)
+		return err
+	}
+	certPool := x509.NewCertPool()
+	ca, err := ioutil.ReadFile(caPath)
+	if err != nil {
+		log.Errf("Failed read ca certificates: %v", err)
+		return err
+	}
+
+	if ok := certPool.AppendCertsFromPEM(ca); !ok {
+		log.Errf("Failed appends CA certs from %s", caPath)
+		return errors.Errorf("Failed appends CA certs from %s", caPath)
+	}
+
+	creds := credentials.NewTLS(&tls.Config{
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		Certificates: []tls.Certificate{srvCert},
+		ClientCAs:    certPool,
+	})
+
 	lis, err := net.Listen("tcp", Config.Endpoint)
 
 	if err != nil {
 		log.Errf("net.Listen error: %+v", err)
 		return err
 	}
-
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.Creds(creds))
 	applicationPolicyService := ApplicationPolicyServiceServerImpl{}
 	pb.RegisterApplicationPolicyServiceServer(grpcServer,
 		&applicationPolicyService)

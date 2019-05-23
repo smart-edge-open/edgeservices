@@ -30,7 +30,8 @@ var _ = Describe("gRPC InterfacePolicyService", func() {
 	Context("Set method", func() {
 		Specify("will store received TrafficPolicy", func() {
 			By("dialing to ELA and calling InterfacePolicyService's Set method")
-			conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
+			conn, err := grpc.Dial(elaTestEndpoint,
+				grpc.WithTransportCredentials(transportCreds))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 

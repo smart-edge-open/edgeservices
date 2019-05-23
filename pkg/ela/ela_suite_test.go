@@ -17,25 +17,39 @@ package ela_test
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/Flaque/filet"
+	"github.com/smartedgemec/appliance-ce/internal/authtest"
 	"github.com/smartedgemec/appliance-ce/pkg/ela"
 	"github.com/smartedgemec/log"
+	"google.golang.org/grpc/credentials"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var elaTestEndpoint = "localhost:42101"
+var (
+	elaTestEndpoint = "localhost:42101"
+	transportCreds  credentials.TransportCredentials
+)
 
 func TestEdgeLifecycleAgent(t *testing.T) {
 	defer filet.CleanUp(t)
 	RegisterFailHandler(Fail)
+	certsDir, err := ioutil.TempDir("", "elaCerts")
+	Expect(err).NotTo(HaveOccurred())
+	defer os.RemoveAll(certsDir)
+	Expect(authtest.EnrollStub(certsDir)).ToNot(HaveOccurred())
+	transportCreds, err = authtest.ClientCredentialsStub()
+	Expect(err).NotTo(HaveOccurred())
 	filet.File(t, "ela.json", fmt.Sprintf(`
 	{
-		"endpoint": "%s"
-	}`, elaTestEndpoint))
+		"endpoint": "%s",
+		"certsDirectory": "%s"
+	}`, elaTestEndpoint, certsDir))
 
 	srvErrChan := make(chan error)
 	srvCtx, srvCancel := context.WithCancel(context.Background())

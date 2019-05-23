@@ -58,7 +58,8 @@ var _ = Describe("gRPC InterfaceService", func() {
 
 	Describe("GetAll method", func() {
 		Specify("will respond", func() {
-			conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
+			conn, err := grpc.Dial(elaTestEndpoint,
+				grpc.WithTransportCredentials(transportCreds))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -88,7 +89,8 @@ var _ = Describe("gRPC InterfaceService", func() {
 
 	Describe("Get method", func() {
 		get := func(id string) (*pb.NetworkInterface, error) {
-			conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
+			conn, err := grpc.Dial(elaTestEndpoint,
+				grpc.WithTransportCredentials(transportCreds))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -171,7 +173,8 @@ var _ = Describe("gRPC InterfaceService", func() {
 	Describe("BulkUpdate method", func() {
 		bulkUpdate := func(networkInterfaces *pb.NetworkInterfaces) error {
 
-			conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
+			conn, err := grpc.Dial(elaTestEndpoint,
+				grpc.WithTransportCredentials(transportCreds))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 

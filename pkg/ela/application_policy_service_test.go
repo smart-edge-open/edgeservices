@@ -49,7 +49,8 @@ var _ = Describe("Application Policy gRPC Server", func() {
 			ela.DialEDASet = fakeDialEDASet
 			ela.MACFetcher = &fakeMACAddressProvider{}
 
-			conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
+			conn, err := grpc.Dial(elaTestEndpoint,
+				grpc.WithTransportCredentials(transportCreds))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 

@@ -25,11 +25,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/onsi/gomega/gexec"
+	"github.com/smartedgemec/appliance-ce/internal/authtest"
 )
 
 // To pass configuration file path use ginkgo pass-through argument
@@ -70,53 +70,9 @@ func readConfig(path string) {
 	}
 }
 
-func enrollStub() {
-	var (
-		key = []byte(strings.TrimSpace(`
------BEGIN PRIVATE KEY-----
-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgxa1OgxDeRRSBMIbG
-zUeLU3x2PtpEA4mYk9C98rPcI8OhRANCAARRsB5ATQcfapr/eGvTjia9RRUhGSjw
-38ULq0AGQWFqDL/xF15r7HW2x+kG5yB+7wgUTtDOdgeMlzpULHFXUq1H
------END PRIVATE KEY-----`))
-		cert = []byte(strings.TrimSpace(`
------BEGIN CERTIFICATE-----
-MIIBQzCBpqADAgECAgEBMAoGCCqGSM49BAMCMA8xDTALBgNVBAoTBFRlc3QwHhcN
-MTkwNTE0MDkyNjAwWhcNMTkwNTE0MTAyNjAwWjAAMFkwEwYHKoZIzj0CAQYIKoZI
-zj0DAQcDQgAEUbAeQE0HH2qa/3hr044mvUUVIRko8N/FC6tABkFhagy/8Rdea+x1
-tsfpBucgfu8IFE7QznYHjJc6VCxxV1KtR6MCMAAwCgYIKoZIzj0EAwIDgYsAMIGH
-AkIBT9c8yhltzW1SzVaKmSRN3mxuOB9lxSGIRzhr6mBix3Dd4lL9QbMAzpBTk4kq
-BskpDSks3uBQmASlpbrk6T9rcdQCQUPm8T2Rlwz0cCs65cvmcVVHU1R9mRwKFKrl
-YSXs9J02Gbj6Ffwf05BxCMI49R3PZPFFnq3vyumkWZ2w4gBR+OO5
------END CERTIFICATE-----`))
-		ca = []byte(strings.TrimSpace(`
------BEGIN CERTIFICATE-----
-MIIByTCCASqgAwIBAgIBATAKBggqhkjOPQQDBDAPMQ0wCwYDVQQKEwRUZXN0MB4X
-DTE5MDUxNDA5MjYwMFoXDTE5MDUxNDEwMjYwMFowDzENMAsGA1UEChMEVGVzdDCB
-mzAQBgcqhkjOPQIBBgUrgQQAIwOBhgAEAalTP9IhjC9pqJ1z+e510+lLeyzPPf6z
-0xBLVAQcaRXi5i/DLOKR9xH3gYNJVUtBv7FmfGDhdsou20WJnbnj0y8hAJd+qJKh
-fOYmUh8UeJmMp1uslP71vrEVFDfMdYUtPfq0aPZr1Y7ylK1YJYcyTnUtM1c9PAXx
-PGwF3kbmY1DVAsLLozQwMjAOBgNVHQ8BAf8EBAMCAgQwDwYDVR0lBAgwBgYEVR0l
-ADAPBgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMEA4GMADCBiAJCAc7uhFa0XNnG
-qk0rgHPhEU4WB486r5uEpJE6MD1Lkset6cKdpfvB19VD6hTGsl8Ir7wl7cevjXml
-pui7pkfG5ixNAkIAjpNdkA3H30SEnQLce5+0Q/baZ21slPD/r6feNYXdqp7dPyVf
-el73tW3uCdS7DMh7/fsjIdQ40cIAhaIw/VZHMwY=
------END CERTIFICATE-----`))
-	)
-	err := os.MkdirAll(filepath.Join(tempdir, "certs"), 0700)
-	Expect(err).ToNot(HaveOccurred(), "Error when creating certs directory")
-
-	Expect(ioutil.WriteFile(filepath.Join(tempdir, "certs/key.pem"), key,
-		0600)).ToNot(HaveOccurred(), "Error when saving key")
-	Expect(ioutil.WriteFile(filepath.Join(tempdir, "certs/cert.pem"), cert,
-		0600)).ToNot(HaveOccurred(), "Error when saving cert")
-	Expect(ioutil.WriteFile(filepath.Join(tempdir, "certs/cacerts.pem"), ca,
-		0600)).ToNot(HaveOccurred(), "Error when saving ca certs")
-	Expect(ioutil.WriteFile(filepath.Join(tempdir, "certs/root.pem"), ca,
-		0600)).ToNot(HaveOccurred(), "Error when saving ca pool")
-}
-
 func generateCerts() {
-	enrollStub()
+	Expect(authtest.EnrollStub(filepath.Join(tempdir, "certs"))).ToNot(
+		HaveOccurred())
 	// TODO: Example cert creation required to appliance init - to be replaced
 	// by functional cert generation logic
 	By("Generating certs")

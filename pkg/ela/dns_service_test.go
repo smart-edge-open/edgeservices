@@ -84,7 +84,8 @@ var _ = Describe("DnsService gRPC Server", func() {
 	When("SetA is called", func() {
 		Context("with correct arguments", func() {
 			It("responds with no error", func() {
-				conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
+				conn, err := grpc.Dial(elaTestEndpoint,
+					grpc.WithTransportCredentials(transportCreds))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 
@@ -103,7 +104,8 @@ var _ = Describe("DnsService gRPC Server", func() {
 		})
 		Context("with wrong arguments", func() {
 			It("responds with error", func() {
-				conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
+				conn, err := grpc.Dial(elaTestEndpoint,
+					grpc.WithTransportCredentials(transportCreds))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 
@@ -125,7 +127,8 @@ var _ = Describe("DnsService gRPC Server", func() {
 	When("DeleteA is called", func() {
 		Context("with correct arguments", func() {
 			It("responds with no error", func() {
-				conn, err := grpc.Dial(elaTestEndpoint, grpc.WithInsecure())
+				conn, err := grpc.Dial(elaTestEndpoint,
+					grpc.WithTransportCredentials(transportCreds))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 
