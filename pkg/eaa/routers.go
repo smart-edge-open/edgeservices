@@ -15,7 +15,6 @@
 package eaa
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -31,9 +30,9 @@ type Route struct {
 
 type Routes []Route
 
-func NewRouter() *mux.Router {
+func NewEaaRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
-	for _, route := range routes {
+	for _, route := range eaaRoutes {
 		router.
 			Methods(route.Method).
 			Path(route.Pattern).
@@ -44,18 +43,29 @@ func NewRouter() *mux.Router {
 	return router
 }
 
-func Index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World!")
+func NewAuthRouter() *mux.Router {
+	router := mux.NewRouter().StrictSlash(true)
+	for _, route := range authRoutes {
+		router.
+			Methods(route.Method).
+			Path(route.Pattern).
+			Name(route.Name).
+			Handler(route.HandlerFunc)
+	}
+
+	return router
 }
 
-var routes = Routes{
+var authRoutes = Routes{
 	Route{
-		"Index",
-		"GET",
-		"/",
-		Index,
+		"RequestCredentials",
+		strings.ToUpper("Post"),
+		"/auth",
+		RequestCredentials,
 	},
+}
 
+var eaaRoutes = Routes{
 	Route{
 		"DeregisterApplication",
 		strings.ToUpper("Delete"),

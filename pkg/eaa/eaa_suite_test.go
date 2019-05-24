@@ -50,12 +50,13 @@ var appliance *gexec.Session
 
 type EAATestSuiteConfig struct {
 	Dir                 string `json:"dir"`
-	Endpoint            string `json:"endpoint"`
+	TLSEndpoint         string `json:"tlsEndpoint"`
+	OpenEndpoint        string `json:"openEndpoint"`
 	ApplianceTimeoutSec int    `json:"timeout"`
 }
 
 // test suite config with default values
-var cfg = EAATestSuiteConfig{"../../", "localhost:44300", 2}
+var cfg = EAATestSuiteConfig{"../../", "localhost:44300", "localhost:8000", 2}
 
 func readConfig(path string) {
 	if path != "" {
@@ -100,7 +101,8 @@ func generateConfigs() {
 
 	// custom config for EAA
 	eaaCfg := []byte(`{
-		"endpoint": "` + cfg.Endpoint + `",
+		"tlsEndpoint": "` + cfg.TLSEndpoint + `",
+		"openEndpoint": "` + cfg.OpenEndpoint + `",
 		"certs": {
 			"CaRootKeyPath": "` + tempConfCaRootKeyPath + `",
 			"caRootPath": "` + tempConfCaRootPath + `",
@@ -172,7 +174,7 @@ var _ = BeforeSuite(func() {
 	c1 := make(chan bool, 1)
 	go func() {
 		for {
-			conn, err := tls.Dial("tcp", cfg.Endpoint, &conf)
+			conn, err := tls.Dial("tcp", cfg.TLSEndpoint, &conf)
 			if err == nil {
 				conn.Close()
 				break

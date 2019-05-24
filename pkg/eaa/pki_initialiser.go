@@ -22,6 +22,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/pem"
 	"path/filepath"
 
 	"math/big"
@@ -237,6 +238,56 @@ func InitEaaCert(certPaths CertsInfo) (*CertKeyPair, error) {
 		x509Cert: signedEaaCert,
 		prvKey:   eaaKey,
 	}, nil
+}
+
+// SignCSR signs a "PEM-encoded" signing request.
+func SignCSR(csrPEM string) (*x509.Certificate, error) {
+
+	block, _ := pem.Decode([]byte(csrPEM))
+
+	if block == nil {
+		return nil, errors.New(
+			"csr block cannot be decoded")
+	}
+
+	if block.Type != "CERTIFICATE REQUEST" {
+		return nil, errors.New(
+			"csr block is not type of CERTIFICATE REQUEST but: " + block.Type)
+	}
+
+	csr, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse CSR")
+	}
+
+	source := rdm.NewSource(time.Now().UnixNano())
+	serial := big.NewInt(int64(rdm.New(source).Uint64()))
+
+	template := &x509.Certificate{
+		Signature:          csr.Signature,
+		SignatureAlgorithm: csr.SignatureAlgorithm,
+		PublicKey:          csr.PublicKey,
+		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
+		SerialNumber:       serial,
+		Issuer:             eaaCtx.certsEaaCa.rca.x509Cert.Subject,
+		Subject:            csr.Subject,
+		NotBefore:          time.Now(),
+		NotAfter:           eaaCtx.certsEaaCa.rca.x509Cert.NotAfter,
+	}
+
+	certDER, err := x509.CreateCertificate(
+		rand.Reader,
+		template,
+		eaaCtx.certsEaaCa.rca.x509Cert,
+		template.PublicKey,
+		eaaCtx.certsEaaCa.rca.prvKey,
+	)
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"Unable to sign certificate from csr: %+v", csr)
+	}
+
+	return x509.ParseCertificate(certDER)
 }
 
 func createDir(filePath string) error {

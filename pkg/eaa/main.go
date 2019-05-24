@@ -106,9 +106,9 @@ func RunServer(parentCtx context.Context) error {
 		log.Errf("Cert Pool error: %#v", err)
 	}
 
-	router := NewRouter()
+	router := NewEaaRouter()
 	server := &http.Server{
-		Addr: cfg.Endpoint,
+		Addr: cfg.TLSEndpoint,
 		TLSConfig: &tls.Config{
 			ClientAuth: tls.RequireAndVerifyClientCert,
 			ClientCAs:  certPool,
@@ -116,8 +116,9 @@ func RunServer(parentCtx context.Context) error {
 		Handler: router,
 	}
 
-	lis, err := net.Listen("tcp", cfg.Endpoint)
+	lis, err := net.Listen("tcp", cfg.TLSEndpoint)
 	if err != nil {
+
 		log.Errf("net.Listen error: %+v", err)
 
 		e, ok := err.(*os.SyscallError)
@@ -133,9 +134,19 @@ func RunServer(parentCtx context.Context) error {
 		server.Close()
 	}()
 
-	defer log.Info("Stopped serving")
+	defer log.Info("Stopped EAA serving")
 
-	log.Infof("Serving on: %s", cfg.Endpoint)
+	go func() {
+		log.Infof("Serving Auth on: %s", cfg.OpenEndpoint)
+		authRouter := NewAuthRouter()
+		if err = http.ListenAndServe(
+			cfg.OpenEndpoint, authRouter); err != nil {
+			log.Info("Auth server failure: " + err.Error())
+		}
+		log.Info("Stopped Auth serving")
+	}()
+
+	log.Infof("Serving EAA on: %s", cfg.TLSEndpoint)
 	util.Heartbeat(parentCtx, cfg.HeartbeatInterval, func() {
 		// TODO: implementation of modules checking
 		log.Info("Heartbeat")

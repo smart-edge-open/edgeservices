@@ -34,7 +34,7 @@ var _ = Describe("ApiEaa", func() {
 				conf := tls.Config{Certificates: []tls.Certificate{cert},
 					InsecureSkipVerify: true}
 
-				conn, err := tls.Dial("tcp", cfg.Endpoint, &conf)
+				conn, err := tls.Dial("tcp", cfg.TLSEndpoint, &conf)
 				Expect(err).ShouldNot(HaveOccurred())
 				conn.Close()
 			})
