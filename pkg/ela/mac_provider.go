@@ -91,7 +91,7 @@ func getMACForVMvhostuser(appID string) (string, error) {
 
 func getNetNamespaceForContainer(ctx context.Context,
 	appName string) (string, error) {
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return "", err
 	}

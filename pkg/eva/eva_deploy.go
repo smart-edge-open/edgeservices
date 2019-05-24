@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/empty"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -26,11 +25,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/empty"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
-	"github.com/smartedgemec/appliance-ce/pkg/app-metadata"
+	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 
 	"google.golang.org/grpc/codes"
@@ -39,7 +40,7 @@ import (
 
 type DeploySrv struct {
 	cfg  *Config
-	meta metadata.AppMetadata
+	meta *metadata.AppMetadata
 }
 
 const imageFile string = "image"
@@ -154,7 +155,7 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	}
 
 	/* Now call the docker API. */
-	docker, err := client.NewEnvClient()
+	docker, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create a docker client")
 	}
@@ -216,12 +217,6 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
-func (s *DeploySrv) GetStatus(ctx context.Context,
-	app *pb.ApplicationID) (*pb.LifecycleStatus, error) {
-
-	return nil, nil
-}
-
 func (s *DeploySrv) Redeploy(ctx context.Context,
 	app *pb.Application) (*empty.Empty, error) {
 
@@ -230,7 +225,7 @@ func (s *DeploySrv) Redeploy(ctx context.Context,
 
 func dockerUndeploy(ctx context.Context,
 	dapp *metadata.DeployedApp) error {
-	docker, err := client.NewEnvClient()
+	docker, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create a docker client")
 	}

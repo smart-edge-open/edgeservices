@@ -17,12 +17,13 @@ package metadata
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
-	logger "github.com/smartedgemec/log"
 	"io/ioutil"
 	"os"
 	"path"
+
+	"github.com/pkg/errors"
+	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	logger "github.com/smartedgemec/log"
 )
 
 var log = logger.DefaultLogger.WithField("meta", nil)
@@ -62,7 +63,7 @@ func (m *AppMetadata) appPath(appID string) string {
 	return m.RootPath + "/" + appID
 }
 
-// GetApplication loads application's metadata from disk
+// Loads application's metadata from disk
 func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 	if appID == "" {
 		return nil, errors.New("ApplicationID is empty")

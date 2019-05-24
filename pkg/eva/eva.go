@@ -20,7 +20,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/smartedgemec/appliance-ce/pkg/app-metadata"
+	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"github.com/smartedgemec/appliance-ce/pkg/util"
@@ -59,9 +59,10 @@ func runEva(ctx context.Context, cfg *Config) error {
 	server := grpc.NewServer()
 
 	/* Register our interfaces. */
-	adss := DeploySrv{cfg, metadata.AppMetadata{RootPath: cfg.AppImageDir}}
+	metadata := metadata.AppMetadata{RootPath: cfg.AppImageDir}
+	adss := DeploySrv{cfg, &metadata}
 	pb.RegisterApplicationDeploymentServiceServer(server, &adss)
-	alss := pb.UnimplementedApplicationLifecycleServiceServer{}
+	alss := ApplicationLifecycleServiceServer{&metadata}
 	pb.RegisterApplicationLifecycleServiceServer(server, &alss)
 
 	go waitForCancel(ctx, server) // goroutine to wait for cancellation event

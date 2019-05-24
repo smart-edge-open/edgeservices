@@ -89,7 +89,7 @@ type interfaceData struct {
 }
 
 func startNTS(ctx context.Context) error {
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func startNTS(ctx context.Context) error {
 }
 
 func stopNTS(ctx context.Context) error {
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
 	}

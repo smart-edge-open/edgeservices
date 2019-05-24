@@ -22,6 +22,7 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.3.3 // indirect
+	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/protobuf v1.3.0
 	github.com/gorilla/mux v1.7.0
 	github.com/gorilla/websocket v1.4.0
@@ -33,6 +34,7 @@ require (
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
+	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/smartedgemec/log v0.0.0-20190425151715-68de2de26397
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
@@ -44,3 +46,5 @@ require (
 	google.golang.org/grpc v1.19.0
 	gopkg.in/ini.v1 v1.42.0
 )
+
+replace github.com/docker/docker => github.com/docker/engine v0.0.0-20190423201726-d2cfbce3f3b0

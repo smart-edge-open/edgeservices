@@ -22,19 +22,21 @@ package eva_test
 
 import (
 	"context"
-	"github.com/smartedgemec/appliance-ce/pkg/config"
-	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
-	"github.com/smartedgemec/appliance-ce/pkg/eva"
 	"os"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/smartedgemec/appliance-ce/pkg/config"
+	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	"github.com/smartedgemec/appliance-ce/pkg/eva"
 
 	"google.golang.org/grpc"
 )
 
 var cfgFile = "../../configs/eva.json"
 
+// TODO: refactor test to use ginkgo/gomega
 func TestEva(t *testing.T) {
 	var cfg eva.Config
 	var wg sync.WaitGroup
@@ -62,21 +64,25 @@ func TestEva(t *testing.T) {
 	if err := config.LoadJSONConfig(cfgFile, &cfg); err != nil {
 		t.Errorf("LoadJSONConfig() failed: %v", err)
 	}
-	conn, err := grpc.Dial(cfg.Endpoint, grpc.WithInsecure())
+	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(),
+		10*time.Second)
+	defer cancelTimeout()
+	conn, err := grpc.DialContext(ctxTimeout, cfg.Endpoint, grpc.WithInsecure(),
+		grpc.WithBlock())
 	if err != nil {
 		t.Errorf("failed to dial EVA: %v", err)
 		cancel()
 		return
 	}
-
+	defer conn.Close()
 	if dockerTestOn {
 		callDeployAPI(t, conn, "app-test-1", "http://localhost/hello-world.img")
 		callDeployAPI(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
 		callUndeployAPI(t, conn, "app-test-1")
 		callUndeployAPI(t, conn, "app-test-2")
+		testLifecycleAPI(t, conn, "hello-world-app",
+			"/var/www/html/hello-world.tar.gz")
 	}
-
-	conn.Close()
 	cancel()  // stop the EVA running in other thread
 	wg.Wait() // wait for the other thread to terminate!
 }
@@ -89,12 +95,13 @@ func callDeployAPI(t *testing.T, conn *grpc.ClientConn, id string,
 	uri := pb.Application_HttpUri{
 		HttpUri: &pb.Application_HTTPSource{HttpUri: file},
 	}
-	app := pb.Application{Id: id, Cores: 1, Memory: 40960, Source: &uri}
+	app := pb.Application{Id: id, Cores: 2, Memory: 40960, Source: &uri}
 
 	_, err := client.DeployContainer(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {
 		t.Errorf("DeployContainer failed: %v", err)
 	}
+
 	cancel()
 }
 
@@ -109,4 +116,37 @@ func callUndeployAPI(t *testing.T, conn *grpc.ClientConn, id string) {
 		t.Errorf("Undeploy failed: %v", err)
 	}
 	cancel()
+}
+
+// Deploy application in container from given image; start, restart and stop
+// container; undeploy application.
+func testLifecycleAPI(t *testing.T, conn *grpc.ClientConn, id string,
+	image string) {
+
+	var err error
+
+	callDeployAPI(t, conn, id, image) //"/var/www/html/hello-world.tar.gz")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	alsClient := pb.NewApplicationLifecycleServiceClient(conn)
+
+	lc := pb.LifecycleCommand{Id: id}
+
+	_, err = alsClient.Start(ctx, &lc, grpc.WaitForReady(true))
+	if err != nil {
+		t.Errorf("StartContainer failed: %v", err)
+	}
+
+	_, err = alsClient.Restart(ctx, &lc, grpc.WaitForReady(true))
+	if err != nil {
+		t.Errorf("StartContainer failed: %v", err)
+	}
+
+	_, err = alsClient.Stop(ctx, &lc, grpc.WaitForReady(true))
+	if err != nil {
+		t.Errorf("StartContainer failed: %v", err)
+	}
+
+	callUndeployAPI(t, conn, id)
 }
