@@ -1,6 +1,6 @@
 {
     "endpoint": ":42101",
-    "heartbeatTimeout": 1,
+    "heartbeatInterval": "60s",
     "edaEndpoint": ":50051",
     "ntsConfigPath": "/var/lib/nts/nts.cfg",
     "certsDirectory": "certs"

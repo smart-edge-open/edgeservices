@@ -1,4 +1,4 @@
 {
     "endpoint": ":50051",
-    "heartbeatTimeout": 1
+    "heartbeatInterval": "60s"
 }

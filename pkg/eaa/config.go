@@ -14,6 +14,8 @@
 
 package eaa
 
+import "github.com/smartedgemec/appliance-ce/pkg/util"
+
 type CertsInfo struct {
 	CaRootKeyPath  string `json:"CaRootKeyPath"`
 	CaRootPath     string `json:"caRootPath"`
@@ -22,6 +24,7 @@ type CertsInfo struct {
 }
 
 type Config struct {
-	Endpoint string    `json:"endpoint"`
-	Certs    CertsInfo `json:"certs"`
+	Endpoint          string        `json:"endpoint"`
+	HeartbeatInterval util.Duration `json:"heartbeatInterval"`
+	Certs             CertsInfo     `json:"certs"`
 }

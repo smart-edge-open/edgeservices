@@ -1,5 +1,6 @@
 {
     "endpoint": "localhost:443",
+    "heartbeatInterval": "60s",
     "certs": {
         "caRootKeyPath": "certs/eaa/rootCA.key",
         "caRootPath": "certs/eaa/rootCA.pem",

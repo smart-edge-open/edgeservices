@@ -17,7 +17,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"reflect"
@@ -29,10 +28,12 @@ import (
 
 	"github.com/smartedgemec/appliance-ce/pkg/auth"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
+	"github.com/smartedgemec/appliance-ce/pkg/util"
 	logger "github.com/smartedgemec/log"
 
 	// Imports required to run agents
 	"github.com/smartedgemec/appliance-ce/pkg/eaa"
+	"github.com/smartedgemec/appliance-ce/pkg/eda"
 	"github.com/smartedgemec/appliance-ce/pkg/ela"
 	"github.com/smartedgemec/appliance-ce/pkg/eva"
 )
@@ -41,7 +42,7 @@ import (
 type ServiceStartFunction func(context.Context, string) error
 
 // EdgeServices array contains function pointers to services start functions
-var EdgeServices = []ServiceStartFunction{ela.Run, eaa.Run, eva.Run}
+var EdgeServices = []ServiceStartFunction{ela.Run, eaa.Run, eva.Run, eda.Run}
 
 const enrollBackoff = time.Second * 10
 
@@ -49,23 +50,10 @@ var log = logger.DefaultLogger.WithField("main", nil)
 
 var cfg mainConfig
 
-type ConnTimeout struct {
-	time.Duration
-}
-
-func (t *ConnTimeout) UnmarshalJSON(data []byte) (err error) {
-	t.Duration, err = time.ParseDuration(strings.Trim(string(data), `"`))
-	return
-}
-
-func (t ConnTimeout) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, t.String())), nil
-}
-
 type enrollConfig struct {
-	Endpoint    string      `json:"endpoint"`
-	ConnTimeout ConnTimeout `json:"connectionTimeout"`
-	CertsDir    string      `json:"certsDirectory"`
+	Endpoint    string        `json:"endpoint"`
+	ConnTimeout util.Duration `json:"connectionTimeout"`
+	CertsDir    string        `json:"certsDirectory"`
 }
 
 type mainConfig struct {

@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"time"
 
 	"github.com/smartedgemec/appliance-ce/pkg/app-metadata"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	"github.com/smartedgemec/appliance-ce/pkg/util"
 	logger "github.com/smartedgemec/log"
 	"google.golang.org/grpc"
 )
@@ -34,11 +34,11 @@ var (
 )
 
 type Config struct {
-	Endpoint         string
-	MaxCores         int32
-	MaxAppMem        int32 /* this is in KB */
-	AppImageDir      string
-	heartbeatTimeout int
+	Endpoint          string
+	MaxCores          int32
+	MaxAppMem         int32 /* this is in KB */
+	AppImageDir       string
+	HeartbeatInterval util.Duration
 }
 
 // Wait for cancellation event and then stop the server from other goroutine
@@ -68,14 +68,10 @@ func runEva(ctx context.Context, cfg *Config) error {
 
 	log.Infof("serving on %s", cfg.Endpoint)
 
-	// Heartbeat routine
-	go func(timeout time.Duration) {
-		for {
-			// TODO: implementation of modules checking
-			log.Infof("Heartbeat")
-			time.Sleep(timeout)
-		}
-	}(time.Second * time.Duration(cfg.heartbeatTimeout))
+	util.Heartbeat(ctx, cfg.HeartbeatInterval, func() {
+		// TODO: implementation of modules checking
+		log.Info("Heartbeat")
+	})
 
 	err = server.Serve(lis)
 	if err != nil {

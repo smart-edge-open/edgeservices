@@ -25,6 +25,7 @@ import (
 	"os"
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
+	"github.com/smartedgemec/appliance-ce/pkg/util"
 	logger "github.com/smartedgemec/log"
 )
 
@@ -135,7 +136,10 @@ func RunServer(parentCtx context.Context) error {
 	defer log.Info("Stopped serving")
 
 	log.Infof("Serving on: %s", cfg.Endpoint)
-
+	util.Heartbeat(parentCtx, cfg.HeartbeatInterval, func() {
+		// TODO: implementation of modules checking
+		log.Info("Heartbeat")
+	})
 	if err = server.ServeTLS(lis, cfg.Certs.ServerCertPath,
 		cfg.Certs.ServerKeyPath); err != http.ErrServerClosed {
 		log.Errf("server.Serve error: %#v", err)

@@ -1,5 +1,5 @@
 {
-    "heartbeatTimeout": 1,
+    "HeartbeatInterval": "60s",
     "Endpoint": "localhost:42102",
     "MaxCores": 8,
     "MaxAppMem": 2147483647,

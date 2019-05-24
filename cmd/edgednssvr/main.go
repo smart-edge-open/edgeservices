@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"os/signal"
@@ -25,6 +26,7 @@ import (
 	edgedns "github.com/smartedgemec/appliance-ce/pkg/edgedns"
 	"github.com/smartedgemec/appliance-ce/pkg/edgedns/grpc"
 	"github.com/smartedgemec/appliance-ce/pkg/edgedns/storage"
+	"github.com/smartedgemec/appliance-ce/pkg/util"
 	logger "github.com/smartedgemec/log"
 )
 
@@ -40,7 +42,7 @@ func main() {
 	db := flag.String("db", "/var/lib/edgedns/rrsets.db",
 		"Database file path")
 	fwdr := flag.String("fwdr", "8.8.8.8", "Forwarder")
-	hbtimeout := flag.Int("timeout", 1, "Heartbeat timeout interval in s")
+	hbInterval := flag.Int("hb", 60, "Heartbeat interval in s")
 	flag.Parse()
 
 	lvl, err := logger.ParseLevel(*logLvl)
@@ -98,13 +100,12 @@ func main() {
 	}
 
 	// Heartbeat routine
-	go func(timeout time.Duration) {
-		for {
-			// TODO: implementation of modules checking
-			log.Infof("Heartbeat")
-			time.Sleep(timeout)
-		}
-	}(time.Second * time.Duration(*hbtimeout))
+	var interval util.Duration
+	interval.Duration = time.Second * time.Duration(*hbInterval)
+	util.Heartbeat(context.Background(), interval, func() {
+		// TODO: implementation of modules checking
+		log.Info("Heartbeat")
+	})
 
 	// Receive OS signals and listener errors from Start()
 	signal.Notify(srv.Sig, syscall.SIGINT, syscall.SIGTERM)

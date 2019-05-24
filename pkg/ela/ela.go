@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"net"
 	"path/filepath"
-	"time"
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	logger "github.com/smartedgemec/log"
@@ -29,16 +28,17 @@ import (
 	"github.com/pkg/errors"
 	"github.com/smartedgemec/appliance-ce/pkg/auth"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	"github.com/smartedgemec/appliance-ce/pkg/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 type Configuration struct {
-	Endpoint      string `json:"endpoint"`
-	Timeout       int    `json:"heartbeatTimeout"`
-	EDAEndpoint   string `json:"edaEndpoint"`
-	NtsConfigPath string `json:"ntsConfigPath"`
-	CertsDir      string `json:"certsDirectory"`
+	Endpoint          string        `json:"endpoint"`
+	HeartbeatInterval util.Duration `json:"heartbeatInterval"`
+	EDAEndpoint       string        `json:"edaEndpoint"`
+	NtsConfigPath     string        `json:"ntsConfigPath"`
+	CertsDir          string        `json:"certsDirectory"`
 }
 
 var (
@@ -104,14 +104,10 @@ func runServer(ctx context.Context) error {
 
 	log.Infof("Serving on: %s", Config.Endpoint)
 
-	// Heartbeat routine
-	go func(timeout time.Duration) {
-		for {
-			// TODO: implementation of modules checking
-			log.Infof("Heartbeat")
-			time.Sleep(timeout)
-		}
-	}(time.Second * time.Duration(Config.Timeout))
+	util.Heartbeat(ctx, Config.HeartbeatInterval, func() {
+		// TODO: implementation of modules checking
+		log.Info("Heartbeat")
+	})
 
 	// When Serve() returns, listener is closed
 	err = grpcServer.Serve(lis)
