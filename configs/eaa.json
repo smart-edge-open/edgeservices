@@ -1,6 +1,7 @@
 {
     "tlsEndpoint": "localhost:443",
     "openEndpoint": "localhost:80",
+    "internalEndpoint": "localhost:42103",
     "heartbeatInterval": "60s",
     "certs": {
         "caRootKeyPath": "certs/eaa/rootCA.key",

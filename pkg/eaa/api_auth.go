@@ -15,10 +15,43 @@
 package eaa
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/pem"
 	"net/http"
+	"time"
+
+	"github.com/pkg/errors"
+	"github.com/smartedgemec/appliance-ce/pkg/eva/pb"
+	"google.golang.org/grpc"
 )
+
+func validateAppIP(ipAddress string, endpoint string) (bool, error) {
+
+	// Dial to EVA to get Edge Application ID and use it for validation
+	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
+	if err != nil {
+		return false, errors.Wrapf(err,
+			"Failed to create a connection to %s", endpoint)
+	}
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(),
+		3*time.Second)
+	defer cancel()
+
+	client := pb.NewIPApplicationLookupServiceClient(conn)
+	requestBody := pb.IPApplicationLookupInfo{
+		IpAddress: ipAddress,
+	}
+
+	lookupResult, err := client.GetApplicationByIP(ctx, &requestBody,
+		grpc.WaitForReady(true))
+	if err != nil {
+		return false, errors.Wrap(err, "Cannot get App ID from EVA")
+	}
+
+	return lookupResult.AppID != "", nil
+}
 
 // RequestCredentials handles PKI for an application
 func RequestCredentials(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +66,19 @@ func RequestCredentials(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errf("/Auth RequestCredentials decode failed: %v", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	isIPValid, err := validateAppIP(r.RemoteAddr, cfg.InternalEndpoint)
+	if err != nil {
+		log.Errf("IP address validation failed: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !isIPValid {
+		log.Info("IP address invalid")
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 

@@ -26,6 +26,7 @@ type CertsInfo struct {
 type Config struct {
 	TLSEndpoint       string        `json:"tlsEndpoint"`
 	OpenEndpoint      string        `json:"openEndpoint"`
+	InternalEndpoint  string        `json:"internalEndpoint"`
 	HeartbeatInterval util.Duration `json:"heartbeatInterval"`
 	Certs             CertsInfo     `json:"certs"`
 }
