@@ -56,7 +56,7 @@ type DeployedApp struct {
 	AppData
 	IsDeployed bool
 	DeployedID string
-	path       string
+	Path       string
 }
 
 func (m *AppMetadata) appPath(appID string) string {
@@ -74,7 +74,7 @@ func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 	if err := os.Chdir(appPath); err != nil {
 		return nil, err
 	}
-	log.Infof("Entered directory %s", appPath)
+	log.Infof("Load(): Entered directory %s", appPath)
 
 	bytes, err := ioutil.ReadFile(metadataFileName)
 	if err != nil {
@@ -86,7 +86,7 @@ func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal metadata: %s", err.Error())
 	}
-	dapp.path = appPath
+	dapp.Path = appPath
 
 	file, err := os.Open(dapp.deployedFilePath())
 	if err != nil {
@@ -104,7 +104,7 @@ func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 	}
 
 	dapp.DeployedID = string(bytes[0 : num-1]) // cut '\n'
-	log.Infof("Found the deployment ID for %v: %v", appID, dapp.DeployedID)
+	log.Infof("Found the deployment ID for %v: '%v'", appID, dapp.DeployedID)
 
 	return &dapp, nil
 }
@@ -115,7 +115,7 @@ func (m *AppMetadata) NewDeployedApp(appType AppType,
 	a.Type = appType
 	a.App = app
 	a.IsDeployed = false
-	a.path = m.appPath(app.Id)
+	a.Path = m.appPath(app.Id)
 
 	return a
 }
@@ -126,20 +126,20 @@ func (a *DeployedApp) Save() error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to serialize application metadata.")
 	}
-	log.Infof("Metadata: %v", string(bytes))
+	log.Infof("Saving metadata: %v", string(bytes))
 	bytes = append(bytes, '\n') // serialization doesn't add newline, looks bad
 
-	if err = os.Mkdir(a.path, os.ModePerm); err != nil {
+	if err = os.Mkdir(a.Path, os.ModePerm); err != nil {
 		if os.IsExist(err) {
-			log.Infof("%v already exists", a.path)
+			log.Infof("Save(): %v already exists", a.Path)
 		} else {
 			return errors.Wrap(err, "Could not create App image directory.")
 		}
 	}
-	if err = os.Chdir(a.path); err != nil {
+	if err = os.Chdir(a.Path); err != nil {
 		return errors.Wrap(err, "Can not enter the metadata dir")
 	}
-	log.Infof("created and/or entered %v", a.path)
+	log.Infof("created and/or entered %v", a.Path)
 
 	file, err := os.Create(metadataFileName)
 	if err != nil {
@@ -153,7 +153,7 @@ func (a *DeployedApp) Save() error {
 }
 
 func (a *DeployedApp) deployedFilePath() string {
-	return path.Join(a.path, deployedFileName)
+	return path.Join(a.Path, deployedFileName)
 }
 
 func (a *DeployedApp) SetDeployed(deployedID string) error {

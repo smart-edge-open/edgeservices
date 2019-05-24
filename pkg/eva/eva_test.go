@@ -22,6 +22,7 @@ package eva_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -41,13 +42,21 @@ func TestEva(t *testing.T) {
 	var cfg eva.Config
 	var wg sync.WaitGroup
 	dockerTestOn := false
+	libvirtTestOn := false
 
 	// Automated tests do not have the application image binaries
 	// so we can only run basic tests there.
 	// To manually test when you have those images, use the following:
-	// go test -args d
-	if len(os.Args) == 2 && os.Args[1] == "d" {
-		dockerTestOn = true
+	// go test -args b
+	if len(os.Args) == 2 {
+		if os.Args[1] == "d" {
+			dockerTestOn = true
+		} else if os.Args[1] == "v" {
+			libvirtTestOn = true
+		} else if os.Args[1] == "b" {
+			dockerTestOn = true
+			libvirtTestOn = true
+		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -75,20 +84,44 @@ func TestEva(t *testing.T) {
 		return
 	}
 	defer conn.Close()
+
 	if dockerTestOn {
-		callDeployAPI(t, conn, "app-test-1", "http://localhost/hello-world.img")
-		callDeployAPI(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
+		fmt.Println("-----------APP_TEST_1------------------------------------")
+		callDockerDeploy(t, conn, "app-test-1",
+			"http://localhost/hello-world.img")
+		fmt.Println("-----------APP_TEST_2------------------------------------")
+		callDockerDeploy(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
+		fmt.Println("-----------APP_TEST_1-U----------------------------------")
 		callUndeployAPI(t, conn, "app-test-1")
+		fmt.Println("-----------APP_TEST_2-U----------------------------------")
 		callUndeployAPI(t, conn, "app-test-2")
+
+		fmt.Println("---------LIFECYCLE---------------------------------------")
 		testLifecycleAPI(t, conn, "hello-world-app",
 			"/var/www/html/hello-world.tar.gz")
 	}
+
+	if libvirtTestOn {
+		callLibvirtDeploy(t, conn, "app-test-vm-1",
+			"http://localhost/freedos-1.0.7z")
+		fmt.Println("--------------------------------------------------")
+		callLibvirtDeploy(t, conn, "app-test-vm-2",
+			"http://localhost/freedos-1.0.7z")
+		fmt.Println("--------------------------------------------------")
+		callUndeployAPI(t, conn, "app-test-vm-1")
+		fmt.Println("--------------------------------------------------")
+		callUndeployAPI(t, conn, "app-test-vm-2")
+		fmt.Println("--------------------------------------------------")
+
+	}
+
 	cancel()  // stop the EVA running in other thread
 	wg.Wait() // wait for the other thread to terminate!
 }
 
-func callDeployAPI(t *testing.T, conn *grpc.ClientConn, id string,
+func callDockerDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 	file string) {
+
 	client := pb.NewApplicationDeploymentServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -102,6 +135,24 @@ func callDeployAPI(t *testing.T, conn *grpc.ClientConn, id string,
 		t.Errorf("DeployContainer failed: %v", err)
 	}
 
+	cancel()
+}
+
+func callLibvirtDeploy(t *testing.T, conn *grpc.ClientConn, id string,
+	file string) {
+
+	client := pb.NewApplicationDeploymentServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+	uri := pb.Application_HttpUri{
+		HttpUri: &pb.Application_HTTPSource{HttpUri: file},
+	}
+	app := pb.Application{Id: id, Cores: 1, Memory: 40960, Source: &uri}
+
+	_, err := client.DeployVM(ctx, &app, grpc.WaitForReady(true))
+	if err != nil {
+		t.Errorf("DeployVM failed: %v", err)
+	}
 	cancel()
 }
 
@@ -125,7 +176,7 @@ func testLifecycleAPI(t *testing.T, conn *grpc.ClientConn, id string,
 
 	var err error
 
-	callDeployAPI(t, conn, id, image) //"/var/www/html/hello-world.tar.gz")
+	callDockerDeploy(t, conn, id, image) //"/var/www/html/hello-world.tar.gz")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

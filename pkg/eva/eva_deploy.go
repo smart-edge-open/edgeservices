@@ -30,12 +30,17 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+
+	"github.com/libvirt/libvirt-go-xml"
+
 	"github.com/pkg/errors"
 	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	libvirt "github.com/libvirt/libvirt-go"
 )
 
 type DeploySrv struct {
@@ -213,6 +218,64 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	}
 
 	/* Now call the libvirt API. */
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	domcfg := libvirtxml.Domain{
+		Type: "qemu", Name: pbapp.Id,
+		OS: &libvirtxml.DomainOS{
+			Type: &libvirtxml.DomainOSType{Arch: "x86_64", Type: "hvm"},
+		},
+
+		Memory: &libvirtxml.DomainMemory{Value: uint(pbapp.Memory), Unit: "k"},
+		VCPU:   &libvirtxml.DomainVCPU{Value: int(pbapp.Cores)},
+		Devices: &libvirtxml.DomainDeviceList{
+			Emulator: "/usr/local/bin/qemu-system-x86_64",
+			Disks: []libvirtxml.DomainDisk{
+				{
+					Device: "disk",
+					Source: &libvirtxml.DomainDiskSource{
+						File: &libvirtxml.DomainDiskSourceFile{
+							File: dapp.Path + "/" + imageFile},
+					},
+					Target: &libvirtxml.DomainDiskTarget{Dev: "hda"},
+				},
+			},
+			Interfaces: []libvirtxml.DomainInterface{
+				{
+					Source: &libvirtxml.DomainInterfaceSource{
+						Network: &libvirtxml.DomainInterfaceSourceNetwork{
+							Network: "default",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	xmldoc, err := domcfg.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	dom, err := conn.DomainDefineXML(xmldoc)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = dom.Free() }()
+	name, err := dom.GetName()
+	if err == nil {
+		log.Infof("VM '%v' created", name)
+	} else {
+		log.Errf("Failed to get VM name of '%v'", pbapp.Id)
+	}
+
+	if err := dapp.SetDeployed(pbapp.Id); err != nil {
+		return nil, err
+	}
 
 	return &empty.Empty{}, nil
 }
@@ -220,31 +283,70 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 func (s *DeploySrv) Redeploy(ctx context.Context,
 	app *pb.Application) (*empty.Empty, error) {
 
-	return nil, nil
+	dapp, err := s.meta.Load(app.Id)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Application %v not found", app.Id)
+	}
+
+	if _, err = s.Undeploy(ctx, &pb.ApplicationID{Id: app.Id}); err != nil {
+		return nil, errors.Wrapf(err, "Could not undeploy %v", app.Id)
+	}
+
+	switch dapp.Type {
+	case metadata.Container:
+		_, err = s.DeployContainer(ctx, app)
+	case metadata.VM:
+		_, err = s.DeployVM(ctx, app)
+	default:
+		err = status.Errorf(codes.Unimplemented, "not implemented")
+	}
+
+	return &empty.Empty{}, err
 }
 
-func dockerUndeploy(ctx context.Context,
-	dapp *metadata.DeployedApp) error {
+func dockerUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
 	docker, err := client.NewClientWithOpts(client.FromEnv)
+
 	if err != nil {
 		return errors.Wrap(err, "Failed to create a docker client")
 	}
 
 	if dapp.DeployedID != "" {
 		err = docker.ContainerRemove(ctx, dapp.DeployedID,
-			types.ContainerRemoveOptions{RemoveVolumes: false,
-				RemoveLinks: false, Force: false})
+			types.ContainerRemoveOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "Undeploy(%s)", dapp.DeployedID)
 		}
-		log.Infof("Removed container %v", dapp.DeployedID)
+		log.Infof("Removed container '%v'", dapp.DeployedID)
+	} else {
+		log.Errf("Could not find container ID for '%v'", dapp.App.Id)
 	}
-	_, err = docker.ImageRemove(ctx, dapp.App.Id,
-		types.ImageRemoveOptions{Force: false, PruneChildren: true})
+	_, err = docker.ImageRemove(ctx, dapp.App.Id, types.ImageRemoveOptions{})
 	log.Infof("Docker image %v removed", dapp.App.Id)
 	if err != nil {
 		return err
 	}
+
+	return dapp.SetUndeployed()
+}
+
+func libvirtUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	dom, err := conn.LookupDomainByName(dapp.App.Id)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = dom.Free() }()
+	if err = dom.Undefine(); err != nil {
+		return errors.Wrapf(err, "Failed to undefine '%v'", dapp.App.Id)
+	}
+	log.Infof("Domain (VM) '%v' undefined", dapp.App.Id)
 
 	return dapp.SetUndeployed()
 }
@@ -264,13 +366,15 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 	switch dapp.Type {
 	case metadata.Container:
 		err = dockerUndeploy(ctx, dapp)
+	case metadata.VM:
+		err = libvirtUndeploy(ctx, dapp)
 	default:
 		err = status.Errorf(codes.Unimplemented, "not implemented")
 	}
 
 	if err == nil {
 		if os.Remove(imageFile) == nil {
-			log.Infof("Deleted image file %s", imageFile)
+			log.Infof("Deleted image file of %v", app.Id)
 		}
 	}
 
