@@ -55,6 +55,7 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 func GetServices(w http.ResponseWriter, r *http.Request) {
 	var servList ServiceList
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
 
 	if eaaCtx.serviceInfo == nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -71,12 +72,11 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
 
 	var (
 		subs       *SubscriptionList
@@ -99,8 +99,6 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 			err.Error())
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
@@ -151,7 +149,7 @@ func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	var (
-		sub        Subscription
+		sub        []NotificationDescriptor
 		commonName string
 		err        error
 		statCode   int
@@ -169,7 +167,7 @@ func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	statCode, err = addSubscriptionToNamespace(commonName,
-		vars["urn.namespace"], sub.Notifications)
+		vars["urn.namespace"], sub)
 
 	if err != nil {
 		log.Errf("Namespace Notification Registration: %s",
@@ -183,7 +181,7 @@ func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	var (
-		sub        Subscription
+		sub        []NotificationDescriptor
 		commonName string
 		err        error
 		statCode   int
@@ -200,7 +198,7 @@ func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	statCode, err = addSubscriptionToService(commonName,
-		vars["urn.namespace"], vars["urn.id"], sub.Notifications)
+		vars["urn.namespace"], vars["urn.id"], sub)
 
 	if err != nil {
 		log.Errf("Service Notification Registration: %s", err.Error())
@@ -225,7 +223,7 @@ func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	var (
-		sub        Subscription
+		sub        []NotificationDescriptor
 		commonName string
 		err        error
 		statCode   int
@@ -243,7 +241,7 @@ func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	statCode, err = removeSubscriptionToNamespace(commonName,
-		vars["urn.namespace"], sub.Notifications)
+		vars["urn.namespace"], sub)
 
 	if err != nil {
 		log.Errf("Namespace Notification Unregistration: %s",
@@ -257,7 +255,7 @@ func UnsubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	var (
-		sub        Subscription
+		sub        []NotificationDescriptor
 		commonName string
 		err        error
 		statCode   int
@@ -274,7 +272,7 @@ func UnsubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	statCode, err = removeSubscriptionToService(commonName,
-		vars["urn.namespace"], vars["urn.id"], sub.Notifications)
+		vars["urn.namespace"], vars["urn.id"], sub)
 
 	if err != nil {
 		log.Errf("Service Notification Unregistration: %s",

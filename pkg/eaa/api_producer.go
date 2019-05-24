@@ -93,7 +93,7 @@ func findServiceNotifIndex(servInfo Service, notif Notification) int {
 
 func sendNotificationToSubscribers(commonName string,
 	notif Notification) (int, error) {
-
+	var subscriberList []string
 	retCode := http.StatusAccepted
 
 	if eaaCtx.serviceInfo == nil {
@@ -124,18 +124,26 @@ func sendNotificationToSubscribers(commonName string,
 	}
 	servNotif := serviceInfo.Notifications[servNotifIdx]
 
-	namespaceKey := NamespaceNotif{
-		namespace: prodURN.Namespace,
-		notif:     servNotif}
+	namespaceKey := UniqueNotif{
+		namespace:    prodURN.Namespace,
+		notifName:    servNotif.Name,
+		notifVersion: servNotif.Version,
+	}
 
-	namespaceSubscribersList :=
-		eaaCtx.subscriptionInfo[namespaceKey].namespaceSubscriptions
+	namespaceSubsInfo, ok := eaaCtx.subscriptionInfo[namespaceKey]
+	if !ok {
+		log.Infof("No subscription to notification %v", namespaceKey)
+		return retCode, nil
+	}
 
-	serviceSubscribersList :=
-		eaaCtx.subscriptionInfo[namespaceKey].serviceSubscriptions[prodURN.ID]
+	srvSubsList, ok := namespaceSubsInfo.serviceSubscriptions[prodURN.ID]
 
-	subscriberList := getUniqueSubsList(namespaceSubscribersList,
-		serviceSubscribersList)
+	if !ok {
+		subscriberList = namespaceSubsInfo.namespaceSubscriptions
+	} else {
+		subscriberList = getUniqueSubsList(
+			namespaceSubsInfo.namespaceSubscriptions, srvSubsList)
+	}
 
 	for _, subID := range subscriberList {
 		_, connectionFound := eaaCtx.consumerConnections[subID]

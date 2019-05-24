@@ -29,13 +29,13 @@ func addSubscriptionToNamespace(commonName string, namespace string,
 	}
 
 	for _, n := range notif {
-		key := NamespaceNotif{
-			namespace: namespace,
-			notif:     n,
+		key := UniqueNotif{
+			namespace:    namespace,
+			notifName:    n.Name,
+			notifVersion: n.Version,
 		}
 
-		// initialize map entry for specified key if necessary
-		initNamespaceNotification(key)
+		initNamespaceNotification(key, n)
 
 		if index := getNamespaceSubscriptionIndex(key,
 			commonName); index == -1 {
@@ -57,9 +57,10 @@ func removeSubscriptionToNamespace(commonName string, namespace string,
 	}
 
 	for _, n := range notif {
-		key := NamespaceNotif{
-			namespace: namespace,
-			notif:     n,
+		key := UniqueNotif{
+			namespace:    namespace,
+			notifName:    n.Name,
+			notifVersion: n.Version,
 		}
 
 		if _, exists := eaaCtx.subscriptionInfo[key]; !exists {
@@ -90,14 +91,15 @@ func addSubscriptionToService(commonName string, namespace string,
 			errors.New("Eaa context not intialized. ")
 	}
 
-	for _, notification := range notif {
-		key := NamespaceNotif{
-			namespace: namespace,
-			notif:     notification,
+	for _, n := range notif {
+		key := UniqueNotif{
+			namespace:    namespace,
+			notifName:    n.Name,
+			notifVersion: n.Version,
 		}
 
-		// initialize map entry for specified key + service if necessary
-		initServiceNotification(key, serviceID)
+		// If NamespaceNotif+service set not initialized, do so now
+		initServiceNotification(key, serviceID, n)
 
 		// If Consumer already subscribed, do nothing
 		index := getServiceSubscriptionIndex(key, serviceID, commonName)
@@ -126,16 +128,19 @@ func removeSubscriptionToService(commonName string, namespace string,
 	}
 
 	for _, n := range notif {
-		key := NamespaceNotif{
-			namespace: namespace,
-			notif:     n,
+		key := UniqueNotif{
+			namespace:    namespace,
+			notifName:    n.Name,
+			notifVersion: n.Version,
 		}
+
 		if _, exists := eaaCtx.subscriptionInfo[key]; !exists {
 			log.Infof(
 				"Couldn't find key \"%s\" in the subscription map. %s",
 				key, "(Consumer unsubscription process)")
 			continue
 		}
+
 		if _, exists := eaaCtx.subscriptionInfo[key].
 			serviceSubscriptions[serviceID]; !exists {
 			log.Infof(
@@ -144,6 +149,7 @@ func removeSubscriptionToService(commonName string, namespace string,
 				"(Consumer unsubscription process)")
 			continue
 		}
+
 		if index := getServiceSubscriptionIndex(key, serviceID,
 			commonName); index != -1 {
 			eaaCtx.subscriptionInfo[key].serviceSubscriptions[serviceID] =
@@ -171,6 +177,7 @@ func removeAllSubscriptions(commonName string) (int, error) {
 				nsSubsInfo.serviceSubscriptions[srvID] = srvSubsInfo
 			}
 		}
+
 		nsSubsInfo.namespaceSubscriptions.RemoveSubscriber(commonName)
 	}
 
