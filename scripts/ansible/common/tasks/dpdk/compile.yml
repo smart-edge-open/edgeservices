@@ -1,0 +1,9 @@
+- name: Compile dpdk
+  become: true
+  command: make install T=x86_64-native-linuxapp-gcc -j4
+  args:
+    chdir: "{{ dpdk_downloaddir }}"
+  register: dpdk_makeinstall_output
+- debug:
+    msg: "{{ dpdk_makeinstall_output }}"
+

@@ -1,0 +1,5 @@
+- name: Clean yum cache
+  shell: yum clean all
+  args:
+    warn: false
+

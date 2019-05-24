@@ -1,0 +1,6 @@
+- name: Re-read shell profile file
+  shell: ". /etc/profile"
+  args:
+    executable: /bin/bash
+
+

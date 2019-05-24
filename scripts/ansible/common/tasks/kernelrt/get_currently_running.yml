@@ -1,0 +1,6 @@
+- name: Get currently running kernel
+  shell: uname -r
+  register: kernel_rt_version_running
+- debug:
+    msg: "...kernel currently running: {{ kernel_rt_version_running.stdout }} "
+

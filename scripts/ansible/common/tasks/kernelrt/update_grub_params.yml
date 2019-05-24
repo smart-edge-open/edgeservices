@@ -1,0 +1,10 @@
+- name: Remove RT kernel old grub parameters
+  shell: grubby --remove-args "{{ item.name }}" --update-kernel=/boot/vmlinuz-{{ kernel_rt_version_installed.stdout }}
+  args:
+    warn: false
+  with_items: "{{ grub_cmdline_additional_parameters }}"
+
+- name: Add RT kernel grub parameters
+  shell: grubby --args "{{ item.name }}{{ item.char }}{{ item.value }}" --update-kernel=/boot/vmlinuz-{{ kernel_rt_version_installed.stdout }}
+  with_items: "{{ grub_cmdline_additional_parameters }}"
+

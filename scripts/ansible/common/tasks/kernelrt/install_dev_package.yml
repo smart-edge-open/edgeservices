@@ -1,0 +1,5 @@
+- name: Install matching kernel development package
+  yum:
+    name: kernel-rt-devel
+    state: present
+

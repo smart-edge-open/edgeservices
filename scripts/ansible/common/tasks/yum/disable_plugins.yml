@@ -1,0 +1,5 @@
+- name: Disable yum plugins
+  shell: sed -i 's/^plugins=.*/plugins=0/' /etc/yum.conf
+  args:
+    warn: false
+

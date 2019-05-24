@@ -1,0 +1,20 @@
+- name: Download Docker repo - GPG key
+  get_url:
+    url: "{{ docker_repo_gpg_file }}"
+    dest: /etc/pki/rpm-gpg/
+    mode: 0644
+    validate_certs: false
+
+- name: Import Docker repo - GPG key
+  rpm_key:
+    state: present
+    key: "{{ docker_repo_gpg_file }}"
+    validate_certs: false
+
+- name: Download Docker repo - repo file
+  get_url:
+    url: "{{ docker_repo_file }}"
+    dest: /etc/yum.repos.d/
+    mode: 0644
+    validate_certs: false
+

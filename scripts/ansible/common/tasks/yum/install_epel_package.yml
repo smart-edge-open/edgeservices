@@ -1,0 +1,5 @@
+- name: Download and install base EPEL package
+  yum: 
+    name: "{{ epel_repository_package_link }}"
+    state: present
+

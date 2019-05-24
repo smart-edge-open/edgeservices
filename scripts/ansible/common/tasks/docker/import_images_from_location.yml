@@ -1,0 +1,11 @@
+- name: Import Docker appliance image from defined location
+  docker_image:
+    name: appliance
+    #tag: 1.1
+    load_path: "{{ docker_image_import_location_path }}/appliance.docker"
+
+- name: Import Docker edgednssvr image from defined location
+  docker_image:
+    name: edgednssvr
+    # tag: 1.0
+    load_path: "{{ docker_image_import_location_path }}/edgednssvr.docker"

@@ -1,0 +1,8 @@
+- include: status.yml
+- name: Stop Docker service if running
+  systemd:
+    name: docker
+    state: stopped
+    force: true
+  when: docker_service_status.rc == 0
+

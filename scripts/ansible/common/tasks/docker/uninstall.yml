@@ -1,0 +1,5 @@
+- name: Uninstall unwanted or legacy Docker packages
+  yum: 
+    name: "{{ docker_legacy_packages }}"
+    state: absent
+

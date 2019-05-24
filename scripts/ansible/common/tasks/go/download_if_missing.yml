@@ -1,0 +1,22 @@
+- name: Check if go lang is already installed
+  stat: 
+    path: "/usr/local/go/bin/go"
+  register: go_lang_presence
+
+- name: Download Go language package
+  unarchive:
+    src: "{{ go_lang_url }}"
+    dest: "/usr/local/"
+    remote_src: yes
+  when: go_lang_presence.stat.exists == False
+
+- name: Add paths to go binary
+  lineinfile:
+    state: present
+    dest: /etc/profile
+    line: "{{ item }}"
+  with_items:
+    - "export GOROOT=/usr/local/go"
+    - "export GOPATH=~/go"
+    - "export PATH=/$GOPATH/bin:$GOROOT/bin:$PATH"
+

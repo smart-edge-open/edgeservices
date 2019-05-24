@@ -1,0 +1,5 @@
+- name: Install Docker CE 
+  yum:
+    name: "{{ docker_packages }}"
+    state: present
+

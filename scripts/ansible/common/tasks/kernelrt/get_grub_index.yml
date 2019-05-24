@@ -1,0 +1,7 @@
+- name: Check RT kernel GRUB index
+  shell: "{{ base_path }}/scripts/ansible/common/scripts/rt-kernel-grub-index.sh {{ kernel_rt_version_installed.stdout }}"
+  register: grub_rt_kernel_index
+
+- debug:
+    msg: "{{ grub_rt_kernel_index.stdout }}"
+

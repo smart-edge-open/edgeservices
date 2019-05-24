@@ -1,0 +1,3 @@
+- name: Move compiled dpdk to /opt folder
+  become: root
+  shell: "mv {{ dpdk_downloaddir }} {{ dpdk_install_location }}"

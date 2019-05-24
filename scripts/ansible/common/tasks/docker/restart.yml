@@ -1,0 +1,10 @@
+- name: Obtain Docker service status
+  service_facts:
+
+- name: Restart Docker service if available
+  systemd:
+    name: docker
+    state: restarted
+    force: true
+  when: "'docker.service' in services"
+

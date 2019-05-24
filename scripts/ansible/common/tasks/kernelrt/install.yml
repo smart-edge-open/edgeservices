@@ -1,0 +1,21 @@
+- name: Install correct tuned package
+  yum: 
+    name: "{{ centos_rt_tuned_package_link }}"
+    state: present
+    allow_downgrade: yes
+
+- name: Install RT kernel
+  yum: 
+    name: "{{ centos_rt_kernel_package_name }}"
+    update_cache: yes
+    state: present
+
+- name: Check RT rpm kernel version installed
+  shell: rpm -qa | grep ^kernel-rt-[345] | grep -v kvm | sed 's/kernel-rt-//'
+  args:
+    warn: false
+  ignore_errors: true
+  register: kernel_rt_version_installed
+- debug:
+    msg: "...kernel RT installed: {{ kernel_rt_version_installed.stdout  }} "
+

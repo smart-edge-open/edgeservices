@@ -7,13 +7,13 @@ centos_rt_repo_file: "http://linuxsoft.cern.ch/cern/centos/{{ centos_version }}/
 centos_rt_kernel_package_name: "kernel-rt-kvm"
 centos_rt_tuned_package_link: "ftp://ftp.icm.edu.pl/vol/rzm3/linux-slc/centos/7.5.1804/os/x86_64/Packages/tuned-2.9.0-1.el7.noarch.rpm"
 epel_repository_package_link: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ centos_version }}.noarch.rpm"
-packages_to_install: "curl,yum-utils,device-mapper-persistent-data,lvm2,python-pip,libvirt,libvirt-devel,wget,bridge-utils,boost-devel,openssl-devel,pcre-devel,zlib-devel,glib2-devel,autoconf,automake,libtool,flex,bison,git,cmake,pciutils,python-websocket-client,jsoncpp-devel,fcgi-devel,hiredis-devel,numactl-devel,gcc-c++,psmisc,python-httplib2"
+packages_to_install: "curl,wget"
 dpdk_name: "dpdk-18.08"
 dpdk_url: "http://fast.dpdk.org/rel/{{ dpdk_name }}.tar.xz"
 dpdk_downloaddir: "/temp/dpdk_downloaddir"
 dpdk_install_location: "/opt/{{ dpdk_name }}"
 dpdk_make_target: "x86_64-native-linuxapp-gcc"
-grub_cmdline_additional_parameters:
+grub_cmdline_additional_parameters: 
   - name: hugepagesz
     value: 1G
     char: "="

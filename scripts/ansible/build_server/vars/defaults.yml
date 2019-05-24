@@ -1,4 +1,4 @@
-# This file is read after global one (/common/defaults.yml)
-# You may override default variables here instead of storing then in plays
 ---
-docker_images_save_path: "{{ '../../../dist/.' | realpath }}"
+packages_to_install: "curl,yum-utils,device-mapper-persistent-data,lvm2,python-pip,libvirt,libvirt-devel,wget,bridge-utils,boost-devel,openssl-devel,pcre-devel,zlib-devel,glib2-devel,autoconf,automake,libtool,flex,bison,git,cmake,pciutils,python-websocket-client,jsoncpp-devel,fcgi-devel,hiredis-devel,numactl-devel,gcc-c++,psmisc,python-httplib2"
+docker_images_save_path: "{{ base_path }}/dist/"
+

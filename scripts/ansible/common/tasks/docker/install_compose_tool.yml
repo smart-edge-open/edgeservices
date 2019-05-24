@@ -1,0 +1,5 @@
+- name: Install docker-compose tool
+  pip:
+    name: docker-compose
+    state: present
+

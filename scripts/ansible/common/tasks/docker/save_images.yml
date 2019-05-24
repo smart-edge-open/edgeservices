@@ -1,0 +1,16 @@
+- name: Create Docker folder to save images
+  file:
+    path: "{{ docker_images_save_path }}"
+    state: directory
+
+- debug:
+    msg: "Docker images save path set to: {{ docker_images_save_path }}"
+
+- name: Export appliance image to filesystem
+  shell: docker save appliance -o "{{ docker_images_save_path }}/appliance.docker"
+
+- name: Export edgednssvr image to filesystem
+  shell: docker save edgednssvr -o "{{ docker_images_save_path }}/edgednssvr.docker"
+
+- name: Export nts image to filesystem
+  shell: docker save nts -o "{{ docker_images_save_path }}/nts.docker"

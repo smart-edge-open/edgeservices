@@ -1,0 +1,7 @@
+- name: Install user defined rpm packages for build process
+  yum: 
+    name: "{{ packages_to_install }}"
+    state: present
+    skip_broken: yes
+    update_cache: yes
+

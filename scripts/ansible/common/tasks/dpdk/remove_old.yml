@@ -1,0 +1,10 @@
+- name: Remove dpdk temporary download directory
+  become: true
+  file:
+    path: "{{ dpdk_downloaddir }}"
+    state: absent
+- name: Remove dpdk old install directory    
+  file:
+    path: "{{ dpdk_install_location }}"
+    state: absent
+

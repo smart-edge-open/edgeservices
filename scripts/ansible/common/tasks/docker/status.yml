@@ -1,0 +1,7 @@
+- name: Check Docker service
+  shell: systemctl status docker
+  ignore_errors: true
+  args:
+    warn: false
+  register: docker_service_status
+

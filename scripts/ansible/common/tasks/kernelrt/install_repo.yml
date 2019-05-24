@@ -1,0 +1,17 @@
+- name: Download Centos RT repo - GPG key
+  get_url:
+    url: "{{ centos_rt_repo_gpg_file }}"
+    dest: /etc/pki/rpm-gpg/
+    mode: 0644
+
+- name: Import Centos RT repo - GPG key
+  rpm_key:
+    state: present
+    key: "{{ centos_rt_repo_gpg_file }}"
+
+- name: Download Centos RT repo - repo file
+  get_url:
+    url: "{{ centos_rt_repo_file }}"
+    dest: /etc/yum.repos.d/
+    mode: 0644
+

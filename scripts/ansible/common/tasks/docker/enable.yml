@@ -1,0 +1,7 @@
+- name: Enable docker service and ensure it is not masked
+  systemd:
+    name: docker
+    enabled: yes
+    masked: no
+    state: restarted
+
