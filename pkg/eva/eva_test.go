@@ -23,9 +23,12 @@ package eva_test
 import (
 	"context"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
+	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"github.com/smartedgemec/appliance-ce/pkg/eva"
+	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"google.golang.org/grpc"
 )
@@ -35,6 +38,16 @@ var cfgFile = "../../configs/eva.json"
 func TestEva(t *testing.T) {
 	var cfg eva.Config
 	var wg sync.WaitGroup
+	dockerTestOn := false
+
+	// Automated tests do not have the application image binaries
+	// so we can only run basic tests there.
+	// To manually test when you have those images, use the following:
+	// go test -args d
+	if len(os.Args) == 2 && os.Args[1] == "d" {
+		dockerTestOn = true
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	wg.Add(1)
@@ -56,25 +69,27 @@ func TestEva(t *testing.T) {
 		return
 	}
 
-	/*
-		callDeployApi(t, conn, "app-test-1", "http://localhost/hello-world.img")
-		callDeployApi(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
-		callUndeployApi(t, conn, "app-test-1")
-		callUndeployApi(t, conn, "app-test-2")
-	*/
+	if dockerTestOn {
+		callDeployAPI(t, conn, "app-test-1", "http://localhost/hello-world.img")
+		callDeployAPI(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
+		callUndeployAPI(t, conn, "app-test-1")
+		callUndeployAPI(t, conn, "app-test-2")
+	}
 
 	conn.Close()
 	cancel()  // stop the EVA running in other thread
 	wg.Wait() // wait for the other thread to terminate!
 }
 
-/*
-func callDeployApi(t *testing.T, conn *grpc.ClientConn, id string,
-	image string) {
+func callDeployAPI(t *testing.T, conn *grpc.ClientConn, id string,
+	file string) {
 	client := pb.NewApplicationDeploymentServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-	app := pb.Application{Id: id, Cores: 1, Memory: 999, Image: image}
+	uri := pb.Application_HttpUri{
+		HttpUri: &pb.Application_HTTPSource{HttpUri: file},
+	}
+	app := pb.Application{Id: id, Cores: 1, Memory: 40960, Source: &uri}
 
 	_, err := client.DeployContainer(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {
@@ -83,7 +98,7 @@ func callDeployApi(t *testing.T, conn *grpc.ClientConn, id string,
 	cancel()
 }
 
-func callUndeployApi(t *testing.T, conn *grpc.ClientConn, id string) {
+func callUndeployAPI(t *testing.T, conn *grpc.ClientConn, id string) {
 	client := pb.NewApplicationDeploymentServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -95,4 +110,3 @@ func callUndeployApi(t *testing.T, conn *grpc.ClientConn, id string) {
 	}
 	cancel()
 }
-*/

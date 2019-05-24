@@ -98,7 +98,6 @@ func (s *DeploySrv) sanitizeApplication(app *pb.Application) error {
 
 func (s *DeploySrv) deployCommon(ctx context.Context,
 	dapp *metadata.DeployedApp) error {
-	log.Info("deployCommon() running")
 
 	if err := s.sanitizeApplication(dapp.App); err != nil {
 		return err
@@ -107,16 +106,22 @@ func (s *DeploySrv) deployCommon(ctx context.Context,
 	if err == nil && app2.IsDeployed {
 		return fmt.Errorf("app %s already deployed", dapp.App.Id)
 	}
+
+	// TODO: either fix unmarshall of dapp.App.Source
+	// or store the url directly in the DeployedApp structure
+	source := dapp.App.Source
+	dapp.App.Source = nil // reset source as can't unmarshall this
 	if err = dapp.Save(); err != nil {
 		return err
 	}
 
 	/* Now download the image. */
-	if err := downloadImage(dapp.App.Image); err != nil {
-		return err
+	switch s := source.(type) {
+	case *pb.Application_HttpUri:
+		return downloadImage(s.HttpUri.HttpUri)
+	default:
+		return errors.New("Unimplemented Application.Source")
 	}
-
-	return nil
 }
 
 func parseImageName(body io.Reader) (string, error) {
