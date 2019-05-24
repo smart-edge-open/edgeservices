@@ -27,8 +27,7 @@ var _ = Describe("ApiEaa", func() {
 			Specify("which should return no error", func() {
 
 				cert, err := tls.LoadX509KeyPair(
-					tempdir+"/certs/eaa/rootCA.pem",
-					tempdir+"/certs/eaa/server.key")
+					tempConfServerCertPath, tempConfServerKeyPath)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				//nolint

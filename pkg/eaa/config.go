@@ -15,6 +15,7 @@
 package eaa
 
 type CertsInfo struct {
+	CaRootKeyPath  string `json:"CaRootKeyPath"`
 	CaRootPath     string `json:"caRootPath"`
 	ServerCertPath string `json:"serverCertPath"`
 	ServerKeyPath  string `json:"serverKeyPath"`

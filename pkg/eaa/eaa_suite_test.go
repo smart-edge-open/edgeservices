@@ -18,8 +18,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"flag"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"io"
 	"io/ioutil"
 	"os"
@@ -27,6 +25,9 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/onsi/gomega/gexec"
 	"github.com/smartedgemec/appliance-ce/internal/authtest"
@@ -70,39 +71,6 @@ func readConfig(path string) {
 	}
 }
 
-func generateCerts() {
-	Expect(authtest.EnrollStub(filepath.Join(tempdir, "certs"))).ToNot(
-		HaveOccurred())
-	// TODO: Example cert creation required to appliance init - to be replaced
-	// by functional cert generation logic
-	By("Generating certs")
-	err := os.MkdirAll(tempdir+"/certs/eaa", 0700)
-	Expect(err).ToNot(HaveOccurred(), "Error when creating temp directory")
-
-	cmd := exec.Command("openssl", "req", "-x509", "-nodes", "-newkey",
-		"rsa:2048", "-keyout", "server.key", "-out", "server.crt", "-days",
-		"3650", "-subj", "/C=TT/ST=Test/L=Test/O=Test/OU=Test/CN=test.com")
-
-	cmd.Dir = tempdir + "/certs/eaa"
-	err = cmd.Run()
-	Expect(err).ToNot(HaveOccurred(), "Error when generating .key .crt")
-
-	cmd = exec.Command("openssl", "x509", "-in", "server.crt", "-out",
-		"rootCA.pem", "-outform", "PEM")
-
-	cmd.Dir = tempdir + "/certs/eaa"
-	err = cmd.Run()
-	Expect(err).ToNot(HaveOccurred(), "Error when converting .crt to .pem")
-
-	cmd = exec.Command("openssl", "req", "-new", "-key", "server.key",
-		"-out", "server.csr", "-subj",
-		"/C=TT/ST=Test/L=Test/O=Test/OU=Test/CN=test.com")
-
-	cmd.Dir = tempdir + "/certs/eaa"
-	err = cmd.Run()
-	Expect(err).ToNot(HaveOccurred(), "Error when generating .csr")
-}
-
 func copyFile(src string, dst string) {
 	srcFile, err := os.Open(src)
 	Expect(err).ToNot(HaveOccurred(), "Copy file - error when opening "+src)
@@ -134,16 +102,24 @@ func generateConfigs() {
 	eaaCfg := []byte(`{
 		"endpoint": "` + cfg.Endpoint + `",
 		"certs": {
-			"caRootPath": "certs/eaa/rootCA.pem",
-			"serverCertPath": "certs/eaa/server.crt",
-			"serverKeyPath": "certs/eaa/server.key"
+			"CaRootKeyPath": "` + tempConfCaRootKeyPath + `",
+			"caRootPath": "` + tempConfCaRootPath + `",
+			"serverCertPath": "` + tempConfServerCertPath + `",
+			"serverKeyPath": "` + tempConfServerKeyPath + `"
 		}
 	}`)
+
 	err = ioutil.WriteFile(tempdir+"/configs/eaa.json", eaaCfg, 0644)
 	Expect(err).ToNot(HaveOccurred(), "Error when creating eaa.json")
 }
 
-var tempdir string
+var (
+	tempdir                string
+	tempConfCaRootKeyPath  string
+	tempConfCaRootPath     string
+	tempConfServerCertPath string
+	tempConfServerKeyPath  string
+)
 
 var _ = BeforeSuite(func() {
 
@@ -155,8 +131,13 @@ var _ = BeforeSuite(func() {
 		Fail("Unable to create temporary build directory")
 	}
 
-	// TODO: generate certificates before starting appliance
-	generateCerts()
+	Expect(authtest.EnrollStub(filepath.Join(tempdir, "certs"))).ToNot(
+		HaveOccurred())
+
+	tempConfCaRootKeyPath = tempdir + "/" + "certs/eaa/rootCA.key"
+	tempConfCaRootPath = tempdir + "/" + "certs/eaa/rootCA.pem"
+	tempConfServerCertPath = tempdir + "/" + "/certs/eaa/server.crt"
+	tempConfServerKeyPath = tempdir + "/" + "/certs/eaa/server.key"
 
 	generateConfigs()
 
@@ -173,11 +154,16 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred(), "Unable to start appliance")
 
 	// Wait until appliance is ready before running any tests specs
-	cert, err := tls.LoadX509KeyPair(tempdir+"/certs/eaa/rootCA.pem",
-		tempdir+"/certs/eaa/server.key")
-	if err != nil {
-		Fail("Error when loading client certificates")
-	}
+	Eventually(func() (tls.Certificate, error) {
+		return tls.LoadX509KeyPair(
+			tempConfServerCertPath, tempConfServerKeyPath)
+	},
+		cfg.ApplianceTimeoutSec, 100*time.Millisecond).ShouldNot(BeNil(),
+		"Failed to load keys and cert for appliance")
+
+	cert, err := tls.LoadX509KeyPair(
+		tempConfServerCertPath, tempConfServerKeyPath)
+	Expect(err).NotTo(HaveOccurred())
 
 	//nolint
 	conf := tls.Config{Certificates: []tls.Certificate{cert},

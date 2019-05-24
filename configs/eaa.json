@@ -1,6 +1,7 @@
 {
     "endpoint": "localhost:443",
     "certs": {
+        "caRootKeyPath": "certs/eaa/rootCA.key",
         "caRootPath": "certs/eaa/rootCA.pem",
         "serverCertPath": "certs/eaa/server.crt",
         "serverKeyPath": "certs/eaa/server.key"

@@ -35,6 +35,13 @@ type eaaContext struct {
 	serviceInfo         services
 	consumerConnections consumerConns
 	subscriptionInfo    NotificationSubscriptions
+	certsEaaCa          Certs
+}
+
+// Certs stores certs and keys for root ca and eaa
+type Certs struct {
+	rca *CertKeyPair
+	eaa *CertKeyPair
 }
 
 var (
@@ -76,15 +83,26 @@ func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
 
 // Start Edge Application Agent server listening on port read from config file
 func RunServer(parentCtx context.Context) error {
-	if err := Init(); err != nil {
+	var err error
+
+	if err = Init(); err != nil {
 		log.Errf("init error: %#v", err)
 		return errors.New("Running EAA module failure: " + err.Error())
+	}
+
+	if eaaCtx.certsEaaCa.rca, err = InitRootCA(cfg.Certs); err != nil {
+		log.Errf("CA cert craetion error: %#v", err)
+		return err
+	}
+
+	if eaaCtx.certsEaaCa.eaa, err = InitEaaCert(cfg.Certs); err != nil {
+		log.Errf("EAA cert craetion error: %#v", err)
+		return err
 	}
 
 	certPool, err := CreateAndSetCACertPool(cfg.Certs.CaRootPath)
 	if err != nil {
 		log.Errf("Cert Pool error: %#v", err)
-		return err
 	}
 
 	router := NewRouter()
