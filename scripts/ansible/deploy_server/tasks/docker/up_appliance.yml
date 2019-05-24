@@ -1,0 +1,4 @@
+- name: Bring up appliance container
+  shell: "REMOTE_SYSLOG_IP={{ remote_syslog_endpoint }} VER={{ docker_appliance_tag }} docker-compose up -d --no-build appliance"
+  args:
+    chdir: "{{ base_path }}"

@@ -1,0 +1,11 @@
+- name: Generate key for controller
+  shell: openssl pkey -pubout -in /var/lib/appliance/certs/key.pem -inform pem -outform der | md5sum | xxd -r -p | openssl enc -a | tr -d '=' | tr '/+' '_-'
+  register: cmd
+
+- set_fact: verification_key="{{ cmd.stdout }}"
+
+- debug:
+    msg: "THIS IS YOUR VERIFICATION KEY: {{ verification_key }}"
+
+- debug:
+    msg: "Wait for controller certs now..."

@@ -1,0 +1,4 @@
+- name: Bring up syslog-ng container
+  shell: "REMOTE_SYSLOG_IP={{ remote_syslog_endpoint }} VER={{ docker_syslog_ng_tag }} docker-compose up -d --no-build syslog-ng"
+  args:
+    chdir: "{{ base_path }}"

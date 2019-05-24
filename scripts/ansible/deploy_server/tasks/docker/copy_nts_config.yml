@@ -1,0 +1,8 @@
+- debug: 
+    msg: "Copy nts.cfg config file to appliance folder"
+
+- copy:
+    src: "{{ base_path }}/internal/nts/nts.cfg"
+    dest: /var/lib/appliance/nts/nts.cfg
+    remote_src: no
+      

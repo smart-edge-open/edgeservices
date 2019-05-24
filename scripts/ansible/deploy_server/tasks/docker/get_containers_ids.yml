@@ -1,0 +1,22 @@
+- name: Get syslog_ng container ID
+  shell: "docker ps -aqf name={{ docker_syslog_ng_container_name }}"
+  register: cmd
+- set_fact: docker_syslog_ng_container_id="{{ cmd.stdout }}"
+
+- name: Get edgednssvr container ID
+  shell: "docker ps -aqf name={{ docker_edgednssvr_container_name }}"
+  register: cmd
+- set_fact: docker_edgednssvr_container_id="{{ cmd.stdout }}"
+
+- name: Get nts container ID
+  shell: "docker ps -aqf name={{ docker_nts_container_name }}"
+  register: cmd
+- set_fact: docker_nts_container_id="{{ cmd.stdout }}"
+
+- name: Get appliance container ID
+  shell: "docker ps -aqf name={{ docker_appliance_container_name }}"
+  register: cmd
+- set_fact: docker_appliance_container_id="{{ cmd.stdout }}"
+
+- debug:
+    msg: "Containers IDs: syslog={{ docker_syslog_ng_container_id }} edgednssvr={{ docker_edgednssvr_container_id }} nts={{ docker_nts_container_id }} appliance={{ docker_appliance_container_id }}"

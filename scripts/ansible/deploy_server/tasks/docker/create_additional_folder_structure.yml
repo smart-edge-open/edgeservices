@@ -1,0 +1,8 @@
+---
+- name: Create additional Docker directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /var/lib/appliance/nts
+    - /var/lib/appliance/edgednssvr

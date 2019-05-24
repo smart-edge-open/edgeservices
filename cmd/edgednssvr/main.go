@@ -54,7 +54,7 @@ func main() {
 
 	err = logger.ConnectSyslog(*syslogAddr)
 	if err != nil {
-		log.Errf("Failed to connect to syslog: %s", err.Error())
+		log.Errf("Syslog(%s) connection failed: %s", *syslogAddr, err.Error())
 		os.Exit(1)
 	}
 

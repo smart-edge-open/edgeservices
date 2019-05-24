@@ -1,0 +1,16 @@
+- name: Create certs folder if missing
+  file: 
+    path: "{{ base_path }}/certs"
+    state: directory
+
+- name: Generate empty cert and key file
+  file:
+    path: "{{ item }}"
+    state: touch
+    owner: root
+    group: root
+    mode: 440
+  with_items:
+    - "{{ base_path }}/certs/key.pem"
+    - "{{ base_path }}/certs/cert.pem"
+

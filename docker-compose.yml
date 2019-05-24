@@ -26,11 +26,15 @@ services:
      - "42102:42102"
      - "443:443"
     volumes:
-     - "/run:/run"
      - "/var/lib/nts:/var/lib/nts"
-     - "/proc/1/ns:/var/host_ns"
+     - "/run:/run"
+     - "/proc/1/ns:/var/host_ns:ro"
      - "/sys/class/net:/var/host_net_devices"
      - "/sys/devices:/devices"
+     - "/var/lib/appliance/certs:/root/certs"
+    networks:
+      net:
+        ipv4_address: 192.17.0.2
   edgednssvr:
     build:
       context: .
@@ -39,12 +43,16 @@ services:
     ports:
      - "53:53/udp"
     volumes:
-     - "/var/lib/edgedns:/var/lib/edgedns"
+     - "/var/lib/appliance/edgednssvr:/var/lib/edgedns"
      - "/run:/run"
     environment:
      - http_proxy
      - https_proxy
      - DNS_FWDR=8.8.8.8
+     - LOCAL_SYSLOG=192.17.0.5:514
+    networks:
+      net:
+        ipv4_address: 192.17.0.3
   nts:
     container_name: nts
     build:
@@ -55,7 +63,7 @@ services:
     network_mode: "host"
     volumes:
      - "/dev/hugepages:/hugepages"
-     - "/var/lib/nts:/var/lib/nts"
+     - "/var/lib/appliance/nts:/var/lib/nts"
      - "/var/run/docker/netns:/var/run/docker/netns"
      - "/var/run:/var/run"
      - "/proc/1/ns:/var/host_ns"
@@ -63,8 +71,6 @@ services:
 
   syslog-ng:
     image:  balabit/syslog-ng:3.19.1
-    ports:
-      - "514:514/udp"
     volumes:
       - "./configs/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro"
       - "./certs:/etc/syslog-ng/certs:ro"
@@ -72,4 +78,14 @@ services:
 
     command: "--no-caps"
     extra_hosts:
-      - "syslog.community.controller.mec:${REMOTE_SYSLOG_ENDPOINT}"
+      - "syslog.community.controller.mec:${REMOTE_SYSLOG_IP}"
+    networks:
+      net:
+        ipv4_address: 192.17.0.5
+
+networks:
+  net:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 192.17.0.0/16

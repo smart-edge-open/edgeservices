@@ -1,0 +1,5 @@
+- name: remove container
+  docker_container:
+    name: "{{ docker_syslog_ng_container_name }}"
+    state: started
+    restart: yes

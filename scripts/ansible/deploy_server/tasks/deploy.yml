@@ -1,0 +1,54 @@
+# Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+- hosts: localhost
+  any_errors_fatal: false
+  tasks:
+  - debug:
+      msg: "--- DEPLOY ---"
+  - include_vars: ../../common/vars/defaults.yml
+  - include_vars: ../vars/defaults.yml
+  - debug:
+      msg: "Base path set to: {{ base_path }}"
+  
+  # Cleanup
+  - include_tasks: ../../common/tasks/docker/remove_images_and_containers.yml
+
+  # Docker
+  - include_tasks: ../../common/tasks/docker/import_images_from_location.yml
+  - include_tasks: ../tasks/docker/remove_additional_folder_structure.yml
+  - include_tasks: ../tasks/docker/create_additional_folder_structure.yml
+  
+  # Certs
+  - include_tasks: ./certs/remove_certificates_and_keys.yml
+  - include_tasks: ./certs/create_empty_cert_and_key.yml
+
+  # Copy config files
+  - include_tasks: ./docker/copy_nts_config.yml
+
+  # Bring up containers
+  - include_tasks: ./docker/up_syslog_ng.yml
+  - include_tasks: ./docker/up_edgednssvr.yml
+  - include_tasks: ./docker/up_nts.yml
+  - include_tasks: ./docker/up_appliance.yml
+  - include_tasks: ./docker/get_containers_ids.yml
+
+  # Certificates and keys exchange
+  - include_tasks: ../tasks/docker/generate_key.yml
+  - include_tasks: ../tasks/docker/wait_for_controller_certs.yml
+
+  - include_tasks: ../tasks/docker/restart_syslog_ng.yml
+
+#   # Finish
+  - include_tasks: ../../common/tasks/other/script_success.yml

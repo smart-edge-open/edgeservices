@@ -1,0 +1,2 @@
+- name: Waiting for certificates and keys from controller
+  shell: "{{ base_path }}/scripts/ansible/deploy_server/scripts/wait_for_cert_files.sh"

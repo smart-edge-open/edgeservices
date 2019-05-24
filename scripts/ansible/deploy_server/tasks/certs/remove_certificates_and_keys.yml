@@ -1,0 +1,13 @@
+- name: Remove keys and certificates
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ base_path }}/certs/key.pem"
+    - "{{ base_path }}/certs/cert.pem"
+    - "{{ base_path }}/certs/cacerts.pem"
+    - "{{ base_path }}/certs/root.pem"
+
+
+
+       

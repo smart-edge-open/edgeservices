@@ -1,0 +1,10 @@
+---
+- name: Remove additional Docker directories
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /var/lib/appliance/nts
+    - /var/lib/appliance/edgednssvr
+    - /var/lib/appliance/certs
+    - /run/edgedns.sock
