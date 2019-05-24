@@ -4,5 +4,8 @@
     "EndpointInternal": "localhost:42103",
     "MaxCores": 8,
     "MaxAppMem": 2147483647,
-    "AppImageDir": "/var/lib/appliance/applications"
+    "AppImageDir": "/var/lib/appliance/applications",
+    "AppStartTimeout": "10s",
+    "AppStopTimeout": "10s",
+    "AppRestartTimeout": "20s"
 }

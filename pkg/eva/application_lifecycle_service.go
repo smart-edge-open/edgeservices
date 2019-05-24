@@ -81,8 +81,7 @@ func (c ContainerHandler) StopHandler(ctx context.Context) error {
 	}
 
 	//Timeout could be added to EVA config file
-	var stopTimeout time.Duration = 5
-	err = cli.ContainerStop(ctx, c.ID, &stopTimeout)
+	err = cli.ContainerStop(ctx, c.ID, &cfg.AppStopTimeout.Duration)
 	if err != nil {
 		return errors.Wrapf(err, "failed to stop container with ID: %v", c.ID)
 	}
@@ -99,8 +98,7 @@ func (c ContainerHandler) RestartHandler(ctx context.Context) error {
 	}
 
 	//Timeout could be added to EVA config file
-	var restartTimeout time.Duration = 10
-	err = cli.ContainerRestart(ctx, c.ID, &restartTimeout)
+	err = cli.ContainerRestart(ctx, c.ID, &cfg.AppRestartTimeout.Duration)
 	if err != nil {
 		return errors.Wrapf(err, "failed to restart container with ID: %v",
 			c.ID)
@@ -152,7 +150,7 @@ func (v VMHandler) StartHandler(context.Context) error {
 	}
 
 	timeout, err := waitForDomStateChange(d, libvirt.DOMAIN_RUNNING,
-		5*time.Second)
+		cfg.AppStartTimeout.Duration)
 	if err != nil {
 		return err
 	}
@@ -184,7 +182,7 @@ func (v VMHandler) StopHandler(context.Context) error {
 	}
 
 	timeout, err := waitForDomStateChange(d, libvirt.DOMAIN_SHUTDOWN,
-		5*time.Second)
+		cfg.AppStopTimeout.Duration)
 	if err != nil {
 		return err
 	}
@@ -216,7 +214,7 @@ func (v VMHandler) RestartHandler(context.Context) error {
 	}
 
 	timeout, err := waitForDomStateChange(d, libvirt.DOMAIN_SHUTDOWN,
-		10*time.Second)
+		cfg.AppRestartTimeout.Duration)
 	if err != nil {
 		return err
 	}

@@ -41,6 +41,9 @@ type Config struct {
 	MaxAppMem         int32 /* this is in KB */
 	AppImageDir       string
 	HeartbeatInterval util.Duration
+	AppStartTimeout   util.Duration
+	AppStopTimeout    util.Duration
+	AppRestartTimeout util.Duration
 }
 
 // Wait for cancellation event and then stop the server from other goroutine
