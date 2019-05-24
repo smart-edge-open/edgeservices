@@ -26,6 +26,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	libvirt "github.com/libvirt/libvirt-go"
 	"github.com/pkg/errors"
 )
 
@@ -50,6 +51,10 @@ type ApplicationLifecycleServiceHandler interface {
 
 func (c *ContainerHandler) SetID(ID string) {
 	c.ID = ID
+}
+
+func (v *VMHandler) SetID(ID string) {
+	v.ID = ID
 }
 
 func (c ContainerHandler) StartHandler(ctx context.Context) error {
@@ -105,17 +110,130 @@ func (c ContainerHandler) RestartHandler(ctx context.Context) error {
 	return nil
 }
 
-func (v VMHandler) SetID(ID string) {
-	v.ID = ID
+func waitForDomStateChange(dom *libvirt.Domain, expected libvirt.DomainState,
+	timeoutDuration time.Duration) (bool, error) {
+
+	tout := time.After(timeoutDuration)
+
+	for {
+		select {
+		case <-tout:
+			return true, nil
+		default:
+			state, _, err := dom.GetState()
+			if err != nil {
+				return false, err
+			}
+
+			if state == expected {
+				return false, nil
+			}
+		}
+	}
 }
 
 func (v VMHandler) StartHandler(context.Context) error {
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	d, err := conn.LookupDomainByName(v.ID)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = d.Free() }()
+
+	err = d.Create()
+	if err != nil {
+		return err
+	}
+
+	timeout, err := waitForDomStateChange(d, libvirt.DOMAIN_RUNNING,
+		5*time.Second)
+	if err != nil {
+		return err
+	}
+
+	if timeout {
+		return errors.New("Timeout when starting domain: " + v.ID)
+	}
+
 	return nil
 }
+
 func (v VMHandler) StopHandler(context.Context) error {
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	d, err := conn.LookupDomainByName(v.ID)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = d.Free() }()
+
+	err = d.Shutdown()
+	if err != nil {
+		return err
+	}
+
+	timeout, err := waitForDomStateChange(d, libvirt.DOMAIN_SHUTDOWN,
+		5*time.Second)
+	if err != nil {
+		return err
+	}
+
+	if timeout {
+		return d.Destroy()
+	}
+
 	return nil
 }
+
 func (v VMHandler) RestartHandler(context.Context) error {
+
+	conn, err := libvirt.NewConnect("qemu:///system")
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	d, err := conn.LookupDomainByName(v.ID)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = d.Free() }()
+
+	err = d.Reboot(libvirt.DOMAIN_REBOOT_DEFAULT)
+	if err != nil {
+		return err
+	}
+
+	timeout, err := waitForDomStateChange(d, libvirt.DOMAIN_SHUTDOWN,
+		10*time.Second)
+	if err != nil {
+		return err
+	}
+
+	if timeout {
+		err := d.Destroy()
+		if err != nil {
+			return err
+		}
+
+		err = d.Create()
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
 	return nil
 }
 
