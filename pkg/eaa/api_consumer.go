@@ -40,11 +40,27 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 			errors.New("401: Incorrect app ID")
 	}
 
-	// Check that the connection has not already been created for app ID
-	_, connFound := eaaCtx.consumerConnections[appID]
+	// Check if connection was created for appID, if so send close
+	// message, close the connection and delete the entry in the
+	// connections structure
+	foundConn, connFound := eaaCtx.consumerConnections[appID]
 	if connFound {
-		return http.StatusForbidden,
-			errors.New("403: Connection exists for app ID")
+		prevConn := foundConn.connection
+		msgType := websocket.CloseMessage
+		closeMessage := websocket.FormatCloseMessage(
+			websocket.CloseServiceRestart,
+			"New connection request, closing this connection")
+		err := prevConn.WriteMessage(msgType, closeMessage)
+		if err != nil {
+			return http.StatusInternalServerError,
+				errors.New("Failed to send close message to old connection")
+		}
+		err = prevConn.Close()
+		if err != nil {
+			return http.StatusInternalServerError,
+				errors.New("Failed to close previous websocket connection")
+		}
+		delete(eaaCtx.consumerConnections, appID)
 	}
 
 	conn, err := socket.Upgrade(w, r, nil)
