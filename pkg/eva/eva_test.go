@@ -73,11 +73,13 @@ func TestEva(t *testing.T) {
 	if err := config.LoadJSONConfig(cfgFile, &cfg); err != nil {
 		t.Errorf("LoadJSONConfig() failed: %v", err)
 	}
+
 	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(),
 		10*time.Second)
 	defer cancelTimeout()
 	conn, err := grpc.DialContext(ctxTimeout, cfg.Endpoint, grpc.WithInsecure(),
 		grpc.WithBlock())
+
 	if err != nil {
 		t.Errorf("failed to dial EVA: %v", err)
 		cancel()

@@ -23,6 +23,7 @@ import (
 	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	evapb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
 	"github.com/smartedgemec/appliance-ce/pkg/util"
 	logger "github.com/smartedgemec/log"
 	"google.golang.org/grpc"
@@ -35,6 +36,7 @@ var (
 
 type Config struct {
 	Endpoint          string
+	EndpointInternal  string
 	MaxCores          int32
 	MaxAppMem         int32 /* this is in KB */
 	AppImageDir       string
@@ -67,21 +69,56 @@ func runEva(ctx context.Context, cfg *Config) error {
 
 	go waitForCancel(ctx, server) // goroutine to wait for cancellation event
 
-	log.Infof("serving on %s", cfg.Endpoint)
-
 	util.Heartbeat(ctx, cfg.HeartbeatInterval, func() {
 		// TODO: implementation of modules checking
 		log.Info("Heartbeat")
 	})
 
-	err = server.Serve(lis)
+	errs := make(chan error)
+	done := make(chan bool)
+
+	go func() {
+		log.Infof("serving on %s", cfg.Endpoint)
+		err = server.Serve(lis)
+		if err != nil {
+			log.Errf("Failed grpcServe(): %v", err)
+			errs <- err
+		}
+		log.Info("stopped serving")
+		done <- true
+	}()
+
+	// Application ID provider server
+	lApp, err := net.Listen("tcp", cfg.EndpointInternal)
 	if err != nil {
-		log.Errf("Failed grpcServe(): %v", err)
+		log.Errf("net.Listen error: %+v", err)
 		return err
 	}
-	log.Info("stopped serving")
 
-	return nil
+	serverApp := grpc.NewServer()
+	ipAppLookupService := IPApplicationLookupServiceServerImpl{}
+	evapb.RegisterIPApplicationLookupServiceServer(serverApp,
+		&ipAppLookupService)
+
+	go waitForCancel(ctx, serverApp)
+
+	go func() {
+		log.Infof("serving on %s", cfg.EndpointInternal)
+		err = serverApp.Serve(lApp)
+		if err != nil {
+			log.Errf("Failed grpcServe(): %v", err)
+			errs <- err
+		}
+		log.Info("stopped serving")
+		done <- true
+	}()
+
+	select {
+	case err := <-errs:
+		return err
+	case <-done:
+		return nil
+	}
 }
 
 func sanitizeConfig(cfg *Config) error {
