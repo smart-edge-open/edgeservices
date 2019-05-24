@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TODO: Expose ports only to a local network address
 version: '3'
 services:
   appliance:
@@ -59,3 +60,16 @@ services:
      - "/var/run:/var/run"
      - "/proc/1/ns:/var/host_ns"
      - "/sys/class/net:/var/host_net_devices"
+
+  syslog-ng:
+    image:  balabit/syslog-ng:3.19.1
+    ports:
+      - "514:514/udp"
+    volumes:
+      - "./configs/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro"
+      - "./certs:/etc/syslog-ng/certs:ro"
+      - "/var/log/appliance:/var/log"
+
+    command: "--no-caps"
+    extra_hosts:
+      - "syslog.community.controller.mec:${REMOTE_SYSLOG_ENDPOINT}"
