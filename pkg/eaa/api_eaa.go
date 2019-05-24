@@ -103,7 +103,7 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 
 func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	var notif Notification
+	var notif NotificationFromProducer
 
 	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
 

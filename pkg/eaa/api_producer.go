@@ -16,11 +16,11 @@ package eaa
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 )
 
 func addService(commonName string, serv Service) error {
@@ -78,7 +78,8 @@ func getUniqueSubsList(nsList []string, servList []string) []string {
 	return fullList
 }
 
-func findServiceNotifIndex(servInfo Service, notif Notification) int {
+func findServiceNotifIndex(servInfo Service,
+	notif NotificationFromProducer) int {
 	for idx, servNotif := range servInfo.Notifications {
 		nameComp := strings.Compare(notif.Name, servNotif.Name)
 		verComp := strings.Compare(notif.Version, servNotif.Version)
@@ -92,7 +93,7 @@ func findServiceNotifIndex(servInfo Service, notif Notification) int {
 }
 
 func sendNotificationToSubscribers(commonName string,
-	notif Notification) (int, error) {
+	notif NotificationFromProducer) (int, error) {
 	var subscriberList []string
 	retCode := http.StatusAccepted
 
@@ -106,9 +107,15 @@ func sendNotificationToSubscribers(commonName string,
 		return http.StatusUnauthorized, err
 	}
 
-	msgPayload, err := json.Marshal(notif.Payload)
+	msgPayload, err := json.Marshal(NotificationToConsumer{
+		Name:    notif.Name,
+		Version: notif.Version,
+		Payload: notif.Payload,
+		URN:     prodURN,
+	})
 	if err != nil {
-		return http.StatusUnauthorized, err
+		return http.StatusUnauthorized,
+			errors.Wrap(err, "Failed to marshal norification JSON")
 	}
 
 	serviceInfo, serviceFound := eaaCtx.serviceInfo[commonName]

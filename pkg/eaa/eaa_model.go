@@ -14,25 +14,37 @@
 
 package eaa
 
+import "encoding/json"
+
 type NotificationDescriptor struct {
+	// Name of notification
 	Name string `json:"name,omitempty"`
-
+	// Version of notification
 	Version string `json:"version,omitempty"`
-
+	// Human readable description of notification
 	Description string `json:"description,omitempty"`
 }
 
-type Notification struct {
+type NotificationFromProducer struct {
+	// Name of notification
 	Name string `json:"name,omitempty"`
-
+	// Version of notification
 	Version string `json:"version,omitempty"`
-
 	// The payload can be any JSON object with a name
 	// and version-specific schema.
-	Payload *RawJSONObject `json:"payload,omitempty"`
+	Payload json.RawMessage `json:"payload,omitempty"`
 }
 
-type RawJSONObject struct {
+type NotificationToConsumer struct {
+	// Name of notification
+	Name string `json:"name,omitempty"`
+	// Version of notification
+	Version string `json:"version,omitempty"`
+	// The payload can be any JSON object with a name
+	// and version-specific schema.
+	Payload json.RawMessage `json:"payload,omitempty"`
+	// URN of the producer
+	URN URN `json:"producer,omitempty"`
 }
 
 type ServiceList struct {
@@ -40,14 +52,10 @@ type ServiceList struct {
 }
 
 type Service struct {
-	URN *URN `json:"urn,omitempty"`
-
-	Description string `json:"description,omitempty"`
-
-	EndpointURI string `json:"endpoint_uri,omitempty"`
-
-	Status string `json:"status,omitempty"`
-
+	URN           *URN                     `json:"urn,omitempty"`
+	Description   string                   `json:"description,omitempty"`
+	EndpointURI   string                   `json:"endpoint_uri,omitempty"`
+	Status        string                   `json:"status,omitempty"`
 	Notifications []NotificationDescriptor `json:"notifications,omitempty"`
 }
 
