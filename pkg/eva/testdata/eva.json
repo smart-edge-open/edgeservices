@@ -8,5 +8,5 @@
     "appStartTimeout": "10s",
     "appStopTimeout": "10s",
     "appRestartTimeout": "20s",
-    "certsDirectory": "certs"
+    "certsDirectory": "testdata/certs"
 }

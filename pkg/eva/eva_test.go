@@ -28,14 +28,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/smartedgemec/appliance-ce/internal/authtest"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"github.com/smartedgemec/appliance-ce/pkg/eva"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
-var cfgFile = "../../configs/eva.json"
+var (
+	cfgFile        = "testdata/eva.json"
+	transportCreds credentials.TransportCredentials
+)
 
 // TODO: refactor test to use ginkgo/gomega
 func TestEva(t *testing.T) {
@@ -43,6 +48,17 @@ func TestEva(t *testing.T) {
 	var wg sync.WaitGroup
 	dockerTestOn := false
 	libvirtTestOn := false
+
+	if err := config.LoadJSONConfig(cfgFile, &cfg); err != nil {
+		t.Errorf("LoadJSONConfig() failed: %v", err)
+	}
+
+	if err := os.MkdirAll(cfg.CertsDir, 0700); err != nil {
+		t.Errorf("Creating temp directory for certs failed: %v", err)
+	}
+	defer os.RemoveAll(cfg.CertsDir)
+
+	transportCreds = prepareCerts(t, cfg.CertsDir)
 
 	// Automated tests do not have the application image binaries
 	// so we can only run basic tests there.
@@ -70,15 +86,11 @@ func TestEva(t *testing.T) {
 		}
 	}()
 
-	if err := config.LoadJSONConfig(cfgFile, &cfg); err != nil {
-		t.Errorf("LoadJSONConfig() failed: %v", err)
-	}
-
 	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(),
 		10*time.Second)
 	defer cancelTimeout()
-	conn, err := grpc.DialContext(ctxTimeout, cfg.Endpoint, grpc.WithInsecure(),
-		grpc.WithBlock())
+	conn, err := grpc.DialContext(ctxTimeout, cfg.Endpoint,
+		grpc.WithTransportCredentials(transportCreds), grpc.WithBlock())
 
 	if err != nil {
 		t.Errorf("failed to dial EVA: %v", err)
@@ -119,6 +131,21 @@ func TestEva(t *testing.T) {
 
 	cancel()  // stop the EVA running in other thread
 	wg.Wait() // wait for the other thread to terminate!
+}
+
+// Prepare certificates for test
+func prepareCerts(t *testing.T,
+	certsDir string) credentials.TransportCredentials {
+
+	err := authtest.EnrollStub(certsDir)
+	if err != nil {
+		t.Errorf("EnrollStub failed: %v", err)
+	}
+	transportCreds, err := authtest.ClientCredentialsStub()
+	if err != nil {
+		t.Errorf("ClientCredentialsStub failed: %v", err)
+	}
+	return transportCreds
 }
 
 func callDockerDeploy(t *testing.T, conn *grpc.ClientConn, id string,

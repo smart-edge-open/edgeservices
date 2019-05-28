@@ -16,17 +16,24 @@ package eva
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
+	"path/filepath"
 
+	"github.com/pkg/errors"
 	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
+	"github.com/smartedgemec/appliance-ce/pkg/auth"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	evapb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
 	"github.com/smartedgemec/appliance-ce/pkg/util"
 	logger "github.com/smartedgemec/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 var (
@@ -34,15 +41,16 @@ var (
 )
 
 type Config struct {
-	Endpoint          string
-	EndpointInternal  string
-	MaxCores          int32
-	MaxAppMem         int32 /* this is in KB */
-	AppImageDir       string
-	HeartbeatInterval util.Duration
-	AppStartTimeout   util.Duration
-	AppStopTimeout    util.Duration
-	AppRestartTimeout util.Duration
+	Endpoint          string        `json:"endpoint"`
+	EndpointInternal  string        `json:"endpointInternal"`
+	MaxCores          int32         `json:"maxCores"`
+	MaxAppMem         int32         `json:"maxAppMem"` /* this is in KB */
+	AppImageDir       string        `json:"appImageDir"`
+	HeartbeatInterval util.Duration `json:"heartbeatInterval"`
+	AppStartTimeout   util.Duration `json:"appStartTimeout"`
+	AppStopTimeout    util.Duration `json:"appStopTimeout"`
+	AppRestartTimeout util.Duration `json:"appRestartTimeout"`
+	CertsDir          string        `json:"certsDirectory"`
 }
 
 // Wait for cancellation event and then stop the server from other goroutine
@@ -53,14 +61,20 @@ func waitForCancel(ctx context.Context, server *grpc.Server) {
 }
 
 func runEva(ctx context.Context, cfg *Config) error {
-	lis, err := net.Listen("tcp", cfg.Endpoint)
 
+	creds, err := prepareCreds(cfg)
 	if err != nil {
-		log.Errf("failed tcp listen on %s: %v", cfg.Endpoint, err)
+		log.Errf("Failed to prepare credentials: %v", err)
 		return err
 	}
 
-	server := grpc.NewServer()
+	lis, err := net.Listen("tcp", cfg.Endpoint)
+	if err != nil {
+		log.Errf("Failed tcp listen on %s: %v", cfg.Endpoint, err)
+		return err
+	}
+
+	server := grpc.NewServer(grpc.Creds(creds))
 
 	/* Register our interfaces. */
 	metadata := metadata.AppMetadata{RootPath: cfg.AppImageDir}
@@ -121,6 +135,34 @@ func runEva(ctx context.Context, cfg *Config) error {
 	case <-done:
 		return nil
 	}
+}
+
+func prepareCreds(cfg *Config) (credentials.TransportCredentials, error) {
+	crtPath := filepath.Join(cfg.CertsDir, auth.CertName)
+	keyPath := filepath.Join(cfg.CertsDir, auth.KeyName)
+	caPath := filepath.Join(cfg.CertsDir, auth.CAPoolName)
+
+	srvCert, err := tls.LoadX509KeyPair(crtPath, keyPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to load server key pair")
+	}
+	certPool := x509.NewCertPool()
+	ca, err := ioutil.ReadFile(caPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to read ca certificates")
+	}
+
+	if ok := certPool.AppendCertsFromPEM(ca); !ok {
+		return nil,
+			errors.New("Failed to append CA certs from " + caPath)
+	}
+
+	creds := credentials.NewTLS(&tls.Config{
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		Certificates: []tls.Certificate{srvCert},
+		ClientCAs:    certPool,
+	})
+	return creds, nil
 }
 
 func sanitizeConfig(cfg *Config) error {
