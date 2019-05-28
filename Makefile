@@ -40,7 +40,6 @@ clean:
 build-docker: build
 	cp build/appliance/Dockerfile "${TMP_DIR}/Dockerfile_appliance"
 	cp /opt/dpdk-18.08/usertools/dpdk-devbind.py "${TMP_DIR}"
-	cp -r configs "${TMP_DIR}"
 	cp "${BUILD_DIR}/appliance" "${TMP_DIR}"
 	cp build/edgednssvr/Dockerfile "${TMP_DIR}/Dockerfile_edgednssvr"
 	cp "${BUILD_DIR}/edgednssvr" "${TMP_DIR}"

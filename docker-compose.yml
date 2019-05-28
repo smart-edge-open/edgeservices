@@ -32,9 +32,8 @@ services:
      - "/sys/class/net:/var/host_net_devices"
      - "/sys/devices:/devices"
      - "/var/lib/appliance/certs:/root/certs"
-    networks:
-      net:
-        ipv4_address: 192.17.0.2
+     - "/var/lib/appliance/configs:/root/configs"
+
   edgednssvr:
     build:
       context: .
@@ -49,10 +48,8 @@ services:
      - http_proxy
      - https_proxy
      - DNS_FWDR=8.8.8.8
-     - LOCAL_SYSLOG=192.17.0.5:514
-    networks:
-      net:
-        ipv4_address: 192.17.0.3
+     - LOCAL_SYSLOG=${LOCAL_SYSLOG_IP}:514
+
   nts:
     container_name: nts
     build:
@@ -79,13 +76,3 @@ services:
     command: "--no-caps"
     extra_hosts:
       - "syslog.community.controller.mec:${REMOTE_SYSLOG_IP}"
-    networks:
-      net:
-        ipv4_address: 192.17.0.5
-
-networks:
-  net:
-    driver: bridge
-    ipam:
-     config:
-       - subnet: 192.17.0.0/16
