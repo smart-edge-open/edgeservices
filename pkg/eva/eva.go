@@ -31,7 +31,6 @@ import (
 
 var (
 	log = logger.DefaultLogger.WithField("eva", nil)
-	cfg Config
 )
 
 type Config struct {
@@ -67,7 +66,7 @@ func runEva(ctx context.Context, cfg *Config) error {
 	metadata := metadata.AppMetadata{RootPath: cfg.AppImageDir}
 	adss := DeploySrv{cfg, &metadata}
 	pb.RegisterApplicationDeploymentServiceServer(server, &adss)
-	alss := ApplicationLifecycleServiceServer{&metadata}
+	alss := ApplicationLifecycleServiceServer{cfg, &metadata}
 	pb.RegisterApplicationLifecycleServiceServer(server, &alss)
 
 	go waitForCancel(ctx, server) // goroutine to wait for cancellation event
@@ -140,6 +139,7 @@ func sanitizeConfig(cfg *Config) error {
 }
 
 func Run(ctx context.Context, cfgFile string) error {
+	var cfg Config
 
 	log.Infof("EVA agent initialized. Using '%s' as config.", cfgFile)
 

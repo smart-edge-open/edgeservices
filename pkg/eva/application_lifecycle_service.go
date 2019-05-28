@@ -31,6 +31,7 @@ import (
 )
 
 type ApplicationLifecycleServiceServer struct {
+	cfg  *Config
 	meta *metadata.AppMetadata
 }
 
@@ -44,9 +45,9 @@ type VMHandler struct {
 
 type ApplicationLifecycleServiceHandler interface {
 	SetID(string)
-	StartHandler(context.Context) error
-	StopHandler(context.Context) error
-	RestartHandler(context.Context) error
+	StartHandler(context.Context, time.Duration) error
+	StopHandler(context.Context, time.Duration) error
+	RestartHandler(context.Context, time.Duration) error
 }
 
 func (c *ContainerHandler) SetID(ID string) {
@@ -57,7 +58,8 @@ func (v *VMHandler) SetID(ID string) {
 	v.ID = ID
 }
 
-func (c ContainerHandler) StartHandler(ctx context.Context) error {
+func (c ContainerHandler) StartHandler(ctx context.Context,
+	timeout time.Duration) error {
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -73,7 +75,8 @@ func (c ContainerHandler) StartHandler(ctx context.Context) error {
 	return nil
 }
 
-func (c ContainerHandler) StopHandler(ctx context.Context) error {
+func (c ContainerHandler) StopHandler(ctx context.Context,
+	timeout time.Duration) error {
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -81,7 +84,7 @@ func (c ContainerHandler) StopHandler(ctx context.Context) error {
 	}
 
 	//Timeout could be added to EVA config file
-	err = cli.ContainerStop(ctx, c.ID, &cfg.AppStopTimeout.Duration)
+	err = cli.ContainerStop(ctx, c.ID, &timeout)
 	if err != nil {
 		return errors.Wrapf(err, "failed to stop container with ID: %v", c.ID)
 	}
@@ -90,7 +93,8 @@ func (c ContainerHandler) StopHandler(ctx context.Context) error {
 	return nil
 }
 
-func (c ContainerHandler) RestartHandler(ctx context.Context) error {
+func (c ContainerHandler) RestartHandler(ctx context.Context,
+	timeout time.Duration) error {
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -98,7 +102,7 @@ func (c ContainerHandler) RestartHandler(ctx context.Context) error {
 	}
 
 	//Timeout could be added to EVA config file
-	err = cli.ContainerRestart(ctx, c.ID, &cfg.AppRestartTimeout.Duration)
+	err = cli.ContainerRestart(ctx, c.ID, &timeout)
 	if err != nil {
 		return errors.Wrapf(err, "failed to restart container with ID: %v",
 			c.ID)
@@ -130,7 +134,8 @@ func waitForDomStateChange(dom *libvirt.Domain, expected libvirt.DomainState,
 	}
 }
 
-func (v VMHandler) StartHandler(context.Context) error {
+func (v VMHandler) StartHandler(ctx context.Context,
+	timeout time.Duration) error {
 
 	conn, err := libvirt.NewConnect("qemu:///system")
 	if err != nil {
@@ -149,20 +154,20 @@ func (v VMHandler) StartHandler(context.Context) error {
 		return err
 	}
 
-	timeout, err := waitForDomStateChange(d, libvirt.DOMAIN_RUNNING,
-		cfg.AppStartTimeout.Duration)
+	tout, err := waitForDomStateChange(d, libvirt.DOMAIN_RUNNING, timeout)
 	if err != nil {
 		return err
 	}
 
-	if timeout {
+	if tout {
 		return errors.New("Timeout when starting domain: " + v.ID)
 	}
 
 	return nil
 }
 
-func (v VMHandler) StopHandler(context.Context) error {
+func (v VMHandler) StopHandler(ctx context.Context,
+	timeout time.Duration) error {
 
 	conn, err := libvirt.NewConnect("qemu:///system")
 	if err != nil {
@@ -181,20 +186,20 @@ func (v VMHandler) StopHandler(context.Context) error {
 		return err
 	}
 
-	timeout, err := waitForDomStateChange(d, libvirt.DOMAIN_SHUTDOWN,
-		cfg.AppStopTimeout.Duration)
+	tout, err := waitForDomStateChange(d, libvirt.DOMAIN_SHUTDOWN, timeout)
 	if err != nil {
 		return err
 	}
 
-	if timeout {
+	if tout {
 		return d.Destroy()
 	}
 
 	return nil
 }
 
-func (v VMHandler) RestartHandler(context.Context) error {
+func (v VMHandler) RestartHandler(ctx context.Context,
+	timeout time.Duration) error {
 
 	conn, err := libvirt.NewConnect("qemu:///system")
 	if err != nil {
@@ -213,13 +218,12 @@ func (v VMHandler) RestartHandler(context.Context) error {
 		return err
 	}
 
-	timeout, err := waitForDomStateChange(d, libvirt.DOMAIN_SHUTDOWN,
-		cfg.AppRestartTimeout.Duration)
+	tout, err := waitForDomStateChange(d, libvirt.DOMAIN_SHUTDOWN, timeout)
 	if err != nil {
 		return err
 	}
 
-	if timeout {
+	if tout {
 		err := d.Destroy()
 		if err != nil {
 			return err
@@ -252,7 +256,7 @@ func (s *ApplicationLifecycleServiceServer) Start(ctx context.Context,
 				l.Id)
 	}
 
-	err = d.StartHandler(ctx)
+	err = d.StartHandler(ctx, s.cfg.AppStartTimeout.Duration)
 	if err != nil {
 		log.Errf("Start failed because: %+v", err)
 		return nil,
@@ -280,7 +284,7 @@ func (s *ApplicationLifecycleServiceServer) Stop(ctx context.Context,
 				l.Id)
 	}
 
-	err = d.StopHandler(ctx)
+	err = d.StopHandler(ctx, s.cfg.AppStopTimeout.Duration)
 	if err != nil {
 		log.Errf("Stop failed because: %+v", err)
 		return nil,
@@ -308,7 +312,7 @@ func (s *ApplicationLifecycleServiceServer) Restart(ctx context.Context,
 				l.Id)
 	}
 
-	err = d.RestartHandler(ctx)
+	err = d.RestartHandler(ctx, s.cfg.AppRestartTimeout.Duration)
 	if err != nil {
 		log.Errf("Restart failed because: %+v",
 			err)
