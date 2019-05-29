@@ -21,8 +21,6 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -327,7 +325,12 @@ func (s *ApplicationLifecycleServiceServer) Restart(ctx context.Context,
 func (s *ApplicationLifecycleServiceServer) GetStatus(ctx context.Context,
 	app *pb.ApplicationID) (*pb.LifecycleStatus, error) {
 
-	return nil, status.Errorf(codes.Unimplemented, "not implemented")
+	dapp, err := s.meta.Load(app.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.LifecycleStatus{Status: dapp.App.Status}, nil
 }
 
 func (s *ApplicationLifecycleServiceServer) getAppLifecycleHandler(

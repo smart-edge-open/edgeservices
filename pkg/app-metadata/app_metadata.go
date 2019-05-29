@@ -120,7 +120,17 @@ func (m *AppMetadata) NewDeployedApp(appType AppType,
 	return a
 }
 
-func (a *DeployedApp) Save() error {
+func (a *DeployedApp) metadataFilePath() string {
+	return path.Join(a.Path, metadataFileName)
+}
+
+// This function will write into a temporary file that's in the same directory
+// as target first. Only when temp file is fully written, will it atomically
+// rename it to the target file. This ensures we don't end up with a parially
+// written file in case of power failure / system hang etc, since mostly we're
+// updating only a single field anyway.
+func (a *DeployedApp) Save(updateOnly bool) error {
+	tmpfile := a.metadataFilePath() + ".tmp"
 	/* Serialize the metadata. */
 	bytes, err := json.Marshal(&a.AppData)
 	if err != nil {
@@ -129,27 +139,30 @@ func (a *DeployedApp) Save() error {
 	log.Infof("Saving metadata: %v", string(bytes))
 	bytes = append(bytes, '\n') // serialization doesn't add newline, looks bad
 
-	if err = os.Mkdir(a.Path, os.ModePerm); err != nil {
-		if os.IsExist(err) {
-			log.Infof("Save(): %v already exists", a.Path)
+	if !updateOnly {
+		if err = os.Mkdir(a.Path, os.ModePerm); err != nil {
+			if os.IsExist(err) {
+				log.Infof("Save(): %v already exists", a.Path)
+			} else {
+				return errors.Wrap(err, "Could not create App image directory.")
+			}
 		} else {
-			return errors.Wrap(err, "Could not create App image directory.")
+			log.Infof("created %v", a.Path)
 		}
 	}
-	if err = os.Chdir(a.Path); err != nil {
-		return errors.Wrap(err, "Can not enter the metadata dir")
-	}
-	log.Infof("created and/or entered %v", a.Path)
 
-	file, err := os.Create(metadataFileName)
+	file, err := os.Create(tmpfile)
 	if err != nil {
 		return errors.Wrap(err, "failed to create metadata file")
 	}
 
 	_, err = file.Write(bytes)
 	file.Close()
+	if err != nil {
+		return err
+	}
 
-	return err
+	return os.Rename(tmpfile, a.metadataFilePath()) // Atomic rename
 }
 
 func (a *DeployedApp) deployedFilePath() string {

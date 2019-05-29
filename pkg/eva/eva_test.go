@@ -98,17 +98,14 @@ func TestEva(t *testing.T) {
 	defer conn.Close()
 
 	if dockerTestOn {
-		fmt.Println("-----------APP_TEST_1------------------------------------")
 		callDockerDeploy(t, conn, "app-test-1",
 			"http://localhost/hello-world.img")
-		fmt.Println("-----------APP_TEST_2------------------------------------")
+		callGetStatus(t, conn, "app-test-1")
 		callDockerDeploy(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
-		fmt.Println("-----------APP_TEST_1-U----------------------------------")
 		callUndeployAPI(t, conn, "app-test-1")
-		fmt.Println("-----------APP_TEST_2-U----------------------------------")
+		callGetStatus(t, conn, "app-test-1")
 		callUndeployAPI(t, conn, "app-test-2")
 
-		fmt.Println("---------LIFECYCLE---------------------------------------")
 		testLifecycleAPI(t, conn, "hello-world-app",
 			"/var/www/html/hello-world.tar.gz")
 	}
@@ -116,14 +113,12 @@ func TestEva(t *testing.T) {
 	if libvirtTestOn {
 		callLibvirtDeploy(t, conn, "app-test-vm-1",
 			"http://localhost/freedos-1.0.7z")
-		fmt.Println("--------------------------------------------------")
+		callGetStatus(t, conn, "app-test-vm-1")
 		callLibvirtDeploy(t, conn, "app-test-vm-2",
 			"http://localhost/freedos-1.0.7z")
-		fmt.Println("--------------------------------------------------")
 		callUndeployAPI(t, conn, "app-test-vm-1")
-		fmt.Println("--------------------------------------------------")
+		callGetStatus(t, conn, "app-test-vm-1")
 		callUndeployAPI(t, conn, "app-test-vm-2")
-		fmt.Println("--------------------------------------------------")
 
 	}
 
@@ -176,14 +171,10 @@ func TestEvaKubernetesMode(t *testing.T) {
 	}
 	defer conn.Close()
 
-	fmt.Println("---------K-APP_TEST_1------------------------------------")
 	callDockerDeploy(t, conn, "app-test-1",
 		"http://localhost/hello-world.img")
-	fmt.Println("---------K-APP_TEST_2------------------------------------")
 	callDockerDeploy(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
-	fmt.Println("---------K-APP_TEST_1-U----------------------------------")
 	callUndeployAPI(t, conn, "app-test-1")
-	fmt.Println("---------K-APP_TEST_2-U----------------------------------")
 	callUndeployAPI(t, conn, "app-test-2")
 
 	cancel()  // stop the EVA running in other thread
@@ -208,6 +199,7 @@ func prepareCerts(t *testing.T,
 func callDockerDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 	file string) {
 
+	fmt.Printf("---------------------%v--DEPLOY-------------------\n", id)
 	client := pb.NewApplicationDeploymentServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -227,6 +219,7 @@ func callDockerDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 func callLibvirtDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 	file string) {
 
+	fmt.Printf("------------LIBVIRT--%v--DEPLOY-------------------\n", id)
 	client := pb.NewApplicationDeploymentServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -243,6 +236,8 @@ func callLibvirtDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 }
 
 func callUndeployAPI(t *testing.T, conn *grpc.ClientConn, id string) {
+	fmt.Printf("---------------------%v--UNDEPLOY-----------------\n", id)
+
 	client := pb.NewApplicationDeploymentServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -253,6 +248,23 @@ func callUndeployAPI(t *testing.T, conn *grpc.ClientConn, id string) {
 		t.Errorf("Undeploy failed: %v", err)
 	}
 	cancel()
+}
+
+func callGetStatus(t *testing.T, conn *grpc.ClientConn, id string) {
+
+	client := pb.NewApplicationLifecycleServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	app := pb.ApplicationID{Id: id}
+
+	status, err := client.GetStatus(ctx, &app, grpc.WaitForReady(true))
+	if err != nil {
+		t.Errorf("GetStatus failed: %v", err)
+	}
+
+	fmt.Printf("GetStatus(%s) returned: '%v'\n", id, status)
 }
 
 // Deploy application in container from given image; start, restart and stop
