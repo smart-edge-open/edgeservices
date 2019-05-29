@@ -126,7 +126,7 @@ func (s *DeploySrv) deployCommon(ctx context.Context,
 	case *pb.Application_HttpUri:
 		return downloadImage(s.HttpUri.HttpUri)
 	default:
-		return errors.New("Unimplemented Application.Source")
+		return status.Errorf(codes.Unimplemented, "unknown app source")
 	}
 }
 
@@ -153,7 +153,6 @@ func parseImageName(body io.Reader) (string, error) {
 func (s *DeploySrv) DeployContainer(ctx context.Context,
 	pbapp *pb.Application) (*empty.Empty, error) {
 
-	var imageName string
 	dapp := s.meta.NewDeployedApp(metadata.Container, pbapp)
 	if err := s.deployCommon(ctx, dapp); err != nil {
 		return nil, err
@@ -172,7 +171,10 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	if err != nil {
 		return nil, err /* shouldn't happen as we just wrote it */
 	}
-	if resp, err := docker.ImageLoad(ctx, file, true); err == nil {
+	resp, err := docker.ImageLoad(ctx, file, true)
+	if err == nil {
+		var imageName string
+
 		defer resp.Body.Close()
 		if !resp.JSON {
 			return nil, fmt.Errorf("No JSON output loading app %s", pbapp.Id)
@@ -188,6 +190,12 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	} else {
 		return nil, errors.Wrap(err, "Failed to ImageLoad() the docker image")
 	}
+	if s.cfg.KubernetesMode { // this mode requires us to only upload the image
+		if err = dapp.SetDeployed(""); err != nil {
+			return nil, errors.Wrapf(err, "SetDeployed(%v) failed", pbapp.Id)
+		}
+		return &empty.Empty{}, nil
+	}
 
 	resources := container.Resources{
 		Memory:    int64(pbapp.Memory) * 1024,
@@ -200,7 +208,7 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 
 		log.Infof("Created a container with id %v", resp.ID)
 		if err = dapp.SetDeployed(resp.ID); err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "SetDeployed(%v) failed", pbapp.Id)
 		}
 	} else {
 		return nil, errors.Wrap(err, "ContinerCreate failed")
@@ -298,15 +306,16 @@ func (s *DeploySrv) Redeploy(ctx context.Context,
 	case metadata.VM:
 		_, err = s.DeployVM(ctx, app)
 	default:
-		err = status.Errorf(codes.Unimplemented, "not implemented")
+		err = status.Errorf(codes.Unimplemented, "not implemented app type")
 	}
 
 	return &empty.Empty{}, err
 }
 
-func dockerUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
-	docker, err := client.NewClientWithOpts(client.FromEnv)
+func (s *DeploySrv) dockerUndeploy(ctx context.Context,
+	dapp *metadata.DeployedApp) error {
 
+	docker, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create a docker client")
 	}
@@ -318,7 +327,7 @@ func dockerUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
 			return errors.Wrapf(err, "Undeploy(%s)", dapp.DeployedID)
 		}
 		log.Infof("Removed container '%v'", dapp.DeployedID)
-	} else {
+	} else if !s.cfg.KubernetesMode {
 		log.Errf("Could not find container ID for '%v'", dapp.App.Id)
 	}
 	_, err = docker.ImageRemove(ctx, dapp.App.Id, types.ImageRemoveOptions{})
@@ -365,11 +374,11 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 
 	switch dapp.Type {
 	case metadata.Container:
-		err = dockerUndeploy(ctx, dapp)
+		err = s.dockerUndeploy(ctx, dapp)
 	case metadata.VM:
 		err = libvirtUndeploy(ctx, dapp)
 	default:
-		err = status.Errorf(codes.Unimplemented, "not implemented")
+		err = status.Errorf(codes.Unimplemented, "not implemented app type")
 	}
 
 	if err == nil {

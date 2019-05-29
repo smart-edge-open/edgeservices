@@ -65,6 +65,7 @@ services:
      - "/var/run:/var/run"
      - "/proc/1/ns:/var/host_ns"
      - "/sys/class/net:/var/host_net_devices"
+     - "/var/lib/appliance/applications:/var/lib/appliance/applications"
 
   syslog-ng:
     image:  balabit/syslog-ng:3.19.1

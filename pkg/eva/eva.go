@@ -51,6 +51,7 @@ type Config struct {
 	AppStopTimeout    util.Duration `json:"appStopTimeout"`
 	AppRestartTimeout util.Duration `json:"appRestartTimeout"`
 	CertsDir          string        `json:"certsDirectory"`
+	KubernetesMode    bool          `json:"KubernetesMode"`
 }
 
 // Wait for cancellation event and then stop the server from other goroutine
@@ -119,13 +120,13 @@ func runEva(ctx context.Context, cfg *Config) error {
 	go waitForCancel(ctx, serverApp)
 
 	go func() {
-		log.Infof("serving on %s", cfg.EndpointInternal)
+		log.Infof("internal serving on %s", cfg.EndpointInternal)
 		err = serverApp.Serve(lApp)
 		if err != nil {
 			log.Errf("Failed grpcServe(): %v", err)
 			errs <- err
 		}
-		log.Info("stopped serving")
+		log.Info("stopped internal serving")
 		done <- true
 	}()
 

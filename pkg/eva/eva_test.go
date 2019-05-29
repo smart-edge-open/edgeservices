@@ -12,12 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// NOTE
-// This test file uses the Go testing framework, while rest of the
-// test code in OpenNESS uses Ginko / Gomeka.
-// This file needs to be updated to match the other test files.
-// (Or other test files updated to match this one)
-
 package eva_test
 
 import (
@@ -38,27 +32,31 @@ import (
 )
 
 var (
-	cfgFile        = "testdata/eva.json"
-	transportCreds credentials.TransportCredentials
+	mainCfgFile = "testdata/eva.json"
+	kubeCfgFile = "testdata/eva_kube.json"
 )
 
-// TODO: refactor test to use ginkgo/gomega
+// NOTE
+// This test file uses the Go testing framework, while rest of the
+// test code in OpenNESS uses Ginko / Gomeka.
+// This file needs to be updated to match the other test files.
+// (Or other test files updated to match this one)
 func TestEva(t *testing.T) {
 	var cfg eva.Config
 	var wg sync.WaitGroup
 	dockerTestOn := false
 	libvirtTestOn := false
 
-	if err := config.LoadJSONConfig(cfgFile, &cfg); err != nil {
+	if err := config.LoadJSONConfig(mainCfgFile, &cfg); err != nil {
 		t.Errorf("LoadJSONConfig() failed: %v", err)
 	}
 
+	// Cert setup
 	if err := os.MkdirAll(cfg.CertsDir, 0700); err != nil {
 		t.Errorf("Creating temp directory for certs failed: %v", err)
 	}
 	defer os.RemoveAll(cfg.CertsDir)
-
-	transportCreds = prepareCerts(t, cfg.CertsDir)
+	transportCreds := prepareCerts(t, cfg.CertsDir)
 
 	// Automated tests do not have the application image binaries
 	// so we can only run basic tests there.
@@ -79,7 +77,7 @@ func TestEva(t *testing.T) {
 
 	wg.Add(1)
 	go func() {
-		err := eva.Run(ctx, cfgFile)
+		err := eva.Run(ctx, mainCfgFile)
 		wg.Done()
 		if err != nil {
 			t.Errorf("eva.Run() failed: %v", err)
@@ -128,6 +126,65 @@ func TestEva(t *testing.T) {
 		fmt.Println("--------------------------------------------------")
 
 	}
+
+	cancel()  // stop the EVA running in other thread
+	wg.Wait() // wait for the other thread to terminate!
+}
+
+func TestEvaKubernetesMode(t *testing.T) {
+	var cfg eva.Config
+	var wg sync.WaitGroup
+
+	if len(os.Args) != 2 {
+		return // Basic test already done above, no need to repeat
+	}
+	if os.Args[1] != "d" && os.Args[1] != "b" && os.Args[1] != "k" {
+		return // Basic test already done above, no need to repeat
+	}
+
+	if err := config.LoadJSONConfig(kubeCfgFile, &cfg); err != nil {
+		t.Errorf("LoadJSONConfig() failed: %v", err)
+	}
+	// Cert setup
+	if err := os.MkdirAll(cfg.CertsDir, 0700); err != nil {
+		t.Errorf("Creating temp directory for certs failed: %v", err)
+	}
+	defer os.RemoveAll(cfg.CertsDir)
+	transportCreds := prepareCerts(t, cfg.CertsDir)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	wg.Add(1)
+	go func() {
+		err := eva.Run(ctx, kubeCfgFile)
+		wg.Done()
+		if err != nil {
+			t.Errorf("eva.Run() failed: %v", err)
+		}
+	}()
+
+	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(),
+		10*time.Second)
+	defer cancelTimeout()
+
+	conn, err := grpc.DialContext(ctxTimeout, cfg.Endpoint,
+		grpc.WithTransportCredentials(transportCreds), grpc.WithBlock())
+
+	if err != nil {
+		t.Errorf("failed to dial EVA: %v", err)
+		cancel()
+		return
+	}
+	defer conn.Close()
+
+	fmt.Println("---------K-APP_TEST_1------------------------------------")
+	callDockerDeploy(t, conn, "app-test-1",
+		"http://localhost/hello-world.img")
+	fmt.Println("---------K-APP_TEST_2------------------------------------")
+	callDockerDeploy(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
+	fmt.Println("---------K-APP_TEST_1-U----------------------------------")
+	callUndeployAPI(t, conn, "app-test-1")
+	fmt.Println("---------K-APP_TEST_2-U----------------------------------")
+	callUndeployAPI(t, conn, "app-test-2")
 
 	cancel()  // stop the EVA running in other thread
 	wg.Wait() // wait for the other thread to terminate!
