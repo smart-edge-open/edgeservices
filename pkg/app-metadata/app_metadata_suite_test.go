@@ -78,9 +78,9 @@ var _ = Describe("Application's Metadata", func() {
 				It("returns an error", func() {
 					app, err := meta.Load(appID)
 					Expect(app).To(BeNil())
-					Expect(err).
-						To(MatchError("chdir " + expectedAppPath +
-							": no such file or directory"))
+					Expect(err).To(MatchError("Failed to load metadata " +
+						"file: open " + expectedAppPath +
+						"/metadata.json: no such file or directory"))
 				})
 			})
 
@@ -90,10 +90,9 @@ var _ = Describe("Application's Metadata", func() {
 
 					app, err := meta.Load(appID)
 					Expect(app).To(BeNil())
-					Expect(err).
-						To(MatchError("chdir " + expectedAppPath +
-							": not a directory"))
-
+					Expect(err).To(MatchError("Failed to load metadata " +
+						"file: open " + expectedAppPath +
+						"/metadata.json: not a directory"))
 				})
 			})
 		})
@@ -107,7 +106,8 @@ var _ = Describe("Application's Metadata", func() {
 					Expect(app).To(BeNil())
 					Expect(err).
 						To(MatchError("Failed to load metadata file: open " +
-							"metadata.json: no such file or directory"))
+							expectedAppPath + "/metadata.json: " +
+							"no such file or directory"))
 				})
 			})
 

@@ -48,9 +48,7 @@ type DeploySrv struct {
 	meta *metadata.AppMetadata
 }
 
-const imageFile string = "image"
-
-func downloadImage(url string) error {
+func downloadImage(url string, target string) error {
 	var input io.Reader
 
 	if strings.Contains(url, "http://") {
@@ -70,9 +68,9 @@ func downloadImage(url string) error {
 		input = file
 	}
 
-	output, err := os.Create(imageFile)
+	output, err := os.Create(target)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to create image file")
 	}
 	_, err = io.Copy(output, input)
 	output.Close()
@@ -121,13 +119,13 @@ func (s *DeploySrv) deployCommon(ctx context.Context,
 
 	// Initial save - creates the app directory if needed
 	if err = dapp.Save(false); err != nil {
-		return err
+		return errors.Wrap(err, "metadata save failed")
 	}
 
 	/* Now download the image. */
 	switch s := source.(type) {
 	case *pb.Application_HttpUri:
-		return downloadImage(s.HttpUri.HttpUri)
+		return downloadImage(s.HttpUri.HttpUri, dapp.ImageFilePath())
 	default:
 		return status.Errorf(codes.Unimplemented, "unknown app source")
 	}
@@ -154,14 +152,14 @@ func parseImageName(body io.Reader) (string, error) {
 }
 
 func (s *DeploySrv) loadImage(ctx context.Context,
-	pbapp *pb.Application, docker *client.Client) error {
+	dapp *metadata.DeployedApp, docker *client.Client) error {
 
 	/* NOTE: ImageLoad could read directly from our HTTP stream that's
 	 * downloading the image, thus removing the need for storing the image as
 	 * a file. But store for now for easier debugging. */
-	file, err := os.Open(imageFile)
-	if err != nil {
-		return err /* shouldn't happen as we just wrote it */
+	file, err := os.Open(dapp.ImageFilePath())
+	if err != nil { /* shouldn't happen as we just wrote it */
+		return errors.Wrap(err, "Failed to open image file")
 	}
 
 	respLoad, err := docker.ImageLoad(ctx, file, true)
@@ -171,14 +169,14 @@ func (s *DeploySrv) loadImage(ctx context.Context,
 	defer respLoad.Body.Close()
 
 	if !respLoad.JSON {
-		return fmt.Errorf("No JSON output loading app %s", pbapp.Id)
+		return fmt.Errorf("No JSON output loading app %s", dapp.App.Id)
 	}
 	imageName, err := parseImageName(respLoad.Body)
 	if err != nil {
 		return err
 	}
-	log.Infof("Image imported as '%v', retagging to '%v'", imageName, pbapp.Id)
-	if err = docker.ImageTag(ctx, imageName, pbapp.Id); err != nil {
+	log.Infof("Image '%v' retagged to '%v'", imageName, dapp.App.Id)
+	if err = docker.ImageTag(ctx, imageName, dapp.App.Id); err != nil {
 		return err
 	}
 	// TODO: remove the original tag
@@ -191,7 +189,7 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 
 	dapp := s.meta.NewDeployedApp(metadata.Container, pbapp)
 	if err := s.deployCommon(ctx, dapp); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "deployCommon() failed")
 	}
 
 	/* Now call the docker API. */
@@ -201,7 +199,7 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	}
 
 	// Load the image first
-	if err = s.loadImage(ctx, pbapp, docker); err != nil {
+	if err = s.loadImage(ctx, dapp, docker); err != nil {
 		return nil, err
 	}
 
@@ -243,7 +241,7 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 
 	dapp := s.meta.NewDeployedApp(metadata.VM, pbapp)
 	if err := s.deployCommon(ctx, dapp); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "deployCommon() failed")
 	}
 
 	/* Now call the libvirt API. */
@@ -268,7 +266,7 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 					Device: "disk",
 					Source: &libvirtxml.DomainDiskSource{
 						File: &libvirtxml.DomainDiskSourceFile{
-							File: dapp.Path + "/" + imageFile},
+							File: dapp.ImageFilePath()},
 					},
 					Target: &libvirtxml.DomainDiskTarget{Dev: "hda"},
 				},
@@ -407,7 +405,7 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 	}
 
 	if err == nil {
-		if os.Remove(imageFile) == nil {
+		if os.Remove(dapp.ImageFilePath()) == nil {
 			log.Infof("Deleted image file of %v", app.Id)
 		}
 		dapp.App.Status = pb.LifecycleStatus_UNKNOWN

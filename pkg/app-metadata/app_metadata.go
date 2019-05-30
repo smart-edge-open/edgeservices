@@ -31,6 +31,7 @@ var log = logger.DefaultLogger.WithField("meta", nil)
 const (
 	metadataFileName = "metadata.json"
 	deployedFileName = "deployed"
+	imageFileName    = "image"
 )
 
 type AppMetadata struct {
@@ -60,53 +61,19 @@ type DeployedApp struct {
 }
 
 func (m *AppMetadata) appPath(appID string) string {
-	return m.RootPath + "/" + appID
+	return path.Join(m.RootPath, appID)
 }
 
-// Loads application's metadata from disk
-func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
-	if appID == "" {
-		return nil, errors.New("ApplicationID is empty")
-	}
+func (a *DeployedApp) metadataFilePath() string {
+	return path.Join(a.Path, metadataFileName)
+}
 
-	appPath := m.appPath(appID)
+func (a *DeployedApp) deployedFilePath() string {
+	return path.Join(a.Path, deployedFileName)
+}
 
-	if err := os.Chdir(appPath); err != nil {
-		return nil, err
-	}
-	log.Infof("Load(): Entered directory %s", appPath)
-
-	bytes, err := ioutil.ReadFile(metadataFileName)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to load metadata file: %s", err.Error())
-	}
-
-	dapp := DeployedApp{}
-	err = json.Unmarshal(bytes, &dapp.AppData)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal metadata: %s", err.Error())
-	}
-	dapp.Path = appPath
-
-	file, err := os.Open(dapp.deployedFilePath())
-	if err != nil {
-		if os.IsNotExist(err) {
-			dapp.IsDeployed = false
-			return &dapp, nil
-		}
-		return nil, fmt.Errorf("Failed to open %s", deployedFileName)
-	}
-	defer file.Close()
-	dapp.IsDeployed = true
-	num, err := file.Read(bytes) // bytes is definitely big enough
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to read %v", file.Name())
-	}
-
-	dapp.DeployedID = string(bytes[0 : num-1]) // cut '\n'
-	log.Infof("Found the deployment ID for %v: '%v'", appID, dapp.DeployedID)
-
-	return &dapp, nil
+func (a *DeployedApp) ImageFilePath() string {
+	return path.Join(a.Path, imageFileName)
 }
 
 func (m *AppMetadata) NewDeployedApp(appType AppType,
@@ -120,8 +87,45 @@ func (m *AppMetadata) NewDeployedApp(appType AppType,
 	return a
 }
 
-func (a *DeployedApp) metadataFilePath() string {
-	return path.Join(a.Path, metadataFileName)
+// Loads application's metadata from disk
+func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
+	if appID == "" {
+		return nil, errors.New("ApplicationID is empty")
+	}
+
+	appPath := m.appPath(appID)
+
+	dapp := m.NewDeployedApp("UNKNOWN", &pb.Application{Id: appID}) // bootstrap
+	bytes, err := ioutil.ReadFile(dapp.metadataFilePath())
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load metadata file: %s", err.Error())
+	}
+
+	err = json.Unmarshal(bytes, &dapp.AppData) // now read proper data
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal metadata: %s", err.Error())
+	}
+	dapp.Path = appPath
+
+	file, err := os.Open(dapp.deployedFilePath())
+	if err != nil {
+		if os.IsNotExist(err) {
+			dapp.IsDeployed = false
+			return dapp, nil
+		}
+		return nil, fmt.Errorf("Failed to open %s", deployedFileName)
+	}
+	defer file.Close()
+	dapp.IsDeployed = true
+	num, err := file.Read(bytes) // bytes is definitely big enough
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to read %v", file.Name())
+	}
+
+	dapp.DeployedID = string(bytes[0 : num-1]) // cut '\n'
+	log.Infof("Found the deployment ID for %v: '%v'", appID, dapp.DeployedID)
+
+	return dapp, nil
 }
 
 // This function will write into a temporary file that's in the same directory
@@ -163,10 +167,6 @@ func (a *DeployedApp) Save(updateOnly bool) error {
 	}
 
 	return os.Rename(tmpfile, a.metadataFilePath()) // Atomic rename
-}
-
-func (a *DeployedApp) deployedFilePath() string {
-	return path.Join(a.Path, deployedFileName)
 }
 
 func (a *DeployedApp) SetDeployed(deployedID string) error {
