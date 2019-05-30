@@ -34,26 +34,38 @@ type ApplicationLifecycleServiceServer struct {
 }
 
 type ContainerHandler struct {
-	ID string
+	meta *metadata.DeployedApp
 }
 
 type VMHandler struct {
-	ID string
+	meta *metadata.DeployedApp
 }
 
 type ApplicationLifecycleServiceHandler interface {
-	SetID(string)
+	UpdateStatus(pb.LifecycleStatus_Status) error
 	StartHandler(context.Context, time.Duration) error
 	StopHandler(context.Context, time.Duration) error
 	RestartHandler(context.Context, time.Duration) error
 }
 
-func (c *ContainerHandler) SetID(ID string) {
-	c.ID = ID
+func (c *ContainerHandler) UpdateStatus(
+	status pb.LifecycleStatus_Status) error {
+	return updateStatus(c.meta, status)
 }
 
-func (v *VMHandler) SetID(ID string) {
-	v.ID = ID
+func (v *VMHandler) UpdateStatus(status pb.LifecycleStatus_Status) error {
+	return updateStatus(v.meta, status)
+}
+
+func updateStatus(m *metadata.DeployedApp,
+	status pb.LifecycleStatus_Status) error {
+	m.App.Status = status
+	err := m.Save(true)
+	if err != nil {
+		log.Errf("Failed to set LifecycleStatus:%v for:%v err:%v", status,
+			m.DeployedID, err)
+	}
+	return err
 }
 
 func (c ContainerHandler) StartHandler(ctx context.Context,
@@ -64,12 +76,14 @@ func (c ContainerHandler) StartHandler(ctx context.Context,
 		return errors.Wrap(err, "failed to create docker client")
 	}
 
-	err = cli.ContainerStart(ctx, c.ID, types.ContainerStartOptions{})
+	err = cli.ContainerStart(ctx, c.meta.DeployedID,
+		types.ContainerStartOptions{})
 	if err != nil {
-		return errors.Wrapf(err, "failed to start container with ID: %v", c.ID)
+		return errors.Wrapf(err, "failed to start container with ID: %v",
+			c.meta.DeployedID)
 	}
 
-	log.Infof("Container ID:%v started", c.ID)
+	log.Infof("Container ID:%v started", c.meta.DeployedID)
 	return nil
 }
 
@@ -81,13 +95,13 @@ func (c ContainerHandler) StopHandler(ctx context.Context,
 		return errors.Wrap(err, "failed to create docker client")
 	}
 
-	//Timeout could be added to EVA config file
-	err = cli.ContainerStop(ctx, c.ID, &timeout)
+	err = cli.ContainerStop(ctx, c.meta.DeployedID, &timeout)
 	if err != nil {
-		return errors.Wrapf(err, "failed to stop container with ID: %v", c.ID)
+		return errors.Wrapf(err, "failed to stop container with ID: %v",
+			c.meta.DeployedID)
 	}
 
-	log.Infof("Container ID:%v stopped", c.ID)
+	log.Infof("Container ID:%v stopped", c.meta.DeployedID)
 	return nil
 }
 
@@ -99,14 +113,13 @@ func (c ContainerHandler) RestartHandler(ctx context.Context,
 		return errors.Wrap(err, "failed to create docker client")
 	}
 
-	//Timeout could be added to EVA config file
-	err = cli.ContainerRestart(ctx, c.ID, &timeout)
+	err = cli.ContainerRestart(ctx, c.meta.DeployedID, &timeout)
 	if err != nil {
 		return errors.Wrapf(err, "failed to restart container with ID: %v",
-			c.ID)
+			c.meta.DeployedID)
 	}
 
-	log.Infof("Container ID:%v restarted", c.ID)
+	log.Infof("Container ID:%v restarted", c.meta.DeployedID)
 	return nil
 }
 
@@ -141,7 +154,7 @@ func (v VMHandler) StartHandler(ctx context.Context,
 	}
 	defer conn.Close()
 
-	d, err := conn.LookupDomainByName(v.ID)
+	d, err := conn.LookupDomainByName(v.meta.DeployedID)
 	if err != nil {
 		return err
 	}
@@ -158,7 +171,7 @@ func (v VMHandler) StartHandler(ctx context.Context,
 	}
 
 	if tout {
-		return errors.New("Timeout when starting domain: " + v.ID)
+		return errors.New("Timeout when starting domain: " + v.meta.DeployedID)
 	}
 
 	return nil
@@ -173,7 +186,7 @@ func (v VMHandler) StopHandler(ctx context.Context,
 	}
 	defer conn.Close()
 
-	d, err := conn.LookupDomainByName(v.ID)
+	d, err := conn.LookupDomainByName(v.meta.DeployedID)
 	if err != nil {
 		return err
 	}
@@ -205,7 +218,7 @@ func (v VMHandler) RestartHandler(ctx context.Context,
 	}
 	defer conn.Close()
 
-	d, err := conn.LookupDomainByName(v.ID)
+	d, err := conn.LookupDomainByName(v.meta.DeployedID)
 	if err != nil {
 		return err
 	}
@@ -254,6 +267,11 @@ func (s *ApplicationLifecycleServiceServer) Start(ctx context.Context,
 				l.Id)
 	}
 
+	if err = d.UpdateStatus(pb.LifecycleStatus_STARTING); err != nil {
+		return nil, errors.Wrapf(err, "Failed to update status for appID: %s",
+			l.Id)
+	}
+
 	err = d.StartHandler(ctx, s.cfg.AppStartTimeout.Duration)
 	if err != nil {
 		log.Errf("Start failed because: %+v", err)
@@ -261,6 +279,8 @@ func (s *ApplicationLifecycleServiceServer) Start(ctx context.Context,
 			errors.Wrapf(err, "failed to handle Start for app with ID: %s",
 				l.Id)
 	}
+
+	_ = d.UpdateStatus(pb.LifecycleStatus_RUNNING)
 
 	return &empty.Empty{}, nil
 }
@@ -282,6 +302,11 @@ func (s *ApplicationLifecycleServiceServer) Stop(ctx context.Context,
 				l.Id)
 	}
 
+	if err = d.UpdateStatus(pb.LifecycleStatus_STOPPING); err != nil {
+		return nil, errors.Wrapf(err, "Failed to update status for appID: %s",
+			l.Id)
+	}
+
 	err = d.StopHandler(ctx, s.cfg.AppStopTimeout.Duration)
 	if err != nil {
 		log.Errf("Stop failed because: %+v", err)
@@ -289,6 +314,8 @@ func (s *ApplicationLifecycleServiceServer) Stop(ctx context.Context,
 			errors.Wrapf(err, "failed to handle Stop for app with ID: %s",
 				l.Id)
 	}
+
+	_ = d.UpdateStatus(pb.LifecycleStatus_STOPPED)
 
 	return &empty.Empty{}, nil
 }
@@ -310,6 +337,11 @@ func (s *ApplicationLifecycleServiceServer) Restart(ctx context.Context,
 				l.Id)
 	}
 
+	if err = d.UpdateStatus(pb.LifecycleStatus_STARTING); err != nil {
+		return nil, errors.Wrapf(err, "Failed to update status for appID: %s",
+			l.Id)
+	}
+
 	err = d.RestartHandler(ctx, s.cfg.AppRestartTimeout.Duration)
 	if err != nil {
 		log.Errf("Restart failed because: %+v",
@@ -318,6 +350,8 @@ func (s *ApplicationLifecycleServiceServer) Restart(ctx context.Context,
 			errors.Wrapf(err, "failed to handle Restart for app with ID: %s",
 				l.Id)
 	}
+
+	_ = d.UpdateStatus(pb.LifecycleStatus_RUNNING)
 
 	return &empty.Empty{}, nil
 }
@@ -346,11 +380,10 @@ func (s *ApplicationLifecycleServiceServer) getAppLifecycleHandler(
 
 	var handler ApplicationLifecycleServiceHandler
 	if a.Type == metadata.Container {
-		handler = new(ContainerHandler)
+		handler = &ContainerHandler{a}
 	} else {
-		handler = new(VMHandler)
+		handler = &VMHandler{a}
 	}
-	handler.SetID(a.DeployedID)
 
 	return handler, nil
 }
