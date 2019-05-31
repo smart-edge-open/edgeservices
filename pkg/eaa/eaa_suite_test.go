@@ -15,11 +15,11 @@
 package eaa_test
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -138,8 +138,8 @@ var _ = BeforeSuite(func() {
 
 	tempConfCaRootKeyPath = tempdir + "/" + "certs/eaa/rootCA.key"
 	tempConfCaRootPath = tempdir + "/" + "certs/eaa/rootCA.pem"
-	tempConfServerCertPath = tempdir + "/" + "/certs/eaa/server.crt"
-	tempConfServerKeyPath = tempdir + "/" + "/certs/eaa/server.key"
+	tempConfServerCertPath = tempdir + "/" + "certs/eaa/server.crt"
+	tempConfServerKeyPath = tempdir + "/" + "certs/eaa/server.key"
 
 	generateConfigs()
 
@@ -156,25 +156,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred(), "Unable to start appliance")
 
 	// Wait until appliance is ready before running any tests specs
-	Eventually(func() (tls.Certificate, error) {
-		return tls.LoadX509KeyPair(
-			tempConfServerCertPath, tempConfServerKeyPath)
-	},
-		cfg.ApplianceTimeoutSec, 100*time.Millisecond).ShouldNot(BeNil(),
-		"Failed to load keys and cert for appliance")
-
-	cert, err := tls.LoadX509KeyPair(
-		tempConfServerCertPath, tempConfServerKeyPath)
-	Expect(err).NotTo(HaveOccurred())
-
-	//nolint
-	conf := tls.Config{Certificates: []tls.Certificate{cert},
-		InsecureSkipVerify: true}
-
 	c1 := make(chan bool, 1)
 	go func() {
 		for {
-			conn, err := tls.Dial("tcp", cfg.TLSEndpoint, &conf)
+			conn, err := net.Dial("tcp", cfg.OpenEndpoint)
 			if err == nil {
 				conn.Close()
 				break

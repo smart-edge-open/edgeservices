@@ -15,9 +15,9 @@
 package eaa_test
 
 import (
-	"crypto/tls"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"net"
 )
 
 var _ = Describe("ApiEaa", func() {
@@ -25,16 +25,7 @@ var _ = Describe("ApiEaa", func() {
 	Describe("This is dummy test", func() {
 		Context("With just one Dial to server", func() {
 			Specify("which should return no error", func() {
-
-				cert, err := tls.LoadX509KeyPair(
-					tempConfServerCertPath, tempConfServerKeyPath)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				//nolint
-				conf := tls.Config{Certificates: []tls.Certificate{cert},
-					InsecureSkipVerify: true}
-
-				conn, err := tls.Dial("tcp", cfg.TLSEndpoint, &conf)
+				conn, err := net.Dial("tcp", cfg.OpenEndpoint)
 				Expect(err).ShouldNot(HaveOccurred())
 				conn.Close()
 			})

@@ -35,6 +35,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// EaaCommonName Common Name that EAA uses for TLS connection
+const EaaCommonName string = "eaa.community.appliance.mec"
+
 // CertKeyPair manages digital certificates.
 type CertKeyPair struct {
 	x509Cert *x509.Certificate
@@ -199,12 +202,13 @@ func InitEaaCert(certPaths CertsInfo) (*CertKeyPair, error) {
 			SerialNumber: big.NewInt(1658),
 			Subject: pkix.Name{
 				Organization: []string{"Appliance Authority"},
+				CommonName:   EaaCommonName,
 			},
 			NotBefore:    time.Now().Add(-15 * time.Second),
 			NotAfter:     time.Now().Add(3 * 365 * 24 * time.Hour),
 			SubjectKeyId: []byte{1, 2, 3, 4, 6},
-			ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
-			KeyUsage:     x509.KeyUsageCertSign,
+			KeyUsage:     x509.KeyUsageDigitalSignature,
+			ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		}
 
 		// Sign the certificate
