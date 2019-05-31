@@ -44,7 +44,7 @@ func addSubscriptionToNamespace(commonName string, namespace string,
 		}
 	}
 
-	return http.StatusOK, nil
+	return http.StatusCreated, nil
 }
 
 // removeSubscriptionToNamespace unsubscribes a consumer from a specified
@@ -115,7 +115,7 @@ func addSubscriptionToService(commonName string, namespace string,
 				commonName)
 	}
 
-	return http.StatusOK, nil
+	return http.StatusCreated, nil
 }
 
 // removeSubscriptionToService unsubscribes a consumer from
