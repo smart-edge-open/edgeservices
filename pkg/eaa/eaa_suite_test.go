@@ -15,6 +15,7 @@
 package eaa_test
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"io"
@@ -28,9 +29,13 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"google.golang.org/grpc"
 
 	"github.com/onsi/gomega/gexec"
 	"github.com/smartedgemec/appliance-ce/internal/authtest"
+	evapb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
+
+	"github.com/smartedgemec/log"
 )
 
 // To pass configuration file path use ginkgo pass-through argument
@@ -52,11 +57,13 @@ type EAATestSuiteConfig struct {
 	Dir                 string `json:"dir"`
 	TLSEndpoint         string `json:"tlsEndpoint"`
 	OpenEndpoint        string `json:"openEndpoint"`
+	InternalEndpoint    string `json:"internalEndpoint"`
 	ApplianceTimeoutSec int    `json:"timeout"`
 }
 
 // test suite config with default values
-var cfg = EAATestSuiteConfig{"../../", "localhost:44300", "localhost:8000", 2}
+var cfg = EAATestSuiteConfig{"../../", "localhost:44300", "localhost:48080",
+	"localhost:42555", 2}
 
 func readConfig(path string) {
 	if path != "" {
@@ -70,6 +77,77 @@ func readConfig(path string) {
 			Fail("Failed to unmarshal suite configuration file!")
 		}
 	}
+}
+
+// Function is not used anymore, but can be used as helper:
+// func generateCerts() {
+
+// 	By("Generating certs")
+// 	err := os.MkdirAll(tempdir+"/certs/eaa", 0755)
+// 	Expect(err).ToNot(HaveOccurred(), "Error when creating temp directory")
+
+// 	cmd := exec.Command("openssl", "req", "-x509", "-nodes", "-newkey",
+// 		"rsa:2048", "-keyout", "server.key", "-out", "server.crt", "-days",
+// 		"3650", "-subj", "/C=TT/ST=Test/L=Test/O=Test/OU=Test/CN=localhost")
+
+// 	cmd.Dir = tempdir + "/certs/eaa"
+// 	err = cmd.Run()
+// 	Expect(err).ToNot(HaveOccurred(), "Error when generating .key .crt")
+
+// 	cmd = exec.Command("openssl", "x509", "-in", "server.crt", "-out",
+// 		"rootCA.pem", "-outform", "PEM")
+
+// 	cmd.Dir = tempdir + "/certs/eaa"
+// 	err = cmd.Run()
+// 	Expect(err).ToNot(HaveOccurred(), "Error when converting .crt to .pem")
+
+// 	cmd = exec.Command("openssl", "req", "-new", "-key", "server.key",
+// 		"-out", "server.csr", "-subj",
+// 		"/C=TT/ST=Test/L=Test/O=Test/OU=Test/CN=localhost")
+
+// 	cmd.Dir = tempdir + "/certs/eaa"
+// 	err = cmd.Run()
+// 	Expect(err).ToNot(HaveOccurred(), "Error when generating .csr")
+// }
+
+type FakeIPAppLookupServiceServerImpl struct{}
+
+func (*FakeIPAppLookupServiceServerImpl) GetApplicationByIP(
+	ctx context.Context,
+	ipAppLookupInfo *evapb.IPApplicationLookupInfo) (
+	*evapb.IPApplicationLookupResult, error) {
+
+	log.Info("FakeIPAppLookupServiceServerImpl GetApplicationByIP for: " +
+		ipAppLookupInfo.GetIpAddress())
+
+	var result evapb.IPApplicationLookupResult
+	result.AppID = "testapp"
+	return &result, nil
+}
+
+func fakeAppidProvider() error {
+
+	lApp, err := net.Listen("tcp", cfg.InternalEndpoint)
+	if err != nil {
+		log.Errf("net.Listen error: %+v", err)
+		return err
+	}
+
+	serverApp := grpc.NewServer()
+	ipAppLookupService := FakeIPAppLookupServiceServerImpl{}
+	evapb.RegisterIPApplicationLookupServiceServer(serverApp,
+		&ipAppLookupService)
+
+	go func() {
+		log.Infof("Fake internal serving on %s", cfg.InternalEndpoint)
+		err = serverApp.Serve(lApp)
+		if err != nil {
+			log.Errf("Failed grpcServe(): %v", err)
+			return
+		}
+	}()
+
+	return err
 }
 
 func copyFile(src string, dst string) {
@@ -103,6 +181,7 @@ func generateConfigs() {
 	eaaCfg := []byte(`{
 		"tlsEndpoint": "` + cfg.TLSEndpoint + `",
 		"openEndpoint": "` + cfg.OpenEndpoint + `",
+		"internalEndpoint": "` + cfg.InternalEndpoint + `",
 		"certs": {
 			"CaRootKeyPath": "` + tempConfCaRootKeyPath + `",
 			"caRootPath": "` + tempConfCaRootPath + `",
@@ -143,6 +222,9 @@ var _ = BeforeSuite(func() {
 
 	generateConfigs()
 
+	err = fakeAppidProvider()
+	Expect(err).ToNot(HaveOccurred(), "Unable to start fake AppID provider")
+
 	By("Building appliance")
 	cmd := exec.Command("make", "BUILD_DIR="+tempdir, "appliance")
 	cmd.Dir = cfg.Dir
@@ -153,6 +235,7 @@ var _ = BeforeSuite(func() {
 	cmd = exec.Command(tempdir + "/appliance")
 	cmd.Dir = tempdir
 	appliance, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+
 	Expect(err).ToNot(HaveOccurred(), "Unable to start appliance")
 
 	// Wait until appliance is ready before running any tests specs
