@@ -16,13 +16,15 @@ package eda
 
 import (
 	"context"
+	"net"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/ini"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"net"
 )
 
 var NewConnFn = func() (NtsConnectionInt, error) {
@@ -63,31 +65,46 @@ func RemoveRules(appID string, conn NtsConnectionInt) error {
 		log.Errf("Not connected to NTS")
 		return status.Errorf(codes.Internal, "Not connected to NTS")
 	}
+	// With every loop iteration a traffic rule at index 0 is removed
+	// from NTS route table, then it is removed from IDA slice holding all
+	// traffic rules per app ID by being replaced by the traffic rule
+	// stored at its last position.
+	// If the attempt to remove a traffic rule from NTS ends with an error,
+	// the error is logged, the traffic rule is still removed from EDA memory
+	// - the loop continues until there is no
+	// traffic rules left in AppTrafficPolicies[appID].NtsTrafficRules
+	for range AppTrafficPolicies[appID].NtsTrafficRules {
 
-	for i, rule := range AppTrafficPolicies[appID].NtsTrafficRules {
-
-		err := conn.RouteRemove(rule.LookupKeys)
+		log.Infof("Removing Traffic Rule %v",
+			AppTrafficPolicies[appID].NtsTrafficRules[0].LookupKeys)
+		// Remove traffic rule at index 0 from NTS
+		err := conn.RouteRemove(AppTrafficPolicies[appID].
+			NtsTrafficRules[0].LookupKeys)
 		if err != nil {
 			log.Errf("Failed at removing Traffic Rule %s for AppID %v."+
 				" See logs to verify that the rule exists on NTS."+
-				" Error: %v", rule.LookupKeys, appID, err)
+				" Error: %v", AppTrafficPolicies[appID].NtsTrafficRules[0].
+				LookupKeys, appID, err)
 		}
-
-		AppTrafficPolicies[appID].NtsTrafficRules[i] =
+		// Always remove the rule at index 0 by replacing it
+		// with the traffic rule at the last position in the slice
+		AppTrafficPolicies[appID].NtsTrafficRules[0] =
 			AppTrafficPolicies[appID].NtsTrafficRules[len(
 				AppTrafficPolicies[appID].NtsTrafficRules)-1]
-
+		// The last entry in the slice is replaced with an empty struct
 		AppTrafficPolicies[appID].NtsTrafficRules[len(
 			AppTrafficPolicies[appID].NtsTrafficRules)-1] =
 			TrafficRuleParsed{}
-
+		// NtsTrafficRules slice is overriten with a new slice
+		// including all the same entries except the last one - the empty one
 		AppTrafficPolicies[appID].NtsTrafficRules =
 			AppTrafficPolicies[appID].NtsTrafficRules[:len(
 				AppTrafficPolicies[appID].NtsTrafficRules)-1]
 
-		log.Infof("Removed Traffic Rule %v,", rule.LookupKeys)
-
 	}
+
+	// Once all traffic rules per app ID are removed
+	// delete the map entry for appID from AppTrafficPolicies
 	delete(AppTrafficPolicies, appID)
 
 	return nil
@@ -145,9 +162,6 @@ func ValidateTrafficRules(tp *pb.TrafficPolicy) (*[]TrafficRuleParsed, error) {
 
 func AddRequest(conn NtsConnectionInt, tp *pb.TrafficPolicy) error {
 
-	log.Info("Received SET request for adding Application Traffic " +
-		"Policy ID: " + tp.Id)
-
 	parsedTrafficRules, err := ValidateTrafficRules(tp)
 	if err != nil {
 		log.Errf("Validation of traffic rules finished with error: %v", err)
@@ -169,7 +183,7 @@ func AddRequest(conn NtsConnectionInt, tp *pb.TrafficPolicy) error {
 			err = RemoveRules(tp.Id, conn)
 			if err != nil {
 				return status.Errorf(codes.Unknown,
-					"Failed to clean traffic routs on error "+
+					"Failed to clean traffic rules on error "+
 						"from RouteAdd(). Error: %v", err)
 			}
 
@@ -196,15 +210,13 @@ func AddRequest(conn NtsConnectionInt, tp *pb.TrafficPolicy) error {
 func (s *edaTrafficPolicyServerImpl) Set(ctx context.Context,
 	tp *pb.TrafficPolicy) (*empty.Empty, error) {
 
-	if tp == nil {
-		log.Errf("Traffic Policy pointer is nil")
-		return &empty.Empty{}, errors.New("Traffic Policy pointer is nil")
-	}
-
 	if tp.Id == "" {
 		log.Errf("Traffic Policy ID is empty")
 		return &empty.Empty{}, errors.New("Traffic Policy ID is empty")
 	}
+
+	log.Info("Received SET request for Application Traffic " +
+		"Policy ID: " + tp.Id)
 
 	conn, err := NewConnFn()
 	if err != nil {
