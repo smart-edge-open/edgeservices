@@ -19,6 +19,7 @@ import (
 	"github.com/Flaque/filet"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"github.com/smartedgemec/appliance-ce/pkg/eda"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"github.com/smartedgemec/log"
@@ -64,8 +65,30 @@ var correctTR = &pb.TrafficRule{
 	},
 }
 
-var missingMacTR = &pb.TrafficRule{
+var correctFailsRemoveTR = &pb.TrafficRule{
 	Description: "Sample Traffic Rule 2",
+	Priority:    99,
+	Source: &pb.TrafficSelector{
+		Gtp: &pb.GTPFilter{
+			Address: "192.168.219.178",
+			Mask:    32,
+		},
+	},
+	Destination: &pb.TrafficSelector{
+		Description: "",
+		Ip: &pb.IPFilter{
+			Address: "10.30.40.2",
+			Mask:    32,
+		},
+	},
+	Target: &pb.TrafficTarget{
+		Action: pb.TrafficTarget_ACCEPT,
+		Mac:    &pb.MACModifier{MacAddress: "AA:BB:CC:DD:EE:FF"},
+	},
+}
+
+var missingMacTR = &pb.TrafficRule{
+	Description: "Sample Traffic Rule 3",
 	Priority:    99,
 	Source: &pb.TrafficSelector{
 		Gtp: &pb.GTPFilter{
@@ -86,7 +109,7 @@ var missingMacTR = &pb.TrafficRule{
 }
 
 var emptyAddrFieldsTR = &pb.TrafficRule{
-	Description: "",
+	Description: "Sample Traffic Rule 4",
 	Priority:    99,
 	Source: &pb.TrafficSelector{
 		Gtp: &pb.GTPFilter{
@@ -129,6 +152,11 @@ func (fakeNtsConnection) RouteAdd(macAddr net.HardwareAddr,
 }
 
 func (fakeNtsConnection) RouteRemove(lookupKeys string) error {
+
+	if lookupKeys != "prio:99,enb_ip:192.168.219.179/32,srv_ip:10.30.40.2/32" {
+		return errors.New("Failed to remove traffic route from NTS")
+	}
+
 	return nil
 }
 
@@ -226,7 +254,7 @@ var _ = Describe("EDA gRPC Set() request handling", func() {
 			// Handle Set request (received from ELA)
 			// to remove an existing traffic policy.
 			// Assert that the request returns no error
-			tp = &pb.TrafficPolicy{Id: "001", TrafficRules: nil}
+			tp = &pb.TrafficPolicy{Id: "001"}
 			_, err = client.Set(cliCtx, tp)
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -277,6 +305,72 @@ var _ = Describe("EDA gRPC Set() request handling", func() {
 			})
 	})
 
+	Describe("SET request to add a traffic policy with two "+
+		"traffic rules", func() {
+		It("returns no error", func() {
+
+			// Handle Set request (received from ELA)
+			// to add a traffic policy with two traffic rules:
+			// both are correct,
+			// Next, override the traffic policy (remove and add)
+			// Removing correctFailsRemoveTR should fail,
+			// but Set request ends with no errors
+			// Assert that this Set request returns no error
+
+			tp := &pb.TrafficPolicy{Id: "001"}
+			tp.TrafficRules = append(tp.TrafficRules, correctTR)
+			tp.TrafficRules = append(tp.TrafficRules, correctFailsRemoveTR)
+			_, err = client.Set(cliCtx, tp)
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = client.Set(cliCtx, tp)
+			Expect(err).ShouldNot(HaveOccurred())
+
+		})
+	})
+
+	Describe("SET request to add a traffic policy with two "+
+		"traffic rules, then Set request to remove it", func() {
+		It("returns no error",
+			func() {
+
+				// Handle Set request (received from ELA)
+				// to add a traffic policy with four traffic rules:
+				// all are correct, but one should fail its removing
+				// Another Set request sent to remove
+				// the traffic rules from NTS
+				// Removing rule fails for correctFailsRemoveTR
+				// but Set request ends with no error
+				// Assert that this Set request returns no error
+
+				tp := &pb.TrafficPolicy{Id: "001"}
+				tp.TrafficRules = append(tp.TrafficRules, correctTR)
+				tp.TrafficRules = append(tp.TrafficRules, correctFailsRemoveTR)
+				tp.TrafficRules = append(tp.TrafficRules, correctTR)
+				tp.TrafficRules = append(tp.TrafficRules, correctTR)
+				_, err = client.Set(cliCtx, tp)
+				Expect(err).ShouldNot(HaveOccurred())
+				tp = &pb.TrafficPolicy{Id: "001"}
+				_, err = client.Set(cliCtx, tp)
+				Expect(err).ShouldNot(HaveOccurred())
+
+			})
+	})
+
+	Describe("Set requests with empty taffic policy", func() {
+		It("returns no error", func() {
+
+			// Handle Set request (received from ELA)
+			// to remove a traffic policy that does not exist
+			// in EDA memory
+			// Assert that the request returns no error
+			tp := &pb.TrafficPolicy{Id: "001"}
+			_, err = client.Set(cliCtx, tp)
+			Expect(err).ShouldNot(HaveOccurred())
+
+		})
+
+	})
+
 	Describe("SET request to remove traffic policy", func() {
 		It("returns no error", func() {
 			// Handle Set request (received from ELA)
@@ -295,4 +389,18 @@ var _ = Describe("EDA gRPC Set() request handling", func() {
 		})
 
 	})
+	Describe("Set requests with empty taffic policy pointer", func() {
+		It("returns error", func() {
+
+			// Handle Set request (received from ELA)
+			// to add a valid  traffic policy.
+			// Assert that the request returns error
+			tp := &pb.TrafficPolicy{Id: ""}
+			_, err = client.Set(cliCtx, tp)
+			Expect(err).Should(HaveOccurred())
+
+		})
+
+	})
+
 })
