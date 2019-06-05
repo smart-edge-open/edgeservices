@@ -98,12 +98,12 @@ func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 	dapp := m.NewDeployedApp("UNKNOWN", &pb.Application{Id: appID}) // bootstrap
 	bytes, err := ioutil.ReadFile(dapp.metadataFilePath())
 	if err != nil {
-		return nil, fmt.Errorf("Failed to load metadata file: %s", err.Error())
+		return nil, errors.Wrap(err, "Failed to load metadata file")
 	}
 
 	err = json.Unmarshal(bytes, &dapp.AppData) // now read proper data
 	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal metadata: %s", err.Error())
+		return nil, errors.Wrap(err, "Failed to unmarshal metadata")
 	}
 	dapp.Path = appPath
 

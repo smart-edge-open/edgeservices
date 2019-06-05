@@ -26,6 +26,8 @@ import (
 	"github.com/docker/docker/client"
 	libvirt "github.com/libvirt/libvirt-go"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ApplicationLifecycleServiceServer struct {
@@ -361,7 +363,8 @@ func (s *ApplicationLifecycleServiceServer) GetStatus(ctx context.Context,
 
 	dapp, err := s.meta.Load(app.Id)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.NotFound, "App %v not found: %v",
+			app.Id, err)
 	}
 
 	return &pb.LifecycleStatus{Status: dapp.App.Status}, nil

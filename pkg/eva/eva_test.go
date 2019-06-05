@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -61,14 +62,12 @@ func TestEva(t *testing.T) {
 	// Automated tests do not have the application image binaries
 	// so we can only run basic tests there.
 	// To manually test when you have those images, use the following:
-	// go test -args b
+	// go test -args dvk
 	if len(os.Args) == 2 {
-		if os.Args[1] == "d" {
+		if strings.Contains(os.Args[1], "d") {
 			dockerTestOn = true
-		} else if os.Args[1] == "v" {
-			libvirtTestOn = true
-		} else if os.Args[1] == "b" {
-			dockerTestOn = true
+		}
+		if strings.Contains(os.Args[1], "v") {
 			libvirtTestOn = true
 		}
 	}
@@ -97,6 +96,7 @@ func TestEva(t *testing.T) {
 	}
 	defer conn.Close()
 
+	/* TODO: add negative tests - undeploying a non-existent app */
 	if dockerTestOn {
 		callDockerDeploy(t, conn, "app-test-1",
 			"http://localhost/hello-world.img")
@@ -133,10 +133,11 @@ func TestEvaKubernetesMode(t *testing.T) {
 	if len(os.Args) != 2 {
 		return // Basic test already done above, no need to repeat
 	}
-	if os.Args[1] != "d" && os.Args[1] != "b" && os.Args[1] != "k" {
+	if !strings.Contains(os.Args[1], "k") {
 		return // Basic test already done above, no need to repeat
 	}
 
+	fmt.Println("======================== KUBE ========================")
 	if err := config.LoadJSONConfig(kubeCfgFile, &cfg); err != nil {
 		t.Errorf("LoadJSONConfig() failed: %v", err)
 	}
@@ -171,11 +172,16 @@ func TestEvaKubernetesMode(t *testing.T) {
 	}
 	defer conn.Close()
 
-	callDockerDeploy(t, conn, "app-test-1",
-		"http://localhost/hello-world.img")
+	callDockerDeploy(t, conn, "app-test-1", "http://localhost/hello-world.img")
+	callGetStatus(t, conn, "app-test-1")
+
 	callDockerDeploy(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
+	callGetStatus(t, conn, "app-test-2")
+
 	callUndeployAPI(t, conn, "app-test-1")
+	callGetStatus(t, conn, "app-test-1")
 	callUndeployAPI(t, conn, "app-test-2")
+	callGetStatus(t, conn, "app-test-2")
 
 	cancel()  // stop the EVA running in other thread
 	wg.Wait() // wait for the other thread to terminate!
@@ -210,7 +216,7 @@ func callDockerDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 
 	_, err := client.DeployContainer(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {
-		t.Errorf("DeployContainer failed: %v", err)
+		t.Errorf("DeployContainer failed: %+v", err)
 	}
 
 	cancel()
@@ -230,7 +236,7 @@ func callLibvirtDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 
 	_, err := client.DeployVM(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {
-		t.Errorf("DeployVM failed: %v", err)
+		t.Errorf("DeployVM failed: %+v", err)
 	}
 	cancel()
 }
@@ -245,7 +251,7 @@ func callUndeployAPI(t *testing.T, conn *grpc.ClientConn, id string) {
 
 	_, err := client.Undeploy(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {
-		t.Errorf("Undeploy failed: %v", err)
+		t.Errorf("Undeploy failed: %+v", err)
 	}
 	cancel()
 }
@@ -261,7 +267,9 @@ func callGetStatus(t *testing.T, conn *grpc.ClientConn, id string) {
 
 	status, err := client.GetStatus(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {
-		t.Errorf("GetStatus failed: %v", err)
+		fmt.Printf("GetStatus(%s) failed: '%+v'\n", id, err)
+		t.Errorf("GetStatus(%s) failed: %+v", id, err)
+		return
 	}
 
 	fmt.Printf("GetStatus(%s) returned: '%v'\n", id, status)
@@ -284,17 +292,17 @@ func testLifecycleAPI(t *testing.T, conn *grpc.ClientConn, id string,
 
 	_, err = alsClient.Start(ctx, &lc, grpc.WaitForReady(true))
 	if err != nil {
-		t.Errorf("StartContainer failed: %v", err)
+		t.Errorf("StartContainer failed: %+v", err)
 	}
 
 	_, err = alsClient.Restart(ctx, &lc, grpc.WaitForReady(true))
 	if err != nil {
-		t.Errorf("StartContainer failed: %v", err)
+		t.Errorf("RestartContainer failed: %v", err)
 	}
 
 	_, err = alsClient.Stop(ctx, &lc, grpc.WaitForReady(true))
 	if err != nil {
-		t.Errorf("StartContainer failed: %v", err)
+		t.Errorf("StopContainer failed: %v", err)
 	}
 
 	callUndeployAPI(t, conn, id)

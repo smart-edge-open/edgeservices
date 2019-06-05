@@ -109,7 +109,8 @@ func (s *DeploySrv) deployCommon(ctx context.Context,
 	}
 	app2, err := s.meta.Load(dapp.App.Id)
 	if err == nil && app2.IsDeployed {
-		return fmt.Errorf("app %s already deployed", dapp.App.Id)
+		return status.Errorf(codes.AlreadyExists, "app %s already deployed",
+			dapp.App.Id)
 	}
 	dapp.App.Status = pb.LifecycleStatus_DEPLOYING
 
@@ -132,27 +133,33 @@ func (s *DeploySrv) deployCommon(ctx context.Context,
 	}
 }
 
-func parseImageName(body io.Reader) (string, error) {
-	type jsonOut struct {
+// This function uses named return variables
+func parseImageName(body io.Reader) (out string, hadTag bool, err error) {
+	parsed := struct {
 		Stream string
-	}
-	var parsed jsonOut
+	}{}
 
 	bytes, err := ioutil.ReadAll(body)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get docker image name from JSON")
+		return "", false, errors.Wrap(err,
+			"failed to read JSON from docker.ImageLoad()")
 	}
 	err = json.Unmarshal(bytes, &parsed)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to parse out docker image name")
+		return "", false, errors.Wrap(err,
+			"failed to parse out docker image name")
 	}
-	out := strings.Replace(parsed.Stream, "Loaded image ID: ", "", 1)
-	out = strings.Replace(out, "Loaded image: ", "", 1)
+	out = strings.Replace(parsed.Stream, "Loaded image ID: ", "", 1)
+	if strings.Contains(out, "Loaded image: ") {
+		hadTag = true // Image already tagged, we'll need to untag
+		out = strings.Replace(out, "Loaded image: ", "", 1)
+	}
+	out = out[0 : len(out)-1] // cut '\n'
 
-	return out[0 : len(out)-1], nil // cut '\n'
+	return out, hadTag, nil
 }
 
-func (s *DeploySrv) loadImage(ctx context.Context,
+func loadImage(ctx context.Context,
 	dapp *metadata.DeployedApp, docker *client.Client) error {
 
 	/* NOTE: ImageLoad could read directly from our HTTP stream that's
@@ -172,7 +179,7 @@ func (s *DeploySrv) loadImage(ctx context.Context,
 	if !respLoad.JSON {
 		return fmt.Errorf("No JSON output loading app %s", dapp.App.Id)
 	}
-	imageName, err := parseImageName(respLoad.Body)
+	imageName, hadTag, err := parseImageName(respLoad.Body)
 	if err != nil {
 		return err
 	}
@@ -180,9 +187,11 @@ func (s *DeploySrv) loadImage(ctx context.Context,
 	if err = docker.ImageTag(ctx, imageName, dapp.App.Id); err != nil {
 		return err
 	}
-	// TODO: remove the original tag
+	if hadTag {
+		_, err = docker.ImageRemove(ctx, imageName, types.ImageRemoveOptions{})
+	}
 
-	return nil
+	return err
 }
 
 func (s *DeploySrv) DeployContainer(ctx context.Context,
@@ -200,14 +209,24 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	}
 
 	// Load the image first
-	if err = s.loadImage(ctx, dapp, docker); err != nil {
+	if err = loadImage(ctx, dapp, docker); err != nil {
 		return nil, err
 	}
+
+	defer func() { /* We're far enough to warrant metadata update. */
+		if err = dapp.Save(true); err != nil {
+			log.Errf("Failed to save initial state of %v: %+v", pbapp.Id, err)
+		}
+	}()
+	// Status will be error unless explicitly reset
+	dapp.App.Status = pb.LifecycleStatus_ERROR
 
 	if s.cfg.KubernetesMode { // this mode requires us to only upload the image
 		if err = dapp.SetDeployed(""); err != nil {
 			return nil, errors.Wrapf(err, "SetDeployed(%v) failed", pbapp.Id)
 		}
+		dapp.App.Status = pb.LifecycleStatus_READY
+
 		return &empty.Empty{}, nil // success
 	}
 
@@ -230,9 +249,6 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 		return nil, errors.Wrapf(err, "SetDeployed(%v) failed", pbapp.Id)
 	}
 	dapp.App.Status = pb.LifecycleStatus_READY
-	if err = dapp.Save(true); err != nil {
-		return nil, err
-	}
 
 	return &empty.Empty{}, nil
 }
@@ -355,10 +371,10 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 		log.Errf("Could not find container ID for '%v'", dapp.App.Id)
 	}
 	_, err = docker.ImageRemove(ctx, dapp.App.Id, types.ImageRemoveOptions{})
-	log.Infof("Docker image %v removed", dapp.App.Id)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "ImageRemove(%v) failed", dapp.App.Id)
 	}
+	log.Infof("Docker image '%v' removed", dapp.App.Id)
 
 	return dapp.SetUndeployed()
 }
@@ -390,10 +406,12 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 	log.Infof("Undeploy(%s) running", app.Id)
 	dapp, err := s.meta.Load(app.Id)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Application %v not found", app.Id)
+		return nil, status.Errorf(codes.FailedPrecondition,
+			"Application %v not found: %v", app.Id, err)
 	}
 	if !dapp.IsDeployed {
-		return nil, fmt.Errorf("Application %v is not deployed", app.Id)
+		return nil, status.Errorf(codes.FailedPrecondition,
+			"Application %v is not deployed", app.Id)
 	}
 
 	switch dapp.Type {
@@ -402,18 +420,29 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 	case metadata.VM:
 		err = libvirtUndeploy(ctx, dapp)
 	default:
-		err = status.Errorf(codes.Unimplemented, "not implemented app type")
+		return nil, status.Errorf(codes.Unimplemented,
+			"not implemented app type %v", dapp.Type)
 	}
 
-	if err == nil {
-		if os.Remove(dapp.ImageFilePath()) == nil {
-			log.Infof("Deleted image file of %v", app.Id)
+	defer func() {
+		if err = dapp.Save(true); err != nil {
+			log.Errf("Failed to save final state of %v: %+v", app.Id, err)
 		}
-		dapp.App.Status = pb.LifecycleStatus_UNKNOWN
-		if err2 := dapp.Save(true); err2 != nil {
-			log.Errf("Failed to save final state of %v: %v", app.Id, err2)
-		}
+	}()
+
+	if err != nil {
+		log.Errf("Undeploy(%v) failed: %+v", app.Id, err)
+		dapp.App.Status = pb.LifecycleStatus_ERROR /* We're in a bad state. */
+
+		return nil, status.Errorf(codes.Internal,
+			"Undeploy(%v) failed: %v", app.Id, err)
 	}
 
-	return &empty.Empty{}, err
+	if os.Remove(dapp.ImageFilePath()) == nil {
+		log.Infof("Deleted image file of %v", app.Id)
+	}
+	/* App is removed, no state left. */
+	dapp.App.Status = pb.LifecycleStatus_UNKNOWN
+
+	return &empty.Empty{}, nil
 }
