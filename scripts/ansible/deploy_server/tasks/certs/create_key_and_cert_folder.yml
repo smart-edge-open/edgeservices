@@ -1,0 +1,4 @@
+- name: Create certs folder if missing
+  file: 
+    path: "/var/lib/appliance/certs"
+    state: directory

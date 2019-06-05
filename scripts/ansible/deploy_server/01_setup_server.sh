@@ -17,4 +17,4 @@
 #
 #
 source ../common/scripts/ansible-precheck.sh
-ansible-playbook ./tasks/main.yml --connection=local
+ansible-playbook ./tasks/setup_server.yml --connection=local

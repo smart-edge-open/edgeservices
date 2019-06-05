@@ -1,0 +1,11 @@
+  - name: Check SELinux status
+    shell: getenforce
+    changed_when: false
+    register: selinux_status
+
+  - debug:
+      msg: "SELinux status: {{ selinux_status.stdout }}"
+
+  - fail:
+      msg: "SELinux not disabled. Please disable it permamently by modifying file /etc/selinux/config and setting SELINUX variable to either permissive or disabled value, or deactivate SELINUX now till next machine reboot with 'setenforce 0' command and re-run this script again. After the change, please re-run this script again."
+    when: ("Enabled" in selinux_status.stdout) or ("Enforcing" in selinux_status.stdout)

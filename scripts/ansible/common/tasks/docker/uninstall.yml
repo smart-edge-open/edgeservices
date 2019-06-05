@@ -2,4 +2,3 @@
   yum: 
     name: "{{ docker_legacy_packages }}"
     state: absent
-

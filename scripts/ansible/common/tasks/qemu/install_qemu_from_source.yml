@@ -1,0 +1,31 @@
+  - name: Remove old qemu download directory
+    become: true
+    file:
+      path: "{{ qemu_downloaddir }}"
+      state: absent
+
+  - name: Create qemu download directory
+    become: true
+    file:
+      path: "{{ qemu_downloaddir }}"
+      state: directory
+
+  - name: Download and extract qemu
+    become: true
+    unarchive: 
+      src: "{{ qemu_url }}"
+      dest: "{{ qemu_downloaddir }}"
+      remote_src: yes
+      extra_opts: "--strip-components=1"
+
+  - name: Configure qemu
+    become: true
+    command: ./configure --target-list={{ qemu_target_list }} --enable-kvm
+    args: 
+      chdir: "{{ qemu_downloaddir }}"
+
+  - name: Compile qemu and install it
+    become: true
+    command: make install 
+    args: 
+      chdir: "{{ qemu_downloaddir }}"

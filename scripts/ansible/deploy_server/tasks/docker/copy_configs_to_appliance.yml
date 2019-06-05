@@ -1,0 +1,6 @@
+- name: Copy configuration files to appliance shared location
+  copy:
+    src: "{{ base_path }}/configs"
+    dest: /var/lib/appliance/
+    directory_mode: yes
+    remote_src: no

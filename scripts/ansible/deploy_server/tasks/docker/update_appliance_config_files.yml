@@ -1,0 +1,2 @@
+- name: Update appliance config files
+  shell: jq ".enrollment.endpoint=\"{{ enrollment_endpoint }}\" | .useSyslog=true | .syslogAddr=\"192.168.122.1:514\"" /var/lib/appliance/configs/appliance.json | sponge /var/lib/appliance/configs/appliance.json

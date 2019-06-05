@@ -1,0 +1,5 @@
+- name: Copy logrotate config file for rotating /var/log/appliance files
+  copy:
+    src: "{{ base_path }}/scripts/ansible/deploy_server/configs/logrotate/appliance"
+    dest: /etc/logrotate.d/
+    remote_src: no

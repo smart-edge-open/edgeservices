@@ -1,7 +1,4 @@
-- name: Create certs folder if missing
-  file: 
-    path: "{{ base_path }}/certs"
-    state: directory
+- include_tasks: ./create_key_and_cert_folder.yml
 
 - name: Generate empty cert and key file
   file:
@@ -9,8 +6,7 @@
     state: touch
     owner: root
     group: root
-    mode: 440
+    mode: 600
   with_items:
-    - "{{ base_path }}/certs/key.pem"
-    - "{{ base_path }}/certs/cert.pem"
-
+    - "/var/lib/appliance/certs/key.pem"
+    - "/var/lib/appliance/certs/cert.pem"

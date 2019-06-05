@@ -5,4 +5,3 @@
     state: stopped
     force: true
   when: docker_service_status.rc == 0
-

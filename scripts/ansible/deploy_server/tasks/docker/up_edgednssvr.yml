@@ -1,4 +1,4 @@
 - name: Bring up edgednssvr container
-  shell: "REMOTE_SYSLOG_IP={{ remote_syslog_endpoint }} VER={{ docker_edgednssvr_tag }} docker-compose up -d --no-build edgednssvr"
+  shell: "LOCAL_SYSLOG_IP=192.168.122.1 VER={{ docker_edgednssvr_tag }} docker-compose up -d --no-build edgednssvr"
   args:
     chdir: "{{ base_path }}"

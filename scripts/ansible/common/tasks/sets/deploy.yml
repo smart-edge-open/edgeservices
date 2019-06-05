@@ -1,0 +1,32 @@
+  # Cleanup
+  - include_tasks: ../../common/tasks/docker/remove_images_and_containers.yml
+
+  # Docker
+  - include_tasks: ../../common/tasks/docker/import_images_from_location.yml
+  - include_tasks: ../../../deploy_server/tasks/docker/remove_additional_folder_structure.yml
+  - include_tasks: ../../../deploy_server/tasks/docker/create_additional_folder_structure.yml
+
+  # Certs
+  - include_tasks: ../../../deploy_server/tasks/certs/remove_certificates_and_keys.yml
+  - include_tasks: ../../../deploy_server/tasks/certs/create_empty_cert_and_key.yml
+
+  # Copy config files
+  - include_tasks: ../../../deploy_server/tasks/docker/copy_nts_config.yml
+  - include_tasks: ../../../deploy_server/tasks/docker/copy_configs_to_appliance.yml
+
+  # Logrotate
+  - include_tasks: ../../../deploy_server/tasks/os/copy_logrotate_file.yml
+
+  # Bring up containers
+  - include_tasks: ../../../deploy_server/tasks/docker/up_syslog_ng.yml
+  - include_tasks: ../../../deploy_server/tasks/docker/up_edgednssvr.yml
+  - include_tasks: ../../../deploy_server/tasks/docker/up_nts.yml
+  - include_tasks: ../../../deploy_server/tasks/docker/up_appliance.yml
+  - include_tasks: ../../../deploy_server/tasks/docker/get_containers_ids.yml
+
+  # Certificates and keys exchange
+  - include_tasks: ../../../deploy_server/tasks/docker/generate_key.yml
+  - include_tasks: ../../../deploy_server/tasks/docker/wait_for_controller_certs.yml
+
+  # Restart containers
+  - include_tasks: ../../../deploy_server/tasks/docker/restart_syslog_ng.yml

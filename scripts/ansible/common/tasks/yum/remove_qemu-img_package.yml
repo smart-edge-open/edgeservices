@@ -1,0 +1,6 @@
+- name: Remove qemu-img package
+  shell: rpm -e --nodeps qemu-img
+  ignore_errors: true
+  changed_when: false
+  args:
+    warn: false

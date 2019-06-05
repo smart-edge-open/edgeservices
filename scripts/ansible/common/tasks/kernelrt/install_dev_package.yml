@@ -2,4 +2,3 @@
   yum:
     name: kernel-rt-devel
     state: present
-

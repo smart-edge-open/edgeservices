@@ -1,0 +1,9 @@
+- name: Obtain libvirtd service status
+  service_facts:
+
+- name: Restart libvirtd service if available
+  systemd:
+    name: libvirtd
+    state: restarted
+    force: true
+  when: "'libvirtd.service' in services"

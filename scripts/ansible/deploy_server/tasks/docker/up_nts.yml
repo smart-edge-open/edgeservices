@@ -1,4 +1,4 @@
 - name: Bring up nts container
-  shell: "REMOTE_SYSLOG_IP={{ remote_syslog_endpoint }} VER={{ docker_nts_tag }} docker-compose up --no-start --no-build nts"
+  shell: "VER={{ docker_nts_tag }} docker-compose up --no-start --no-build nts"
   args:
     chdir: "{{ base_path }}"

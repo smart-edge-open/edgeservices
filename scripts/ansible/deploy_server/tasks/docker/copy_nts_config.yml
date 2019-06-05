@@ -5,4 +5,3 @@
     src: "{{ base_path }}/internal/nts/nts.cfg"
     dest: /var/lib/appliance/nts/nts.cfg
     remote_src: no
-      

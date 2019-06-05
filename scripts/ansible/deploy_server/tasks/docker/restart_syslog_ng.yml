@@ -1,5 +1,4 @@
-- name: remove container
-  docker_container:
-    name: "{{ docker_syslog_ng_container_name }}"
-    state: started
-    restart: yes
+- name: Restart syslog-ng container
+  shell: "REMOTE_SYSLOG_IP={{ remote_syslog_endpoint }} VER={{ docker_syslog_ng_tag }} docker-compose restart syslog-ng"
+  args:
+    chdir: "{{ base_path }}"

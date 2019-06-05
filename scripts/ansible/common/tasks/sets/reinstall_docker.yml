@@ -1,0 +1,8 @@
+# Docker
+- include_tasks: ../../common/tasks/docker/restart.yml
+- include_tasks: ../../common/tasks/docker/remove_images_and_containers.yml
+- include_tasks: ../../common/tasks/docker/stop.yml
+- include_tasks: ../../common/tasks/docker/uninstall.yml
+- include_tasks: ../../common/tasks/docker/install.yml
+- include_tasks: ../../common/tasks/docker/enable.yml
+- include_tasks: ../../common/tasks/docker/install_compose_tool.yml

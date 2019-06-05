@@ -1,0 +1,3 @@
+# Override global build and deploy server variables here
+---
+packages_to_install: "autoconf,automake,bison,boost-devel,bridge-utils,cmake,curl,device-mapper-persistent-data,fcgi-devel,flex,gcc-c++,git,glib2-devel,hiredis-devel,jsoncpp-devel,libtool,libvirt,libvirt-devel,lvm2,numactl-devel,openssl-devel,pciutils,pcre-devel,pixman-devel,psmisc,python-httplib2,python-pip,python-websocket-client,vim-common,wget,yum-utils,zlib-devel"

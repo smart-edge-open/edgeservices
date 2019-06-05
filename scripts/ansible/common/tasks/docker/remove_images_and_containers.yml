@@ -1,12 +1,14 @@
 - name: Check Docker service
   shell: systemctl status docker
   ignore_errors: true
+  changed_when: false
   args:
     warn: false
   register: docker_service_status
 
 - name: Check Docker containers running
   shell: docker ps -a -q
+  changed_when: false
   register: docker_containers_running
   when: docker_service_status.rc == 0
 
@@ -18,6 +20,7 @@
 
 - name: Check Docker images
   shell: docker images -q
+  changed_when: false
   register: docker_images_present
   when: docker_service_status.rc == 0
     
@@ -26,4 +29,3 @@
   when: 
     - docker_service_status.rc == 0
     - docker_images_present.stdout != ''
-

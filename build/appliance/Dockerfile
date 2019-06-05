@@ -18,5 +18,6 @@ RUN yum install -y libvirt-devel pciutils
 WORKDIR /root/
 COPY ./appliance .
 COPY ./dpdk-devbind.py .
-
+ENV HTTP_PROXY=""
+ENV HTTPS_PROXY=""
 CMD ["./appliance"]

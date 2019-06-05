@@ -2,4 +2,3 @@
   yum: 
     name: "{{ epel_repository_package_link }}"
     state: present
-

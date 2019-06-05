@@ -2,4 +2,3 @@
   shell: yum clean all
   args:
     warn: false
-

@@ -22,13 +22,14 @@
   - debug:
       msg: "Base path set to: {{ base_path }}"
 
-  # Tasks
+  - include_tasks: ../../common/tasks/os/check_selinux_is_disabled.yml
   - include_tasks: ../../common/tasks/os/reread_shell_profile.yml
   - include_tasks: ../../common/tasks/kernelrt/fail_if_no_rt_running.yml
   - include_tasks: ../../common/tasks/docker/remove_images_and_containers.yml
   - include_tasks: ../../common/tasks/build/binaries.yml
   - include_tasks: ../../common/tasks/docker/build_images.yml
   - include_tasks: ../../common/tasks/docker/save_images.yml
-  
-  # Finish
   - include_tasks: ../../common/tasks/other/script_success.yml
+  - include_tasks: ../tasks/docker/print_docker_images_location.yml
+  - include_tasks: ../../common/tasks/other/script_success.yml
+

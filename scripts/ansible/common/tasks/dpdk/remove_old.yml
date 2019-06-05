@@ -7,4 +7,3 @@
   file:
     path: "{{ dpdk_install_location }}"
     state: absent
-

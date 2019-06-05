@@ -7,4 +7,3 @@
     state: restarted
     force: true
   when: "'docker.service' in services"
-

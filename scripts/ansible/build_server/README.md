@@ -18,14 +18,14 @@ limitations under the License.
 The purpose of the scripts available in this folder is to automate the process of build server setup, its services configuration, binaries compilation and in general - automate most common manual operations operator would have to carry out manually step by step when setting up build server.
 
 Scripts available here will download needed packages from defined repositories, resolve dependencies, configure services,
-build binaries or build Docker images. Instead of running separate commands, operator will run only two specific scripts.
+build binaries or build Docker images. Instead of running separate commands, operator will run only three specific scripts.
 The scripts invoke commands from yaml files that are then processed by Ansible automation platform.
 Make sure to read given NOTES below and troubleshooting section.
 
 ### Prerequisites
 Before running any script provided, please make sure that the following requirements are already met:
-- server is running CentOS 7.5 18.10 release (minimal install is fine; no GUI is needed)
-- connection to the internet is available (mostly TCP ports 80 and 443)
+- server is running CentOS 7.5 18.10 release (minimal install recommended; no GUI is needed)
+- connection to the internet is available (TCP ports 21, 80 and 443)
 - if proxy is used, make sure that it is set up correctly before running any further scripts (see chapter 3.)
 - operating system software is up to date (run yum update before running any script)
 - root account is required (each script requires root permissions)
@@ -49,8 +49,8 @@ available in those example files.
    Add one line for http proxy to your yum.conf file as shown in `../examples/proxy/etc/yum.conf`
    > Tip: Make sure the port is correct and slash sign (/) is present at the end of the line.
 ##### Docker service
-* `/etc/systemd/system/docker.service.d/http_proxy.conf`
-   Example configuration for docker service is inside file `../examples/proxy/systemd/system/docker.service.d/http_proxy.conf`
+* `/etc/systemd/system/docker.service.d/http-proxy.conf`
+   Example configuration for docker service is inside file `../examples/proxy/etc/systemd/system/docker.service.d/http-proxy.conf`
    If you do not have Docker configured and this file is missing in /etc folder, you may copy example this file to given path in
    /etc folder and modify it according to your needs.
 * `/root/.docker/config.json`
@@ -66,7 +66,8 @@ the internet is reachable with given proxy settings. DO NOT install or upgrade a
 The following automation scripts are available to operator. 
 For build server in `./build_server` subfolder:
   - `01_setup_server.sh`
-  - `02_build_images.sh`
+  - `02_install_tools.sh`
+  - `03_build_images.sh`
 > Tip: All of them need to be run in correct order as instructed below.
 
 #####  01_setup_server.sh
@@ -75,16 +76,17 @@ Root permissions are needed and it's advised to run it directly from root accoun
 Script will then:
   - add EPEL repository to yum packet management system
   - install required rpm packages for build process
-  - install services (including Docker CE)
   - install RT kernel
   - modify grub configuration
   - disable yum plugins
 
 >  NOTE:
   All docker images and containers that are present on the server will be removed.
-  NOTE:
+
+>  NOTE:
   Please do not rebuild grub configuration file or edit it manually (`/boot/grub2/grub.cfg`).
 
+>  NOTE: If SELinux is enabled, it will be disabled temporarily for the time of running script, but also permanently set to disabled (permissive mode) after server reboot.
 ##### Run script:
   * Log in as root user or switch to user account with command:
     ```     
@@ -100,20 +102,40 @@ Script will then:
     ```
     # reboot
     ```
-  * There is no need to select kernel at in grub, as the newly installed RT will be picked up.
-  * Run first script again 
-    ```
-    ./01_setup_server.sh
-    ```
-  * This time, additional packages will be installed, along with GO language and Docker CE.
-     
-    >  NOTE: Any previously build Docker images/containers will be removed without any warning.
+  * There is no need to manually select kernel during boot process, as the newly installed RT kernel will be picked up
+  * Once it is up again, please run a second script called: 02_install_tools.sh
 
-  * Once required operations complete, this script job is done.
-  * Now you are ready to run a second script called: 02_build_images.sh
+##### 02_install_tools.sh
+This is the second script that operator needs to run.
+Root permissions are needed and it's advised to run it directly from root account (not via sudo).
+Script will download and install the following packages and languages:
+  - Docker CE package
+  - QEMU in a correct version
+  - DPDK package
+  - GO language
+  
+>  NOTE:
+  All docker images and containers that are present on the server will be removed.
 
-##### 02_build_images.sh
-This is the second script that operator needs to run on build machine (node).
+>  NOTE:
+  Please do not rebuild grub configuration file or edit it manually (`/boot/grub2/grub.cfg`).
+
+##### Run script:
+  * Log in as root user or switch to user account with command:
+    ```     
+    $ su -
+    ```
+  * Run the script
+    ```
+    ./02_install_tools.sh
+    ```
+  * Watch for possible errors and fix them once they appear and script execution is stopped.
+  * Wait till all steps complete.
+   * Once required operations complete, this script job is done.
+  * Now you are ready to run a third script called: 03_build_images.sh
+
+##### 03_build_images.sh
+This is the third last script that operator needs to run on build machine (node).
 Root permissions are needed and it's advised to run script directly from root account (not via sudo).
 It's purpose is to:
 - remove all previous Docker images and containers (if present)
@@ -121,6 +143,7 @@ It's purpose is to:
 - build new Docker images for the following components:
     * appliance
     * edgednssvr
+    * nts
 - export Docker images to filesystem
 
 ##### Run script:
@@ -130,7 +153,7 @@ It's purpose is to:
     ```
   * Run script
     ```
-    ./02_build_images.sh
+    ./03_build_images.sh
     ```
   * Watch for possible errors and fix them once they appear and script execution is stopped.
   * Wait till all steps complete.
@@ -140,15 +163,17 @@ It's purpose is to:
 
 ### Troubleshooting
 * Some step failed
-  If - for some reason - any shell script fails at some step, you can safely run it again.
+  - If - for some reason - any shell script fails at some step, you can safely run the script again.
 * Script stops/freezes at fetching packages
   Make sure proxy is configured properly in operating system, according to guide provided above.
   if problem still persists, run the following command as root user and rerun shell script again.
   ```
    # yum clean all
    ```
-* Build step fails
-  Some fetched packets might get corrupted - remove the following folders:
-  ```
-  # rm -rf /root/go
-  ```
+* Connectivity issue 
+  - If script cannot fetch packages from the internet, make sure no any firewall blocks connections
+  to the external services on the internet on TCP port 80,443
+  - Some fetched packets might get corrupted when downloading - remove the following folders:
+    ```
+    # rm -rf /root/go
+    ```

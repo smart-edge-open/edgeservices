@@ -1,0 +1,4 @@
+- name: Set SELinux to permissive mode (till next reboot)
+  command: setenforce 0
+  ignore_errors: true
+  changed_when: false

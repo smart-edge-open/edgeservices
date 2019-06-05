@@ -3,7 +3,7 @@
   args:
     warn: false
   ignore_errors: true
+  changed_when: false
   register: kernel_rt_version_installed
 - debug:
     msg: "...kernel RT installed: {{ kernel_rt_version_installed.stdout  }} "
-

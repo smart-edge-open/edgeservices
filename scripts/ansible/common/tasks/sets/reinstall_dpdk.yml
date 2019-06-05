@@ -1,0 +1,5 @@
+# DPDK
+- include_tasks: ../../common/tasks/dpdk/remove_old.yml
+- include_tasks: ../../common/tasks/dpdk/download.yml
+- include_tasks: ../../common/tasks/dpdk/compile.yml
+- include_tasks: ../../common/tasks/dpdk/move_to_install_location.yml

@@ -35,6 +35,9 @@ docker_repo_file: "https://download.docker.com/linux/centos/docker-ce.repo"
 docker_repo_gpg_file: "https://download.docker.com/linux/centos/gpg"
 docker_legacy_packages: "docker,docker-client,docker-client-latest,docker-common,docker-latest,docker-latest-logrotate,docker-logrotate,docker-engine"
 docker_packages: "docker-ce,docker-ce-cli,containerd.io"
-
-
-
+#
+qemu_name: "qemu-3.0.1"
+qemu_url: "http://download.qemu.org/{{ qemu_name }}.tar.xz"
+qemu_downloaddir: "/temp/qemu_downloaddir"
+qemu_target_list: "x86_64-softmmu"
+qemu_extract_relative_path: "../temp/qemu/"

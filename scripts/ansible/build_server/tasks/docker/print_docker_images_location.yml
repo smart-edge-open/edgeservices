@@ -1,0 +1,4 @@
+- debug:
+    msg: 
+      - "Images were saved to the following folder:"
+      - "{{ base_path}}/dist"

@@ -1,0 +1,2 @@
+- name: Generate Docker network config file
+  shell: "{{ base_path }}/scripts/ansible/deploy_server/scripts/write_docker_daemon_config_file.sh \"192.168.122.0/25\""

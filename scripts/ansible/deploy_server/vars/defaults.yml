@@ -1,5 +1,5 @@
 ---
-packages_to_install: "curl,yum-utils,device-mapper-persistent-data,lvm2,python-pip,libvirt,libvirt-devel,wget,bridge-utils,boost-devel,openssl-devel,pcre-devel,zlib-devel,glib2-devel,autoconf,automake,libtool,flex,bison,git,cmake,pciutils,python-websocket-client,jsoncpp-devel,fcgi-devel,hiredis-devel,numactl-devel,gcc-c++,psmisc,python-httplib2,vim-common"
+packages_to_install: "pixman-devel,curl,yum-utils,device-mapper-persistent-data,lvm2,python-pip,libvirt,libvirt-devel,wget,bridge-utils,boost-devel,openssl-devel,pcre-devel,zlib-devel,glib2-devel,autoconf,automake,libtool,flex,bison,git,cmake,pciutils,python-websocket-client,jsoncpp-devel,fcgi-devel,hiredis-devel,numactl-devel,gcc-c++,psmisc,python-httplib2,vim-common"
 docker_image_import_location_path: "{{ base_path }}/dist"
 docker_syslog_ng_tag: "1.0"
 docker_edgednssvr_tag: "1.0"
@@ -17,4 +17,3 @@ docker_nts_tag_container_id: ""
 docker_appliance_container_id: ""
 #
 remote_syslog_endpoint: "192.168.1.1"
-

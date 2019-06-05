@@ -14,4 +14,3 @@
     url: "{{ centos_rt_repo_file }}"
     dest: /etc/yum.repos.d/
     mode: 0644
-

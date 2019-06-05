@@ -1,0 +1,52 @@
+- include: ../../../common/tasks/libvirt/libvirtd_restart.yml
+
+- name: Remove libvirt network config file
+  file:
+    state: absent
+    path: /usr/share/libvirt/networks/default.xml
+
+- name: Create libvirt network config file
+  file:
+    state: touch
+    path: /usr/share/libvirt/networks/default.xml
+
+- name: Create new default virsh network config
+  blockinfile:
+    path: /usr/share/libvirt/networks/default.xml
+    marker: ""
+    block: |
+      <network>
+        <name>default</name>
+        <bridge name="virbr0"/>
+        <forward/>
+        <dns>
+          <host ip="192.168.122.1">
+            <hostname>eaa.community.appliance.mec</hostname>
+          </host>
+          <host ip="192.168.122.1">
+            <hostname>syslog.community.appliance.mec</hostname>
+          </host>
+        </dns>
+        <ip address="192.168.122.1" netmask="255.255.255.0">
+          <dhcp>
+            <range start="192.168.122.128" end="192.168.122.254"/>
+          </dhcp>
+        </ip>
+      </network>
+
+- name: Reset old libvirt network defaults
+  shell: virsh net-destroy default
+  ignore_errors: true
+
+- name: Undefine old libvirt network defaults
+  shell: virsh net-undefine default
+  ignore_errors: true
+
+- name: Define newly set up libvirt network settings
+  shell: virsh net-define /usr/share/libvirt/networks/default.xml
+
+- name: Enable libvirt default network autostart
+  shell: virsh net-autostart default
+
+- name: Start libvirt default network
+  shell: virsh net-start default

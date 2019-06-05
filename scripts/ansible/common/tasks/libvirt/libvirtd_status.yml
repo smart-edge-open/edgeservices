@@ -1,0 +1,6 @@
+- name: Check libvirtd service
+  shell: systemctl status libvirtd
+  ignore_errors: true
+  args:
+    warn: false
+  register: libvirtd_service_status

@@ -4,6 +4,3 @@
   args:
     chdir: "{{ dpdk_downloaddir }}"
   register: dpdk_makeinstall_output
-- debug:
-    msg: "{{ dpdk_makeinstall_output }}"
-

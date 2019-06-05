@@ -1,0 +1,19 @@
+  # Base OS setup
+  - include_tasks: ../../common/tasks/os/disable_selinux_temporarily.yml
+  - include_tasks: ../../common/tasks/os/disable_selinux_permanently.yml
+  - include_tasks: ../../common/tasks/os/check_selinux_is_disabled.yml
+  - include_tasks: ../../common/tasks/yum/clean_all.yml
+  - include_tasks: ../../common/tasks/yum/disable_plugins.yml
+  - include_tasks: ../../common/tasks/yum/install_epel_package.yml
+  - include_tasks: ../../common/tasks/kernelrt/install_repo.yml
+  - include_tasks: ../../common/tasks/docker/install_repo.yml
+  - include_tasks: ../../common/tasks/kernelrt/install.yml
+  - include_tasks: ../../common/tasks/kernelrt/get_currently_installed.yml
+  - include_tasks: ../../common/tasks/kernelrt/update_grub_params.yml
+  - include_tasks: ../../common/tasks/kernelrt/get_currently_running.yml
+  - include_tasks: ../../common/tasks/kernelrt/get_grub_index.yml
+  - include_tasks: ../../common/tasks/kernelrt/set_boot_to_rt.yml
+  - include_tasks: ../../common/tasks/os/enable_ipv4_forwarding.yml
+  - include_tasks: ../../common/tasks/yum/install_base_packages.yml
+  - include_tasks: ../../common/tasks/kernelrt/install_dev_package.yml
+

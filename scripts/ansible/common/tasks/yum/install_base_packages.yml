@@ -4,4 +4,3 @@
     state: present
     skip_broken: yes
     update_cache: yes
-

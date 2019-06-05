@@ -1,0 +1,7 @@
+- include: libvirtd_status.yml
+- name: Stop libvirtd service if running
+  systemd:
+    name: libvirtd
+    state: stopped
+    force: true
+  when: libvirtd_service_status.rc == 0
