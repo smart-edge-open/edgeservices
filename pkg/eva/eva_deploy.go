@@ -22,6 +22,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
+
 	"strings"
 	"time"
 
@@ -30,8 +32,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-
-	"github.com/libvirt/libvirt-go-xml"
+	libvirtxml "github.com/libvirt/libvirt-go-xml"
 
 	"github.com/pkg/errors"
 	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
@@ -60,7 +61,7 @@ func downloadImage(url string, target string) error {
 		defer resp.Body.Close()
 		input = resp.Body
 	} else {
-		file, err := os.Open(url)
+		file, err := os.Open(filepath.Clean(url))
 		if err != nil {
 			return err
 		}
@@ -73,10 +74,10 @@ func downloadImage(url string, target string) error {
 		return errors.Wrap(err, "Failed to create image file")
 	}
 	_, err = io.Copy(output, input)
-	output.Close()
-
+	if err1 := output.Close(); err == nil {
+		err = err1
+	}
 	log.Infof("Downloaded %v", url)
-
 	return err
 }
 

@@ -20,6 +20,7 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 )
@@ -28,7 +29,7 @@ const filePerm = os.FileMode(0600)
 
 // readFileWithPerm reads a file after verifying permissions
 func readFileWithPerm(path string, perm os.FileMode) ([]byte, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to open %s", path)
 	}
@@ -86,11 +87,15 @@ func SaveKey(key crypto.PrivateKey, path string) error {
 		return errors.Wrapf(err, "Failed to open %s", path)
 	}
 	if err = f.Chmod(filePerm); err != nil {
-		f.Close()
+		if err1 := f.Close(); err1 != nil {
+			err = errors.Wrapf(err, "Failed to close file: %#v", err1)
+		}
 		return errors.Wrap(err, "Failed to set file permissions")
 	}
 	if _, err = f.Write(data); err != nil {
-		f.Close()
+		if err1 := f.Close(); err1 != nil {
+			err = errors.Wrapf(err, "Failed to close file: %#v", err1)
+		}
 		return errors.Wrap(err, "Failed to write key to file")
 	}
 	return f.Close()
@@ -146,7 +151,9 @@ func SaveCert(path string, certs ...*x509.Certificate) error {
 		return errors.Wrapf(err, "Failed to open %s", path)
 	}
 	if err = f.Chmod(filePerm); err != nil {
-		f.Close()
+		if err1 := f.Close(); err1 != nil {
+			err = errors.Wrapf(err, "Failed to close file: %#v", err1)
+		}
 		return errors.Wrap(err, "Failed to set file permissions")
 	}
 
@@ -158,7 +165,9 @@ func SaveCert(path string, certs ...*x509.Certificate) error {
 				Bytes: cert.Raw,
 			},
 		); err != nil {
-			f.Close()
+			if err1 := f.Close(); err1 != nil {
+				err = errors.Wrapf(err, "Failed to close file: %#v", err1)
+			}
 			return errors.Wrapf(err, "Failed to encode certificate to file")
 		}
 	}

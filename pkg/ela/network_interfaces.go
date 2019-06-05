@@ -18,14 +18,16 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"github.com/kata-containers/runtime/virtcontainers/pkg/nsenter"
 	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/kata-containers/runtime/virtcontainers/pkg/nsenter"
 
 	"github.com/pkg/errors"
 	"github.com/smartedgemec/appliance-ce/pkg/ela/ini"
@@ -41,17 +43,16 @@ type NetworkDevice struct {
 	Direction    pb.NetworkInterface_InterfaceType
 }
 
-func checkIfCommandAvailable(command string) error {
-	cmd := exec.Command("command", "-v", command)
-	return cmd.Run()
-}
-
 func getNetworkPCIs() ([]NetworkDevice, error) {
-	if checkIfCommandAvailable("lspci") != nil {
+
+	// #nosec G204 - called with lspci
+	cmd := exec.Command("command", "-v", "lspci")
+	if err := cmd.Run(); err != nil {
 		return nil, errors.New("command `lspci` is not available")
 	}
 
-	cmd := exec.Command("bash", "-c",
+	// #nosec G204 - command is const
+	cmd = exec.Command("bash", "-c",
 		`lspci -Dmm | grep -i "Ethernet\|Network"`)
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -115,7 +116,7 @@ func fillMACAddrForKernelDevs(devs []NetworkDevice) error {
 	for _, iface := range ifs {
 		ueventPath := path.Join("/var/host_net_devices", iface.Name,
 			"device/uevent")
-		content, err := ioutil.ReadFile(ueventPath)
+		content, err := ioutil.ReadFile(filepath.Clean(ueventPath))
 		if err != nil {
 			if os.IsNotExist(err) {
 				// "File not found" is expected

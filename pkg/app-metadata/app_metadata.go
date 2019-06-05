@@ -161,7 +161,9 @@ func (a *DeployedApp) Save(updateOnly bool) error {
 	}
 
 	_, err = file.Write(bytes)
-	file.Close()
+	if err1 := file.Close(); err == nil {
+		err = err1
+	}
 	if err != nil {
 		return err
 	}
@@ -178,7 +180,9 @@ func (a *DeployedApp) SetDeployed(deployedID string) error {
 	/* We also store the deployed ID in here */
 	bytes := []byte(deployedID)
 	_, err = file.Write(append(bytes, '\n'))
-	file.Close()
+	if err1 := file.Close(); err == nil {
+		err = err1
+	}
 
 	log.Infof("created the deployed indicator: %s", file.Name())
 

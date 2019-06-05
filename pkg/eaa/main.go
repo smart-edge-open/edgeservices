@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
 	"github.com/smartedgemec/appliance-ce/pkg/util"
@@ -69,7 +70,7 @@ func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
 
 	certPool := x509.NewCertPool()
 
-	certs, err := ioutil.ReadFile(caFile)
+	certs, err := ioutil.ReadFile(filepath.Clean(caFile))
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +132,9 @@ func RunServer(parentCtx context.Context) error {
 	go func() {
 		<-parentCtx.Done()
 		log.Info("Executing graceful stop")
-		server.Close()
+		if err = server.Close(); err != nil {
+			log.Errf("Could not close server: %#v", err)
+		}
 	}()
 
 	defer log.Info("Stopped EAA serving")

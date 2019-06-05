@@ -147,6 +147,7 @@ func rebindDevices(nts *ini.NtsConfig) error {
 		return nil
 	}
 
+	// #nosec G204 - bindParams controlled and checked above
 	cmd := exec.Command("/root/dpdk-devbind.py", bindParams...)
 	var out bytes.Buffer
 	cmd.Stdout = &out

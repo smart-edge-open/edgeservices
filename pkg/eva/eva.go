@@ -148,7 +148,7 @@ func prepareCreds(cfg *Config) (credentials.TransportCredentials, error) {
 		return nil, errors.Wrap(err, "Failed to load server key pair")
 	}
 	certPool := x509.NewCertPool()
-	ca, err := ioutil.ReadFile(caPath)
+	ca, err := ioutil.ReadFile(filepath.Clean(caPath))
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to read ca certificates")
 	}
@@ -173,7 +173,7 @@ func sanitizeConfig(cfg *Config) error {
 	if cfg.MaxAppMem <= 0 {
 		return fmt.Errorf("MaxCores value invalid: %d", cfg.MaxAppMem)
 	}
-	err := os.MkdirAll(cfg.AppImageDir, 0777)
+	err := os.MkdirAll(cfg.AppImageDir, 0750)
 	if err != nil {
 		log.Errf("Unable to create AppImageDir: %v", err)
 	}

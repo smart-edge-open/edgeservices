@@ -57,7 +57,7 @@ func runServer(ctx context.Context) error {
 		return err
 	}
 	certPool := x509.NewCertPool()
-	ca, err := ioutil.ReadFile(caPath)
+	ca, err := ioutil.ReadFile(filepath.Clean(caPath))
 	if err != nil {
 		log.Errf("Failed read ca certificates: %v", err)
 		return err
