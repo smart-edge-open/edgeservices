@@ -23,8 +23,8 @@
       msg: "Base path set to: {{ base_path }}"
 
   - include_tasks: ../../common/tasks/os/check_selinux_is_disabled.yml
+  - include_tasks: ../../common/tasks/kernelrt/validate_currently_running.yml
   - include_tasks: ../../common/tasks/os/reread_shell_profile.yml
-  - include_tasks: ../../common/tasks/kernelrt/fail_if_no_rt_running.yml
   - include_tasks: ../../common/tasks/docker/remove_images_and_containers.yml
   - include_tasks: ../../common/tasks/build/binaries.yml
   - include_tasks: ../../common/tasks/docker/build_images.yml

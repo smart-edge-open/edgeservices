@@ -27,4 +27,7 @@
   - include_tasks: ../../common/tasks/yum/remove_qemu-img_package.yml
   - include_tasks: ../../common/tasks/qemu/install_qemu_from_source.yml
   - include_tasks: ../../common/tasks/sets/reinstall_dpdk.yml
+  - include_tasks: ../../common/tasks/dpdk/enable_load_modules_at_boot.yml
+  - include_tasks: ../../common/tasks/dpdk/unload_modules.yml
+  - include_tasks: ../../common/tasks/dpdk/load_modules.yml  
   - include_tasks: ../../common/tasks/other/script_success.yml

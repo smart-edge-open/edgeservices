@@ -1,3 +1,6 @@
+- debug:
+    msg: "Packages to install are: {{ packages_to_install }}"
+
 - name: Install user defined rpm packages for build process
   yum: 
     name: "{{ packages_to_install }}"

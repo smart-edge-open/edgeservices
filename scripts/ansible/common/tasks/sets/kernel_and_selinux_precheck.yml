@@ -1,6 +1,4 @@
 # Prechecks
-- include_tasks: ../../common/tasks/kernelrt/get_currently_installed.yml
-- include_tasks: ../../common/tasks/kernelrt/get_currently_running.yml
-- include_tasks: ../../common/tasks/kernelrt/check_rt_running.yml
+- include_tasks: ../../common/tasks/kernelrt/validate_currently_running.yml
 - include_tasks: ../../common/tasks/os/check_selinux_is_disabled.yml
 - include_tasks: ../../common/tasks/yum/clean_all.yml

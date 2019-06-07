@@ -1,6 +1,0 @@
-- name: Stop script if no RT kernel is running
-  fail:
-    msg: 
-      - "Please reboot server now and boot it with installed RT kernel: {{ kernel_rt_version_installed }}"
-      - "After reboot,re-run this script again to continue"
-  when: kernel_rt_version_running.stdout != kernel_rt_version_installed.stdout

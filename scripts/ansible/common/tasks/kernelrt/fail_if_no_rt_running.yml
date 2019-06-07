@@ -1,7 +1,0 @@
-- include_tasks: get_currently_running.yml
-- include_tasks: get_currently_installed.yml
-
-- fail:
-    msg: "ERROR: RT kernel not running. Please boot with RT kernel and re-run this script again."
-  when:
-    - kernel_rt_version_installed.stdout != kernel_rt_version_running.stdout

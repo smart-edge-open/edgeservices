@@ -2,3 +2,5 @@
   yum:
     name: kernel-rt-devel
     state: present
+    allow_downgrade: yes
+    disable_excludes: all

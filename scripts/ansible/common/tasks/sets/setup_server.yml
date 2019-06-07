@@ -7,13 +7,13 @@
   - include_tasks: ../../common/tasks/yum/install_epel_package.yml
   - include_tasks: ../../common/tasks/kernelrt/install_repo.yml
   - include_tasks: ../../common/tasks/docker/install_repo.yml
+
+  - include_tasks: ../../common/tasks/yum/remove_excludes.yml
+  - include_tasks: ../../common/tasks/yum/add_excludes.yml
   - include_tasks: ../../common/tasks/kernelrt/install.yml
-  - include_tasks: ../../common/tasks/kernelrt/get_currently_installed.yml
-  - include_tasks: ../../common/tasks/kernelrt/update_grub_params.yml
-  - include_tasks: ../../common/tasks/kernelrt/get_currently_running.yml
-  - include_tasks: ../../common/tasks/kernelrt/get_grub_index.yml
-  - include_tasks: ../../common/tasks/kernelrt/set_boot_to_rt.yml
+  - include_tasks: ../../common/tasks/grub/set_kernels_default_parameters.yml
+  - include_tasks: ../../common/tasks/grub/set_rt_kernel_as_default.yml
+
   - include_tasks: ../../common/tasks/os/enable_ipv4_forwarding.yml
   - include_tasks: ../../common/tasks/yum/install_base_packages.yml
   - include_tasks: ../../common/tasks/kernelrt/install_dev_package.yml
-

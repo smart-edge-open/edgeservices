@@ -1,0 +1,4 @@
+- name: Remove yum.conf excludes (rpm packages)
+  shell: sed -e "/^exclude=.*/g" -i /etc/yum.conf
+  args:
+    warn: false

@@ -17,4 +17,5 @@
 #
 #
 source ../common/scripts/ansible-precheck.sh
-ansible-playbook ./tasks/build_images.yml --connection=local
+source ../common/vars/task_log_file
+ansible-playbook ./tasks/build_images.yml -i ../common/vars/hosts --connection=local

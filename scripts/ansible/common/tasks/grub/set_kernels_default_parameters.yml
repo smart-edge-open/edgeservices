@@ -1,0 +1,17 @@
+- name: Remove GRUB_CMDLINE_LINUX_DEFAULT grub variable
+  shell: sed '/^GRUB_CMDLINE_LINUX_DEFAULT=.*/d'
+  args:
+    warn: false
+
+- name: Add GRUB_CMDLINE_LINUX_DEFAULT variable with reqired values
+  lineinfile:
+    dest: /etc/default/grub
+    line: "GRUB_CMDLINE_LINUX_DEFAULT=\"{{ centos_rt_kernel_grub_parameters }}\""
+    insertafter: EOF
+
+- name: Regenerate grub.cfg 
+  shell: grub2-mkconfig -o /boot/grub2/grub.cfg 
+
+# - name: Set RT kernel additional parameters
+#   shell: grubby --args "{{ centos_rt_kernel_grub_parameters }}" --update-kernel=/boot/vmlinuz-{{ centos_rt_kernel_package_version }}
+

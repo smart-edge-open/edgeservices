@@ -1,2 +1,0 @@
-- name: Set GRUB to boot RT kernel by default
-  shell: "grub2-set-default {{ grub_rt_kernel_index.stdout }}"

@@ -1,0 +1,16 @@
+- name: Get currently running kernel
+  shell: uname -r
+  changed_when: false
+  register: kernel_version_running
+- debug:
+    msg: "...kernel currently running: {{ kernel_version_running.stdout }}"
+
+- debug:
+    msg: "Kernel version expected: {{ centos_rt_kernel_package_version }}"
+
+- name: Stop script if no RT kernel is running
+  fail:
+    msg: 
+      - "Kernel version mismatch. Please run setup_server.sh script again to install required RT kernel version"
+      - "After reboot,re-run this script again to continue"
+  when: kernel_version_running.stdout != "{{ centos_rt_kernel_package_version }}"

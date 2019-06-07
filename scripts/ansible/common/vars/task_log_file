@@ -1,0 +1,9 @@
+# Enable loggin Ansible output form console to files in given folder.
+# Comment out below export to disable console logs saving to files.
+
+currdir=${PWD##*/} 
+BASE_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
+[ -d ${BASE_PATH}/../logs ] || mkdir  ${BASE_PATH}/../logs
+FILENAME="`date +%Y-%m-%d_%H-%M-%S_ansible.log`"
+
+export ANSIBLE_LOG_PATH="${BASE_PATH}/../logs/${FILENAME}"

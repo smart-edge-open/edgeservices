@@ -1,0 +1,14 @@
+- name: Load uio.ko module now
+  modprobe:
+    name: uio
+    state: present
+
+- name: Load igb_uio.ko module now
+  modprobe:
+    name: igb_uio
+    state: present
+
+- name: Load rte_kni.ko module now
+  modprobe:
+    name: rte_kni
+    state: present

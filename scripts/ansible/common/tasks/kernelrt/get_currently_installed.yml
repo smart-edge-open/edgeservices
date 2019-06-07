@@ -1,9 +1,0 @@
-- name: Check RT rpm kernel version installed
-  shell: rpm -qa | grep ^kernel-rt-[345] | grep -v kvm | sed 's/kernel-rt-//'
-  args:
-    warn: false
-  ignore_errors: true
-  changed_when: false
-  register: kernel_rt_version_installed
-- debug:
-    msg: "...kernel RT installed: {{ kernel_rt_version_installed.stdout  }} "

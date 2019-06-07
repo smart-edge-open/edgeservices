@@ -1,0 +1,20 @@
+- name: Copy igb_uio.ko module to kernel/drivers folder
+  copy:
+    src: "{{ dpdk_install_location }}/x86_64-native-linuxapp-gcc/kmod/igb_uio.ko"
+    dest: "/lib/modules/{{ centos_rt_kernel_package_version }}/kernel/drivers/igb_uio.ko"
+    remote_src: no
+
+- name: "Copy rte_kni.ko module to kernel/drivers folder"
+  copy:
+    src: "{{ dpdk_install_location }}/x86_64-native-linuxapp-gcc/kmod/rte_kni.ko"
+    dest: "/lib/modules/{{ centos_rt_kernel_package_version }}/kernel/drivers/rte_kni.ko"
+    remote_src: no
+
+- name: Run depmod
+  shell: depmod -a
+
+- name: "Copy files with OpenNESS modules to load at boot"
+  copy:
+    src: "{{ base_path }}/scripts/ansible/deploy_server/configs/modules-load/dpdk.conf"
+    dest: /etc/modules-load.d/dpdk.conf
+    remote_src: no

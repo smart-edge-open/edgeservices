@@ -5,6 +5,8 @@ centos_version: "7"
 centos_rt_repo_gpg_file: "http://linuxsoft.cern.ch/cern/centos/7/os/x86_64/RPM-GPG-KEY-cern"
 centos_rt_repo_file: "http://linuxsoft.cern.ch/cern/centos/{{ centos_version }}/rt/CentOS-RT.repo"
 centos_rt_kernel_package_name: "kernel-rt-kvm"
+centos_rt_kernel_package_version: "3.10.0-957.12.2.rt56.929.el7.x86_64"
+centos_rt_kernel_grub_parameters: "hugepagesz=1G hugepages=4 hugepagesz=2M hugepages=20000 default_hugepagesz=2M intel_iommu=on iommu=pt"
 centos_rt_tuned_package_link: "ftp://ftp.icm.edu.pl/vol/rzm3/linux-slc/centos/7.5.1804/os/x86_64/Packages/tuned-2.9.0-1.el7.noarch.rpm"
 epel_repository_package_link: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ centos_version }}.noarch.rpm"
 packages_to_install: "curl,wget"
@@ -13,22 +15,23 @@ dpdk_url: "http://fast.dpdk.org/rel/{{ dpdk_name }}.tar.xz"
 dpdk_downloaddir: "/temp/dpdk_downloaddir"
 dpdk_install_location: "/opt/{{ dpdk_name }}"
 dpdk_make_target: "x86_64-native-linuxapp-gcc"
-grub_cmdline_additional_parameters: 
-  - name: hugepagesz
-    value: 1G
-    char: "="
-  - name: hugepages
-    value: 20
-    char: "="
-  - name: default_hugepagesz
-    value: 1G
-    char: "="
-  - name: intel_iommu
-    value: on
-    char: "="
-  - name: iommu
-    value: pt
-    char: "="
+#
+# grub_cmdline_additional_parameters: 
+#   - name: hugepagesz
+#     value: 1G
+#     char: "="
+#   - name: hugepages
+#     value: 20
+#     char: "="
+#   - name: default_hugepagesz
+#     value: 1G
+#     char: "="
+#   - name: intel_iommu
+#     value: on
+#     char: "="
+#   - name: iommu
+#     value: pt
+#     char: "="
 go_lang_version: "1.12.4"
 go_lang_url: "https://dl.google.com/go/go{{ go_lang_version }}.linux-amd64.tar.gz"
 docker_repo_file: "https://download.docker.com/linux/centos/docker-ce.repo"
@@ -41,3 +44,4 @@ qemu_url: "http://download.qemu.org/{{ qemu_name }}.tar.xz"
 qemu_downloaddir: "/temp/qemu_downloaddir"
 qemu_target_list: "x86_64-softmmu"
 qemu_extract_relative_path: "../temp/qemu/"
+#

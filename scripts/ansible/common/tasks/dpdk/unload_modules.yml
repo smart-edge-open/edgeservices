@@ -1,0 +1,14 @@
+- name: Unload igb_uio.ko module now
+  modprobe:
+    name: igb_uio
+    state: absent
+
+- name: Unload rte_kni.ko module now
+  modprobe:
+    name: rte_kni
+    state: absent
+
+- name: Unload uio.ko module now
+  modprobe:
+    name: uio
+    state: absent
