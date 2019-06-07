@@ -9,5 +9,6 @@
     "appStopTimeout": "10s",
     "appRestartTimeout": "20s",
     "certsDirectory": "testdata/certs",
-    "KubernetesMode": false
+    "kubernetesMode": false,
+    "vhostSocket": "/var/lib/appliance/nts/usvhost-1"
 }

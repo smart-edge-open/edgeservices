@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"math"
 	"strings"
 	"time"
 
@@ -268,14 +269,37 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	}
 	defer conn.Close()
 
+	// Round up to next 2 MiB boundary and switch unit to MiB
+	memRounded := math.Ceil(float64(pbapp.Memory)/2048) * 2
 	domcfg := libvirtxml.Domain{
 		Type: "qemu", Name: pbapp.Id,
 		OS: &libvirtxml.DomainOS{
 			Type: &libvirtxml.DomainOSType{Arch: "x86_64", Type: "hvm"},
 		},
 
-		Memory: &libvirtxml.DomainMemory{Value: uint(pbapp.Memory), Unit: "k"},
-		VCPU:   &libvirtxml.DomainVCPU{Value: int(pbapp.Cores)},
+		CPU: &libvirtxml.DomainCPU{
+			Mode: "host-passthrough",
+			Numa: &libvirtxml.DomainNuma{
+				Cell: []libvirtxml.DomainCell{
+					{
+						ID:        new(uint), // it's initialized to 0
+						CPUs:      fmt.Sprintf("0-%v", pbapp.Cores-1),
+						Memory:    fmt.Sprintf("%v", memRounded),
+						Unit:      "MiB",
+						MemAccess: "shared",
+					},
+				},
+			},
+		},
+		VCPU: &libvirtxml.DomainVCPU{Value: int(pbapp.Cores)},
+
+		MemoryBacking: &libvirtxml.DomainMemoryBacking{
+			MemoryHugePages: &libvirtxml.DomainMemoryHugepages{
+				Hugepages: []libvirtxml.DomainMemoryHugepage{
+					{Size: 2, Unit: "MiB"},
+				},
+			},
+		},
 		Devices: &libvirtxml.DomainDeviceList{
 			Emulator: "/usr/local/bin/qemu-system-x86_64",
 			Disks: []libvirtxml.DomainDisk{
@@ -291,10 +315,13 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 			Interfaces: []libvirtxml.DomainInterface{
 				{
 					Source: &libvirtxml.DomainInterfaceSource{
-						Network: &libvirtxml.DomainInterfaceSourceNetwork{
-							Network: "default",
+						VHostUser: &libvirtxml.DomainChardevSource{
+							UNIX: &libvirtxml.DomainChardevSourceUNIX{
+								Path: s.cfg.VhostSocket, Mode: "client",
+							},
 						},
 					},
+					Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
 				},
 			},
 		},
@@ -304,6 +331,7 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+	log.Debugf("XML doc for %v:\n%v", pbapp.Id, xmldoc)
 
 	dom, err := conn.DomainDefineXML(xmldoc)
 	if err != nil {

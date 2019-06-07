@@ -28,6 +28,9 @@ import (
 	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"github.com/smartedgemec/appliance-ce/pkg/eva"
 
+	logger "github.com/smartedgemec/log"
+	"log/syslog"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -48,6 +51,7 @@ func TestEva(t *testing.T) {
 	dockerTestOn := false
 	libvirtTestOn := false
 
+	logger.SetLevel(syslog.LOG_DEBUG) // want full debug logging for tests
 	if err := config.LoadJSONConfig(mainCfgFile, &cfg); err != nil {
 		t.Errorf("LoadJSONConfig() failed: %v", err)
 	}
@@ -232,7 +236,7 @@ func callLibvirtDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 	uri := pb.Application_HttpUri{
 		HttpUri: &pb.Application_HTTPSource{HttpUri: file},
 	}
-	app := pb.Application{Id: id, Cores: 1, Memory: 40960, Source: &uri}
+	app := pb.Application{Id: id, Cores: 1, Memory: 40961, Source: &uri}
 
 	_, err := client.DeployVM(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {

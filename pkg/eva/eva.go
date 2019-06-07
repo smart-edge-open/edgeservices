@@ -51,7 +51,8 @@ type Config struct {
 	AppStopTimeout    util.Duration `json:"appStopTimeout"`
 	AppRestartTimeout util.Duration `json:"appRestartTimeout"`
 	CertsDir          string        `json:"certsDirectory"`
-	KubernetesMode    bool          `json:"KubernetesMode"`
+	KubernetesMode    bool          `json:"kubernetesMode"`
+	VhostSocket       string        `json:"vhostSocket"`
 }
 
 // Wait for cancellation event and then stop the server from other goroutine
@@ -62,7 +63,6 @@ func waitForCancel(ctx context.Context, server *grpc.Server) {
 }
 
 func runEva(ctx context.Context, cfg *Config) error {
-
 	creds, err := prepareCreds(cfg)
 	if err != nil {
 		log.Errf("Failed to prepare credentials: %v", err)
