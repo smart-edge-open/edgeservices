@@ -39,6 +39,7 @@ type Configuration struct {
 	EDAEndpoint       string        `json:"edaEndpoint"`
 	NtsConfigPath     string        `json:"ntsConfigPath"`
 	CertsDir          string        `json:"certsDirectory"`
+	DNSIP             string        `json:"dnsIP"`
 }
 
 var (

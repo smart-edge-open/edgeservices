@@ -17,6 +17,7 @@ package ela
 import (
 	"bytes"
 	"context"
+	"os"
 	"os/exec"
 	"time"
 
@@ -33,6 +34,12 @@ type InterfacesData struct {
 	NetworkInterfaces *pb.NetworkInterfaces
 }
 
+const (
+	ntsContainerName = "nts"
+	ntsVhostFile     = "/var/lib/appliance/nts/usvhost-1"
+	dnsContainerName = "mec-app-edgednssvr"
+)
+
 var (
 	InterfaceConfigurationData = InterfacesData{}
 
@@ -40,10 +47,10 @@ var (
 		VMCommon: ini.VMCommon{
 			Max:      32,
 			Number:   2,
-			VHostDev: "/var/lib/nts/usvhost-1",
+			VHostDev: ntsVhostFile,
 		},
 		NtsServer: ini.NtsServer{
-			ControlSocket: "/var/lib/nts/control-socket",
+			ControlSocket: "/var/lib/appliance/nts/control-socket",
 		},
 		KNI: ini.KNI{
 			Max: 32,
@@ -88,23 +95,42 @@ type interfaceData struct {
 	NetworkInterface *pb.NetworkInterface
 }
 
-func startNTS(ctx context.Context) error {
+func startContainer(ctx context.Context, containerName string) error {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
 	}
 
-	return cli.ContainerStart(ctx, "nts", types.ContainerStartOptions{})
+	return cli.ContainerStart(ctx, containerName, types.ContainerStartOptions{})
 }
 
-func stopNTS(ctx context.Context) error {
+func stopContainer(ctx context.Context, containerName string) error {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
 	}
 
 	timeout := 10 * time.Second
-	return cli.ContainerStop(ctx, "nts", &timeout)
+	return cli.ContainerStop(ctx, containerName, &timeout)
+}
+
+func isNTSrunning(ctx context.Context) error {
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return err
+	}
+
+	containerData, err := cli.ContainerInspect(ctx, ntsContainerName)
+	if err != nil {
+		return err
+	}
+
+	if containerData.State.Running {
+		return nil
+	}
+
+	return errors.New("NTS container is not running, status: " +
+		containerData.State.Status)
 }
 
 func isAnyAppRunning() (bool, error) {
@@ -158,6 +184,113 @@ func rebindDevices(nts *ini.NtsConfig) error {
 	return nil
 }
 
+func stopDNSAndRemoveRules(ctx context.Context) error {
+	if err := stopContainer(ctx, dnsContainerName); err != nil {
+		return errors.Wrap(err, "failed to stop Edge DNS")
+	}
+
+	if err := isNTSrunning(ctx); err == nil {
+		trafficPolicy := pb.TrafficPolicy{Id: dnsContainerName}
+
+		_, err := DialEDASet(ctx, &trafficPolicy, Config.EDAEndpoint)
+		if err != nil {
+			return errors.Wrap(err,
+				"failed to remove TrafficRules for Edge DNS")
+		}
+	}
+
+	return nil
+
+}
+
+func restartDNSAndSetRules(ctx context.Context) error {
+	if err := startContainer(ctx, dnsContainerName); err != nil {
+		return errors.Wrap(err, "failed to start Edge DNS")
+	}
+
+	var err error
+	dnsKNImac := ""
+
+	ticker := time.NewTicker(25 * time.Millisecond)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		if err = ctx.Err(); err != nil {
+			return errors.Wrap(err,
+				"context error while waiting for Edge DNS KNI")
+		}
+
+		dnsKNImac, err = getMACForContainerKNI(ctx, dnsContainerName)
+		if err == nil {
+			break
+		}
+	}
+
+	trafficPolicy := pb.TrafficPolicy{
+		Id: dnsContainerName,
+		TrafficRules: []*pb.TrafficRule{
+			{
+				Description: "Edge DNS svr - IP traffic",
+				Priority:    5,
+				Destination: &pb.TrafficSelector{
+					Ip: &pb.IPFilter{
+						Address: Config.DNSIP,
+						Mask:    32,
+					}},
+				Target: &pb.TrafficTarget{
+					Mac: &pb.MACModifier{MacAddress: dnsKNImac},
+				},
+			},
+			{
+				Description: "Edge DNS svr - LTE traffic",
+				Priority:    5,
+				Source: &pb.TrafficSelector{
+					Gtp: &pb.GTPFilter{
+						Address: "0.0.0.0",
+						Mask:    0,
+					},
+				},
+				Destination: &pb.TrafficSelector{
+					Ip: &pb.IPFilter{
+						Address: Config.DNSIP,
+						Mask:    32,
+					}},
+				Target: &pb.TrafficTarget{
+					Mac: &pb.MACModifier{MacAddress: dnsKNImac},
+				},
+			},
+		}}
+
+	_, err = DialEDASet(ctx, &trafficPolicy, Config.EDAEndpoint)
+	if err != nil {
+		return errors.Wrap(err, "failed to set TrafficRules for Edge DNS")
+	}
+
+	return nil
+}
+
+func waitForNTS(ctx context.Context) error {
+	ticker := time.NewTicker(25 * time.Millisecond)
+	defer ticker.Stop()
+	for range ticker.C {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		if err := isNTSrunning(ctx); err != nil {
+			return err
+		}
+
+		if _, err := os.Stat(ntsVhostFile); err == nil {
+			return nil
+		} else if !os.IsNotExist(err) {
+			return errors.Wrap(err, "failed to stat NTS' usvhost file")
+		}
+	}
+
+	return nil
+}
+
 func configureNTS(ctx context.Context) error {
 	if err := InterfaceConfigurationData.validate(); err != nil {
 		return errors.Wrap(err, "invalid configuration data")
@@ -184,7 +317,11 @@ func configureNTS(ctx context.Context) error {
 		return errors.Wrap(err, "failed to write new NTS config")
 	}
 
-	if err := stopNTS(ctx); err != nil {
+	if err := stopDNSAndRemoveRules(ctx); err != nil {
+		return errors.Wrap(err, "failed to stop Edge DNS")
+	}
+
+	if err := stopContainer(ctx, ntsContainerName); err != nil {
 		return errors.Wrap(err, "failed to stop NTS")
 	}
 
@@ -192,11 +329,15 @@ func configureNTS(ctx context.Context) error {
 		return errors.Wrap(err, "failed to rebind devices")
 	}
 
-	if err := startNTS(ctx); err != nil {
+	if err := startContainer(ctx, ntsContainerName); err != nil {
 		return errors.Wrap(err, "failed to start NTS")
 	}
 
 	InterfaceConfigurationData = InterfacesData{}
 
-	return nil
+	if err := waitForNTS(ctx); err != nil {
+		return err
+	}
+
+	return restartDNSAndSetRules(ctx)
 }

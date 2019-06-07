@@ -25,6 +25,4 @@ ADD ./nts/kni_docker_daemon.py /root/
 ADD ./nts/entrypoint.sh /root/
 ADD ./nts/libnes_api_shared.so /root/
 
-VOLUME [ "/hugepages", "/var/lib/nts", "/var/run/docker/netns", "/var/run", "/var/host_ns" ]
-
 ENTRYPOINT ["/root/entrypoint.sh"]

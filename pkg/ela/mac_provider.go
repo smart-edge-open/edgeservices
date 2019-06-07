@@ -15,17 +15,17 @@
 package ela
 
 import (
+	"bytes"
 	"context"
-	"errors"
-	"net"
+	"fmt"
+	"os/exec"
 	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	libvirt "github.com/libvirt/libvirt-go"
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
-
-	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/pkg/errors"
 )
 
 // MACFetcherImpl is a MACAddressProvider which allows to get MAC of
@@ -127,32 +127,29 @@ func getMACForContainerKNI(ctx context.Context, appID string) (string, error) {
 		return "", err
 	}
 
-	netns, err := ns.GetNS(nsPath)
+	// TODO: Find a proper solution
+	// Temporary workaround for appliance not being able to
+	// access containers' network namespaces.
+	// First enter host's mount namespace, then enter container's net namespace,
+	// then obtain vEth mac address from ip link
+	cmdline := fmt.Sprintf("nsenter --mount=/var/host_ns/mnt "+
+		"nsenter --net=%s "+
+		"ip link | grep vEth -A1 | awk '/ether/ {print $2}'", nsPath)
+
+	cmd := exec.Command("bash", "-c", cmdline)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	err = cmd.Run()
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to obtain mac")
 	}
 
-	macAddr := ""
+	mac := strings.Trim(out.String(), "\n")
 
-	var handler = func(hostNS ns.NetNS) error {
-		ifaces, err := net.Interfaces()
-		if err != nil {
-			return err
-		}
-
-		for _, iface := range ifaces {
-			if strings.Contains(iface.Name, "vEth") {
-				macAddr = iface.HardwareAddr.String()
-				return nil
-			}
-		}
-
-		return errors.New("vEth interface not found")
+	if mac == "" {
+		return "", errors.New("vEth interface not found")
 	}
 
-	if err := netns.Do(handler); err != nil {
-		return "", err
-	}
-
-	return macAddr, nil
+	return mac, nil
 }

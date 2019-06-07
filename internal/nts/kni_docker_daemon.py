@@ -25,6 +25,7 @@ import ctypes
 import signal
 import sys
 import time
+import re
 
 NES_SUCCESS=0
 NES_FAIL=1
@@ -259,6 +260,10 @@ def filter_name(pod_name, name_filter):
         _LOG.debug("{} name doesn't start with {}, not processing.".format(pod_name, name_filter))
     return ret
 
+def check_if_uuid(uuid_string):
+    regex = re.compile('^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}\Z', re.I)
+    return bool(regex.match(uuid_string))
+
 def docker_poll(nes_context, docker_cli, name_filter):
     events = docker_cli.events(decode=True)
 
@@ -278,7 +283,7 @@ def docker_poll(nes_context, docker_cli, name_filter):
                 sandbox = docker_cli.containers.get(sandbox_id)
                 ip_ns_path = sandbox.attrs['NetworkSettings']['SandboxKey']
 
-                if not filter_name(pod_name, name_filter):
+                if not filter_name(pod_name, name_filter) and not check_if_uuid(pod_name):
                     continue
 
                 if event['Action'] == 'start':

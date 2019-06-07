@@ -2,6 +2,7 @@
     "endpoint": ":42101",
     "heartbeatInterval": "60s",
     "edaEndpoint": ":50051",
-    "ntsConfigPath": "/var/lib/nts/nts.cfg",
-    "certsDirectory": "certs"
+    "ntsConfigPath": "/var/lib/appliance/nts/nts.cfg",
+    "certsDirectory": "certs",
+    "dnsIP": "53.53.53.53"
 }

@@ -181,7 +181,7 @@ int
 nes_conn_init(nes_remote_t *self,  __attribute__((unused))char *ip_addr,
 	__attribute__((unused))uint16_t port)
 {
-	static const char *nes_default_ctrl_socket = "/tmp/nes_server";
+	static const char *nes_default_ctrl_socket = "/var/lib/appliance/nts/control-socket";
 	const char          *ctrl_socket = NULL;
 
 	assert(NULL != self);

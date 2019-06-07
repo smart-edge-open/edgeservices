@@ -27,16 +27,19 @@ services:
      - "192.168.122.1:443:443"
      - "192.168.122.1:80:80"
     volumes:
-     - "/var/lib/appliance/nts:/var/lib/nts"
-     - "/run:/run"
      - "/proc/1/ns:/var/host_ns:ro"
+     - "/var/lib/appliance/nts:/var/lib/appliance/nts"
+     - "/run/docker.sock:/run/docker.sock"
+     - "/var/run/docker/netns:/var/run/docker/netns"
      - "/sys/class/net:/var/host_net_devices"
      - "/sys/devices:/devices"
      - "/var/lib/appliance/certs:/root/certs"
      - "/var/lib/appliance/configs:/root/configs"
      - "/var/lib/appliance/applications:/var/lib/appliance/applications"
     network_mode: bridge
+
   edgednssvr:
+    container_name: mec-app-edgednssvr
     build:
       context: .
       dockerfile: "Dockerfile_edgednssvr"
@@ -58,10 +61,9 @@ services:
       dockerfile: "Dockerfile_nts"
     image: "nts:${VER}"
     privileged: true
-    network_mode: "host"
     volumes:
      - "/dev/hugepages:/hugepages"
-     - "/var/lib/appliance/nts:/var/lib/nts"
+     - "/var/lib/appliance/nts:/var/lib/appliance/nts"
      - "/var/run/docker/netns:/var/run/docker/netns"
      - "/var/run:/var/run"
      - "/proc/1/ns:/var/host_ns"
