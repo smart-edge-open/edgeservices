@@ -68,7 +68,7 @@ services:
      - "/var/run:/var/run"
      - "/proc/1/ns:/var/host_ns"
      - "/sys/class/net:/var/host_net_devices"
-    network_mode: bridge
+    network_mode: host
 
   syslog-ng:
     image:  balabit/syslog-ng:3.19.1
