@@ -112,6 +112,8 @@ func readConfig(path string) {
 
 type FakeIPAppLookupServiceServerImpl struct{}
 
+var responseFromEva = "testapp"
+
 func (*FakeIPAppLookupServiceServerImpl) GetApplicationByIP(
 	ctx context.Context,
 	ipAppLookupInfo *evapb.IPApplicationLookupInfo) (
@@ -121,7 +123,7 @@ func (*FakeIPAppLookupServiceServerImpl) GetApplicationByIP(
 		ipAppLookupInfo.GetIpAddress())
 
 	var result evapb.IPApplicationLookupResult
-	result.AppID = "testapp"
+	result.AppID = responseFromEva
 	return &result, nil
 }
 
