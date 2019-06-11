@@ -29,7 +29,7 @@ services:
     volumes:
      - "/proc/1/ns:/var/host_ns:ro"
      - "/var/lib/appliance/nts:/var/lib/appliance/nts"
-     - "/run/docker.sock:/run/docker.sock"
+     - "/run:/run"
      - "/var/run/docker/netns:/var/run/docker/netns"
      - "/sys/class/net:/var/host_net_devices"
      - "/sys/devices:/devices"
