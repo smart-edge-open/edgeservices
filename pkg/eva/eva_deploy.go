@@ -389,8 +389,12 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 	}
 
 	if dapp.DeployedID != "" {
+		if dapp.App.GetStatus() == pb.LifecycleStatus_RUNNING {
+			log.Warningf("Removing running container '%v'", dapp.DeployedID)
+		}
 		err = docker.ContainerRemove(ctx, dapp.DeployedID,
-			types.ContainerRemoveOptions{})
+			types.ContainerRemoveOptions{Force: true})
+
 		if err != nil {
 			return errors.Wrapf(err, "Undeploy(%s)", dapp.DeployedID)
 		}
