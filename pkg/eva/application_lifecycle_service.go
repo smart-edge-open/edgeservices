@@ -194,6 +194,15 @@ func (v VMHandler) StopHandler(ctx context.Context,
 	}
 	defer func() { _ = d.Free() }()
 
+	state, _, err := d.GetState()
+	if err != nil {
+		return err
+	}
+
+	if state == libvirt.DOMAIN_SHUTOFF {
+		return nil
+	}
+
 	err = d.Shutdown()
 	if err != nil {
 		return err
