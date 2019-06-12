@@ -420,6 +420,20 @@ func libvirtUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
 		return err
 	}
 	defer func() { _ = dom.Free() }()
+
+	state, _, err := dom.GetState()
+	if err != nil {
+		log.Errf("Could not get domain '%v' state: %v", dapp.App.Id, err)
+	}
+
+	if state == libvirt.DOMAIN_RUNNING {
+		log.Infof("Domain (VM) '%v' is running - stopping before undeploy",
+			dapp.App.Id)
+		if err = dom.Destroy(); err != nil {
+			return errors.Wrapf(err, "Failed to destroy '%v'", dapp.App.Id)
+		}
+	}
+
 	if err = dom.Undefine(); err != nil {
 		return errors.Wrapf(err, "Failed to undefine '%v'", dapp.App.Id)
 	}
