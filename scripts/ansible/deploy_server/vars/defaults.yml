@@ -7,7 +7,7 @@ docker_nts_tag: "1.0"
 docker_appliance_tag: "1.0"
 #
 docker_syslog_ng_container_name: "appliance-ce_syslog-ng_1"
-docker_edgednssvr_container_name: "appliance-ce_edgednssvr_1"
+docker_edgednssvr_container_name: "mec-app-edgednssvr"
 docker_nts_container_name: "nts"
 docker_appliance_container_name: "appliance-ce_appliance_1"
 #
