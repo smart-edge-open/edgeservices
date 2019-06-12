@@ -1,0 +1,5 @@
+- name: Add /dev/huge_1GB entry to fstab
+  lineinfile:
+    dest: /etc/fstab
+    line: "nodev /dev/huge_1GB hugetlbfs pagesize=1GB 0 0"
+    insertafter: EOF
