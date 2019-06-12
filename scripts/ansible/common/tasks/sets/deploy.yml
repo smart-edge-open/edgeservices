@@ -23,6 +23,11 @@
   # Firewall addons
   - include_tasks: ../../common/tasks/docker/add_firewall_rules.yml
 
+  # Align libvirt and Docker network settings   
+  - include_tasks: ../../common/tasks/libvirt/libvirtd_stop.yml
+  - include_tasks: ../../../deploy_server/tasks/os/virsh_recreate_network_config.yml
+  - include_tasks: ../../../deploy_server/tasks//docker/create_network_config_file.yml
+  - include_tasks: ../../common/tasks/docker/restart.yml
 
   # Bring up containers
   - include_tasks: ../../../deploy_server/tasks/docker/up_syslog_ng.yml
