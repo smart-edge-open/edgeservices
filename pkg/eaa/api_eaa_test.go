@@ -25,10 +25,8 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"io/ioutil"
-	"math/big"
-	mrand "math/rand"
 	"net/http"
-	"time"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,10 +34,6 @@ import (
 	"github.com/smartedgemec/appliance-ce/pkg/eaa"
 )
 
-// EaaCommonName Common Name that EAA uses for TLS connection
-const EaaCommonName string = "eaa.community.appliance.mec"
-
-// helper functions
 func RequestCredentials(prvKey *ecdsa.PrivateKey) eaa.AuthCredentials {
 
 	template := x509.CertificateRequest{
@@ -105,56 +99,15 @@ func GetValidTLSClient(prvKey *ecdsa.PrivateKey) *http.Client {
 	return client
 }
 
-func GenerateTLSCert(cTempl, cParent *x509.Certificate, pub,
-	prv interface{}) tls.Certificate {
-
-	sClientCertDER, err := x509.CreateCertificate(rand.Reader,
-		cTempl, cParent, pub.(*ecdsa.PrivateKey).Public(), prv)
-	Expect(err).ShouldNot(HaveOccurred())
-
-	sClientCert, err := x509.ParseCertificate(sClientCertDER)
-	Expect(err).ShouldNot(HaveOccurred())
-
-	sClientCertPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: sClientCert.Raw,
-	})
-	derKey, err := x509.MarshalECPrivateKey(pub.(*ecdsa.PrivateKey))
-	Expect(err).ShouldNot(HaveOccurred())
-
-	clientKeyPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: derKey,
-	})
-
-	clientTLSCert, err := tls.X509KeyPair(sClientCertPEM,
-		clientKeyPEM)
-	Expect(err).ShouldNot(HaveOccurred())
-
-	return clientTLSCert
-}
-
-func GetCertTempl() x509.Certificate {
-	src := mrand.NewSource(time.Now().UnixNano())
-	sn := big.NewInt(int64(mrand.New(src).Uint64()))
-
-	certTempl := x509.Certificate{
-		SerialNumber: sn,
-		Subject: pkix.Name{
-			Organization: []string{"Test"},
-		},
-		NotBefore:             time.Now().Add(-1 * time.Second),
-		NotAfter:              time.Now().Add(1 * time.Minute),
-		IsCA:                  true,
-		KeyUsage:              x509.KeyUsageCertSign,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
-		BasicConstraintsValid: true,
-	}
-
-	return certTempl
-}
-
 var _ = Describe("ApiEaa", func() {
+	BeforeEach(func() {
+		runAppliance()
+	})
+
+	AfterEach(func() {
+		stopAppliance()
+	})
+
 	Describe("GET", func() {
 		Context("when client owns signed certificate", func() {
 			Specify("will return no error and valid response", func() {
@@ -176,7 +129,6 @@ var _ = Describe("ApiEaa", func() {
 				Expect(string(body)).To(Equal("404 page not found\n"))
 			})
 		})
-
 		Context("when client owns unsigned certificate", func() {
 			Specify("will return error", func() {
 
@@ -207,6 +159,211 @@ var _ = Describe("ApiEaa", func() {
 
 				_, err = client.Get("https://" + cfg.TLSEndpoint)
 				Expect(err).Should(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("Producer registration", func() {
+		var (
+			prodClient   *http.Client
+			prodCert     tls.Certificate
+			prodCertPool *x509.CertPool
+		)
+
+		BeforeEach(func() {
+			prodCertTempl := GetCertTempl()
+			prodCertTempl.Subject.CommonName = "namespace-1:producer-1"
+			prodCert, prodCertPool = generateSignedClientCert(
+				&prodCertTempl)
+		})
+
+		BeforeEach(func() {
+			prodClient = createHTTPClient(prodCert, prodCertPool)
+		})
+
+		Specify("Register: Sanity Case", func() {
+			var (
+				receivedServList eaa.ServiceList
+				expectedServList eaa.ServiceList
+			)
+
+			sampleService := eaa.Service{
+				Description: "The Sanity Producer",
+				EndpointURI: "https://1.2.3.4",
+				Notifications: []eaa.NotificationDescriptor{
+					{
+						Name:    "Event #1",
+						Version: "1.0.0",
+						Description: "Description for " +
+							"Event #1 by Producer #1",
+					},
+				},
+			}
+
+			expectedOutput := strings.NewReader(
+				"{\"services\":[{\"urn\":{\"id\"" +
+					":\"producer-1\",\"namespace\":\"namespace-1\"}," +
+					"\"description\":\"The Sanity Producer\"," +
+					"\"endpoint_uri\":\"https://1.2.3.4\"," +
+					"\"notifications\":[{\"name\":\"Event #1\"," +
+					"\"version\":\"1.0.0\",\"description\"" +
+					":\"Description for Event #1 by Producer #1\"}]}]}")
+
+			By("Service struct encoding")
+			payload, err := json.Marshal(sampleService)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("Sending service registration POST request")
+			respPost, err := prodClient.Post(
+				"https://"+cfg.TLSEndpoint+"/services",
+				"application/json; charset=UTF-8",
+				bytes.NewBuffer(payload))
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("Comparing POST response code")
+			defer respPost.Body.Close()
+			Expect(respPost.Status).To(Equal("200 OK"))
+
+			By("Sending service list GET request")
+			respGet, err := prodClient.Get(
+				"https://" + cfg.TLSEndpoint + "/services")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("Comparing GET response code")
+			defer respGet.Body.Close()
+			Expect(respGet.Status).To(Equal("200 OK"))
+
+			By("Service list decoding")
+			err = json.NewDecoder(respGet.Body).
+				Decode(&receivedServList)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("Service list encoding")
+			err = json.NewDecoder(expectedOutput).
+				Decode(&expectedServList)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("Comparing GET response data")
+			Expect(receivedServList).To(Equal(expectedServList))
+		})
+
+		Context("two producers", func() {
+			var (
+				prodClient2   *http.Client
+				prodCert2     tls.Certificate
+				prodCertPool2 *x509.CertPool
+			)
+
+			BeforeEach(func() {
+				prodCertTempl2 := GetCertTempl()
+				prodCertTempl2.Subject.CommonName = "namespace-2:producer-2"
+				prodCert2, prodCertPool2 = generateSignedClientCert(
+					&prodCertTempl2)
+			})
+
+			BeforeEach(func() {
+				prodClient2 = createHTTPClient(prodCert2, prodCertPool2)
+			})
+
+			Specify("Register: Two producers", func() {
+				var (
+					receivedServList eaa.ServiceList
+					expectedServList eaa.ServiceList
+				)
+
+				sampleService := eaa.Service{
+					Description: "example description",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:        "Event #1",
+							Version:     "1.0.0",
+							Description: "example description",
+						},
+					},
+				}
+
+				sampleService2 := eaa.Service{
+					Description: "example description",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:        "Event #2",
+							Version:     "1.0.0",
+							Description: "example description",
+						},
+					},
+				}
+
+				expectedOutput := strings.NewReader(
+					"{\"services\":[" +
+						"{\"urn\":{\"id\"" +
+						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
+						"\"description\":\"example description\"," +
+						"\"endpoint_uri\":\"https://1.2.3.4\"," +
+						"\"notifications\":[{\"name\":\"Event #1\"," +
+						"\"version\":\"1.0.0\",\"description\"" +
+						":\"example description\"}]}," +
+						"{\"urn\":{\"id\"" +
+						":\"producer-2\",\"namespace\":\"namespace-2\"}," +
+						"\"description\":\"example description\"," +
+						"\"endpoint_uri\":\"https://1.2.3.4\"," +
+						"\"notifications\":[{\"name\":\"Event #2\"," +
+						"\"version\":\"1.0.0\",\"description\"" +
+						":\"example description\"}]}" +
+						"]}")
+
+				By("Service struct 1 encoding")
+				payload, err := json.Marshal(sampleService)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Sending service 1 registration POST request")
+				respPost, err := prodClient.Post(
+					"https://"+cfg.TLSEndpoint+"/services",
+					"application/json; charset=UTF-8",
+					bytes.NewBuffer(payload))
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing POST 1 response code")
+				defer respPost.Body.Close()
+				Expect(respPost.Status).To(Equal("200 OK"))
+
+				By("Service struct 2 encoding")
+				payload2, err := json.Marshal(sampleService2)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Sending service 2 registration POST request")
+				respPost2, err := prodClient2.Post(
+					"https://"+cfg.TLSEndpoint+"/services",
+					"application/json; charset=UTF-8",
+					bytes.NewBuffer(payload2))
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing POST 2 response code")
+				defer respPost2.Body.Close()
+				Expect(respPost2.Status).To(Equal("200 OK"))
+
+				By("Sending service list GET request")
+				respGet, err := prodClient.Get(
+					"https://" + cfg.TLSEndpoint + "/services")
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing GET response code")
+				defer respGet.Body.Close()
+				Expect(respGet.Status).To(Equal("200 OK"))
+
+				By("Service list decoding")
+				err = json.NewDecoder(respGet.Body).
+					Decode(&receivedServList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Service list encoding")
+				err = json.NewDecoder(expectedOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing response data")
+				Expect(receivedServList).To(Equal(expectedServList))
 			})
 		})
 	})

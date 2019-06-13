@@ -69,11 +69,19 @@ var _ = Describe("ApiAuth", func() {
 	)
 
 	BeforeEach(func() {
+		runAppliance()
+	})
+
+	BeforeEach(func() {
 		clientPriv, err = ecdsa.GenerateKey(
 			elliptic.P256(),
 			rand.Reader,
 		)
 		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		stopAppliance()
 	})
 
 	Describe("/Auth Post", func() {
