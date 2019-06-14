@@ -14,7 +14,8 @@
 
 # Cleanup
   - include_tasks: ../../common/tasks/docker/remove_images_and_containers.yml
-
+  - include_tasks: ../../common/tasks/libvirt/remove_all_vms.yml
+  
   # Docker
   - include_tasks: ../../../deploy_server/tasks/docker/create_network_config_file.yml
   - include_tasks: ../../common/tasks/docker/restart.yml

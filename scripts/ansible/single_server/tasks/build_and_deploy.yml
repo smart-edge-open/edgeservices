@@ -28,6 +28,7 @@
   - include_tasks: ../../common/tasks/os/reread_shell_profile.yml
   - include_tasks: ../../common/tasks/kernelrt/validate_currently_running.yml
   - include_tasks: ../../common/tasks/docker/remove_images_and_containers.yml
+  - include_tasks: ../../common/tasks/libvirt/remove_all_vms.yml
   - include_tasks: ../../common/tasks/build/binaries.yml
   - include_tasks: ../../common/tasks/docker/build_images.yml
   - include_tasks: ../../common/tasks/docker/save_images.yml
