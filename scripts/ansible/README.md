@@ -1,5 +1,19 @@
-Please see readme files inside the following subfolders.
-Each folder contains a set of files for setting up and configuring listed server types:
-  - build_server - scripts to configure build server, to generate product images
-  - deploy_server - scripts to configure deploy server where images from build server will be used
-  - single_server - a merge of above two; uses one physical server for both roles
+```text
+Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+     http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+For a dual server environment setup, please see readme files inside the following subfolders.
+ - build_server
+ - deploy_server
+
+For a native, single build and deploy server setup, see README.md file in top level repository folder.

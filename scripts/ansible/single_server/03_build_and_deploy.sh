@@ -13,9 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-#
-#
+
 source ../common/scripts/ansible-precheck.sh
 source ../common/vars/task_log_file
 ansible-playbook ./tasks/build_and_deploy.yml -i ../common/vars/hosts --connection=local
