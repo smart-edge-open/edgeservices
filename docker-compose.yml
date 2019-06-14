@@ -27,6 +27,7 @@ services:
      - "192.168.122.1:443:443"
      - "192.168.122.1:80:80"
     volumes:
+     - "/etc/pki/tls/certs:/host_certs"
      - "/proc/1/ns:/var/host_ns:ro"
      - "/var/lib/appliance/nts:/var/lib/appliance/nts"
      - "/run:/run"

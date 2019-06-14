@@ -18,4 +18,5 @@ RUN yum install -y libvirt-devel pciutils
 WORKDIR /root/
 COPY ./appliance .
 COPY ./dpdk-devbind.py .
-CMD ["sh", "-c", "HTTP_PROXY= HTTPS_PROXY= http_proxy= https_proxy= ./appliance"]
+COPY ./entrypoint.sh .
+CMD ["./entrypoint.sh"]
