@@ -43,7 +43,7 @@ import (
 
 	"github.com/onsi/gomega/gexec"
 	"github.com/smartedgemec/appliance-ce/internal/authtest"
-	evapb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
+	evapb "github.com/smartedgemec/appliance-ce/pkg/eva/internal_pb"
 
 	"github.com/smartedgemec/log"
 )

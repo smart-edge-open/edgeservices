@@ -19,7 +19,7 @@ import (
 	"net"
 
 	"github.com/smartedgemec/appliance-ce/pkg/config"
-	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"github.com/smartedgemec/appliance-ce/pkg/util"
 	logger "github.com/smartedgemec/log"
 	"google.golang.org/grpc"

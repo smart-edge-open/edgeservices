@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/smartedgemec/appliance-ce/pkg/eda"
-	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"github.com/smartedgemec/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

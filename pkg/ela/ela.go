@@ -27,7 +27,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/smartedgemec/appliance-ce/pkg/auth"
-	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"github.com/smartedgemec/appliance-ce/pkg/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

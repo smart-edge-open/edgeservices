@@ -28,7 +28,7 @@ import (
 	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
 	"github.com/smartedgemec/appliance-ce/pkg/auth"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
-	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	apppb "github.com/smartedgemec/appliance-ce/pkg/eva/internal_pb"
 	evapb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
 	"github.com/smartedgemec/appliance-ce/pkg/util"
 	logger "github.com/smartedgemec/log"
@@ -80,9 +80,9 @@ func runEva(ctx context.Context, cfg *Config) error {
 	/* Register our interfaces. */
 	metadata := metadata.AppMetadata{RootPath: cfg.AppImageDir}
 	adss := DeploySrv{cfg, &metadata}
-	pb.RegisterApplicationDeploymentServiceServer(server, &adss)
+	evapb.RegisterApplicationDeploymentServiceServer(server, &adss)
 	alss := ApplicationLifecycleServiceServer{cfg, &metadata}
-	pb.RegisterApplicationLifecycleServiceServer(server, &alss)
+	evapb.RegisterApplicationLifecycleServiceServer(server, &alss)
 
 	go waitForCancel(ctx, server) // goroutine to wait for cancellation event
 
@@ -114,7 +114,7 @@ func runEva(ctx context.Context, cfg *Config) error {
 
 	serverApp := grpc.NewServer()
 	ipAppLookupService := IPApplicationLookupServiceServerImpl{}
-	evapb.RegisterIPApplicationLookupServiceServer(serverApp,
+	apppb.RegisterIPApplicationLookupServiceServer(serverApp,
 		&ipAppLookupService)
 
 	go waitForCancel(ctx, serverApp)

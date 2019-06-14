@@ -37,7 +37,8 @@ import (
 
 	"github.com/pkg/errors"
 	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
-	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	elapb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	pb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -82,7 +83,7 @@ func downloadImage(url string, target string) error {
 	return err
 }
 
-func (s *DeploySrv) sanitizeApplication(app *pb.Application) error {
+func (s *DeploySrv) sanitizeApplication(app *elapb.Application) error {
 	c := s.cfg
 
 	if app.Cores <= 0 {
@@ -113,7 +114,7 @@ func (s *DeploySrv) deployCommon(ctx context.Context,
 		return status.Errorf(codes.AlreadyExists, "app %s already deployed",
 			dapp.App.Id)
 	}
-	dapp.App.Status = pb.LifecycleStatus_DEPLOYING
+	dapp.App.Status = elapb.LifecycleStatus_DEPLOYING
 
 	// TODO: either fix unmarshall of dapp.App.Source
 	// or store the url directly in the DeployedApp structure
@@ -127,7 +128,7 @@ func (s *DeploySrv) deployCommon(ctx context.Context,
 
 	/* Now download the image. */
 	switch s := source.(type) {
-	case *pb.Application_HttpUri:
+	case *elapb.Application_HttpUri:
 		return downloadImage(s.HttpUri.HttpUri, dapp.ImageFilePath())
 	default:
 		return status.Errorf(codes.Unimplemented, "unknown app source")
@@ -196,7 +197,7 @@ func loadImage(ctx context.Context,
 }
 
 func (s *DeploySrv) DeployContainer(ctx context.Context,
-	pbapp *pb.Application) (*empty.Empty, error) {
+	pbapp *elapb.Application) (*empty.Empty, error) {
 
 	dapp := s.meta.NewDeployedApp(metadata.Container, pbapp)
 	if err := s.deployCommon(ctx, dapp); err != nil {
@@ -220,13 +221,13 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 		}
 	}()
 	// Status will be error unless explicitly reset
-	dapp.App.Status = pb.LifecycleStatus_ERROR
+	dapp.App.Status = elapb.LifecycleStatus_ERROR
 
 	if s.cfg.KubernetesMode { // this mode requires us to only upload the image
 		if err = dapp.SetDeployed(""); err != nil {
 			return nil, errors.Wrapf(err, "SetDeployed(%v) failed", pbapp.Id)
 		}
-		dapp.App.Status = pb.LifecycleStatus_READY
+		dapp.App.Status = elapb.LifecycleStatus_READY
 
 		return &empty.Empty{}, nil // success
 	}
@@ -249,13 +250,13 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	if err = dapp.SetDeployed(respCreate.ID); err != nil {
 		return nil, errors.Wrapf(err, "SetDeployed(%v) failed", pbapp.Id)
 	}
-	dapp.App.Status = pb.LifecycleStatus_READY
+	dapp.App.Status = elapb.LifecycleStatus_READY
 
 	return &empty.Empty{}, nil
 }
 
 func (s *DeploySrv) DeployVM(ctx context.Context,
-	pbapp *pb.Application) (*empty.Empty, error) {
+	pbapp *elapb.Application) (*empty.Empty, error) {
 
 	dapp := s.meta.NewDeployedApp(metadata.VM, pbapp)
 	if err := s.deployCommon(ctx, dapp); err != nil {
@@ -348,7 +349,7 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	if err = dapp.SetDeployed(pbapp.Id); err != nil {
 		return nil, err
 	}
-	dapp.App.Status = pb.LifecycleStatus_READY
+	dapp.App.Status = elapb.LifecycleStatus_READY
 	if err = dapp.Save(true); err != nil {
 		return nil, err
 	}
@@ -357,7 +358,7 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 }
 
 func (s *DeploySrv) Redeploy(ctx context.Context,
-	app *pb.Application) (*empty.Empty, error) {
+	app *elapb.Application) (*empty.Empty, error) {
 
 	dapp, err := s.meta.Load(app.Id)
 	if err != nil {
@@ -389,7 +390,7 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 	}
 
 	if dapp.DeployedID != "" {
-		if dapp.App.GetStatus() == pb.LifecycleStatus_RUNNING {
+		if dapp.App.GetStatus() == elapb.LifecycleStatus_RUNNING {
 			log.Warningf("Removing running container '%v'", dapp.DeployedID)
 		}
 		err = docker.ContainerRemove(ctx, dapp.DeployedID,
@@ -478,7 +479,7 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 
 	if err != nil {
 		log.Errf("Undeploy(%v) failed: %+v", app.Id, err)
-		dapp.App.Status = pb.LifecycleStatus_ERROR /* We're in a bad state. */
+		dapp.App.Status = elapb.LifecycleStatus_ERROR /* We're in a bad state.*/
 
 		return nil, status.Errorf(codes.Internal,
 			"Undeploy(%v) failed: %v", app.Id, err)
@@ -488,7 +489,7 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 		log.Infof("Deleted image file of %v", app.Id)
 	}
 	/* App is removed, no state left. */
-	dapp.App.Status = pb.LifecycleStatus_UNKNOWN
+	dapp.App.Status = elapb.LifecycleStatus_UNKNOWN
 
 	return &empty.Empty{}, nil
 }

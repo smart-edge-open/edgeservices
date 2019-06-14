@@ -20,7 +20,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/smartedgemec/appliance-ce/pkg/ela"
-	"github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

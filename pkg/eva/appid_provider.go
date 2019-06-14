@@ -21,7 +21,7 @@ import (
 	"github.com/docker/docker/client"
 	libvirt "github.com/libvirt/libvirt-go"
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
-	evapb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
+	apppb "github.com/smartedgemec/appliance-ce/pkg/eva/internal_pb"
 )
 
 type IPApplicationLookupServiceServerImpl struct{}
@@ -30,13 +30,13 @@ type IPApplicationLookupServiceServerImpl struct{}
 // IP address received in request
 func (*IPApplicationLookupServiceServerImpl) GetApplicationByIP(
 	ctx context.Context,
-	ipAppLookupInfo *evapb.IPApplicationLookupInfo) (
-	*evapb.IPApplicationLookupResult, error) {
+	ipAppLookupInfo *apppb.IPApplicationLookupInfo) (
+	*apppb.IPApplicationLookupResult, error) {
 
 	log.Info("IPApplicationLookupService GetApplicationByIP: Request for: " +
 		ipAppLookupInfo.GetIpAddress())
 
-	var result evapb.IPApplicationLookupResult
+	var result apppb.IPApplicationLookupResult
 	name, err := lookupContainersByIP(ctx, ipAppLookupInfo.GetIpAddress())
 	if err != nil {
 		log.Errf("Failed to lookup container by IP: %v", err)

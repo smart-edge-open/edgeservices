@@ -31,7 +31,7 @@ import (
 	"time"
 
 	"github.com/smartedgemec/appliance-ce/pkg/auth"
-	"github.com/smartedgemec/appliance-ce/pkg/auth/pb"
+	pb "github.com/smartedgemec/appliance-ce/pkg/auth/pb"
 )
 
 func TestEnroll(t *testing.T) {
