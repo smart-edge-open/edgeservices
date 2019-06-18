@@ -59,7 +59,7 @@ func InitRootCA(certPaths CertsInfo) (*CertKeyPair, error) {
 
 	if key, err = auth.LoadKey(certPaths.CaRootKeyPath); err != nil {
 		if key, err = ecdsa.GenerateKey(
-			elliptic.P256(),
+			elliptic.P384(),
 			rand.Reader,
 		); err != nil {
 			return nil, errors.Wrap(err, "Unable to generate CA key")
@@ -183,7 +183,7 @@ func InitEaaCert(certPaths CertsInfo) (*CertKeyPair, error) {
 	// Load EAA Key
 	if eaaKey, err = auth.LoadKey(certPaths.ServerKeyPath); err != nil {
 		// Generate key
-		eaaKey, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		eaaKey, err = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 		if err != nil {
 			return nil, errors.Wrap(err, "Unable to create EAA private key")
 		}

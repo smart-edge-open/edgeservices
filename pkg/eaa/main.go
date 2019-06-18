@@ -111,8 +111,10 @@ func RunServer(parentCtx context.Context) error {
 	server := &http.Server{
 		Addr: cfg.TLSEndpoint,
 		TLSConfig: &tls.Config{
-			ClientAuth: tls.RequireAndVerifyClientCert,
-			ClientCAs:  certPool,
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    certPool,
+			MinVersion:   tls.VersionTLS12,
+			CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256},
 		},
 		Handler: router,
 	}
