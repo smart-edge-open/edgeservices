@@ -15,6 +15,8 @@
 # limitations under the License.
 
 
+NTS_SOCKET0_MEM="${NTS_SOCKET0_MEM:-2048}"
+NTS_SOCKET1_MEM="${NTS_SOCKET1_MEM:-2048}"
 sigterm_handler() {
     if [ "${kni_pid}" -ne 0 ]; then
         kill -SIGTERM "${kni_pid}"
@@ -37,7 +39,7 @@ exec /root/nes-daemon \
     --lcores='(0,3,4,5)@0,1@3,2@4' \
     --huge-dir /hugepages \
     --file-prefix=vhost-1 \
-    --socket-mem 2048,2048 \
+    --socket-mem ${NTS_SOCKET0_MEM},${NTS_SOCKET1_MEM} \
     -- \
     /var/lib/appliance/nts/nts.cfg &
 nts_pid="$!"

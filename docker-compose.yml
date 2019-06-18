@@ -69,6 +69,9 @@ services:
      - "/var/run:/var/run"
      - "/proc/1/ns:/var/host_ns"
      - "/sys/class/net:/var/host_net_devices"
+    environment:
+     - NTS_SOCKET0_MEM=${NTS_MEM_MB_S0}
+     - NTS_SOCKET1_MEM=${NTS_MEM_MB_S1}
     network_mode: host
 
   syslog-ng:

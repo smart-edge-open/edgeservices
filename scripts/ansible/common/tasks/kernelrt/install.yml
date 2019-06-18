@@ -13,13 +13,13 @@
 # limitations under the License.
 
 - name: Install correct tuned package
-  yum: 
+  yum:
     name: "{{ centos_rt_tuned_package_link }}"
     state: present
     allow_downgrade: yes
 
 - name: Install required RT kernel
-  yum: 
+  yum:
     name: "{{ centos_rt_kernel_package_name }}-{{ centos_rt_kernel_package_version }}"
     update_cache: yes
     state: present

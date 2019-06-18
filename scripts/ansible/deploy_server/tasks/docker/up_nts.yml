@@ -13,6 +13,6 @@
 # limitations under the License.
 
 - name: Bring up nts container
-  shell: "VER={{ docker_nts_tag }} docker-compose up --no-start --no-build nts"
+  shell: "VER={{ docker_nts_tag }} NTS_MEM_MB_S0={{ docker_nts_mem_mb_s0 }} NTS_MEM_MB_S1={{ docker_nts_mem_mb_s1 }} docker-compose up --no-start --no-build nts"
   args:
     chdir: "{{ base_path }}"

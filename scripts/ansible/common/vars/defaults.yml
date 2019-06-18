@@ -29,22 +29,6 @@ dpdk_downloaddir: "/temp/dpdk_downloaddir"
 dpdk_install_location: "/opt/{{ dpdk_name }}"
 dpdk_make_target: "x86_64-native-linuxapp-gcc"
 #
-# grub_cmdline_additional_parameters: 
-#   - name: hugepagesz
-#     value: 1G
-#     char: "="
-#   - name: hugepages
-#     value: 20
-#     char: "="
-#   - name: default_hugepagesz
-#     value: 1G
-#     char: "="
-#   - name: intel_iommu
-#     value: on
-#     char: "="
-#   - name: iommu
-#     value: pt
-#     char: "="
 go_lang_version: "1.12.4"
 go_lang_url: "https://dl.google.com/go/go{{ go_lang_version }}.linux-amd64.tar.gz"
 docker_repo_file: "https://download.docker.com/linux/centos/docker-ce.repo"
