@@ -22,7 +22,7 @@ import (
 	"path"
 
 	"github.com/pkg/errors"
-	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	pb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
 	logger "github.com/smartedgemec/log"
 )
 

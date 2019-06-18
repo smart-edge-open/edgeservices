@@ -20,7 +20,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
-	elapb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	pb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
 
 	"github.com/docker/docker/api/types"
@@ -45,23 +44,23 @@ type VMHandler struct {
 }
 
 type ApplicationLifecycleServiceHandler interface {
-	UpdateStatus(elapb.LifecycleStatus_Status) error
+	UpdateStatus(pb.LifecycleStatus_Status) error
 	StartHandler(context.Context, time.Duration) error
 	StopHandler(context.Context, time.Duration) error
 	RestartHandler(context.Context, time.Duration) error
 }
 
 func (c *ContainerHandler) UpdateStatus(
-	status elapb.LifecycleStatus_Status) error {
+	status pb.LifecycleStatus_Status) error {
 	return updateStatus(c.meta, status)
 }
 
-func (v *VMHandler) UpdateStatus(status elapb.LifecycleStatus_Status) error {
+func (v *VMHandler) UpdateStatus(status pb.LifecycleStatus_Status) error {
 	return updateStatus(v.meta, status)
 }
 
 func updateStatus(m *metadata.DeployedApp,
-	status elapb.LifecycleStatus_Status) error {
+	status pb.LifecycleStatus_Status) error {
 	m.App.Status = status
 	err := m.Save(true)
 	if err != nil {
@@ -279,7 +278,7 @@ func (s *ApplicationLifecycleServiceServer) Start(ctx context.Context,
 				l.Id)
 	}
 
-	if err = d.UpdateStatus(elapb.LifecycleStatus_STARTING); err != nil {
+	if err = d.UpdateStatus(pb.LifecycleStatus_STARTING); err != nil {
 		return nil, errors.Wrapf(err, "Failed to update status for appID: %s",
 			l.Id)
 	}
@@ -292,7 +291,7 @@ func (s *ApplicationLifecycleServiceServer) Start(ctx context.Context,
 				l.Id)
 	}
 
-	_ = d.UpdateStatus(elapb.LifecycleStatus_RUNNING)
+	_ = d.UpdateStatus(pb.LifecycleStatus_RUNNING)
 
 	return &empty.Empty{}, nil
 }
@@ -314,7 +313,7 @@ func (s *ApplicationLifecycleServiceServer) Stop(ctx context.Context,
 				l.Id)
 	}
 
-	if err = d.UpdateStatus(elapb.LifecycleStatus_STOPPING); err != nil {
+	if err = d.UpdateStatus(pb.LifecycleStatus_STOPPING); err != nil {
 		return nil, errors.Wrapf(err, "Failed to update status for appID: %s",
 			l.Id)
 	}
@@ -327,7 +326,7 @@ func (s *ApplicationLifecycleServiceServer) Stop(ctx context.Context,
 				l.Id)
 	}
 
-	_ = d.UpdateStatus(elapb.LifecycleStatus_STOPPED)
+	_ = d.UpdateStatus(pb.LifecycleStatus_STOPPED)
 
 	return &empty.Empty{}, nil
 }
@@ -349,7 +348,7 @@ func (s *ApplicationLifecycleServiceServer) Restart(ctx context.Context,
 				l.Id)
 	}
 
-	if err = d.UpdateStatus(elapb.LifecycleStatus_STARTING); err != nil {
+	if err = d.UpdateStatus(pb.LifecycleStatus_STARTING); err != nil {
 		return nil, errors.Wrapf(err, "Failed to update status for appID: %s",
 			l.Id)
 	}
@@ -363,13 +362,13 @@ func (s *ApplicationLifecycleServiceServer) Restart(ctx context.Context,
 				l.Id)
 	}
 
-	_ = d.UpdateStatus(elapb.LifecycleStatus_RUNNING)
+	_ = d.UpdateStatus(pb.LifecycleStatus_RUNNING)
 
 	return &empty.Empty{}, nil
 }
 
 func (s *ApplicationLifecycleServiceServer) GetStatus(ctx context.Context,
-	app *pb.ApplicationID) (*elapb.LifecycleStatus, error) {
+	app *pb.ApplicationID) (*pb.LifecycleStatus, error) {
 
 	dapp, err := s.meta.Load(app.Id)
 	if err != nil {
@@ -377,7 +376,7 @@ func (s *ApplicationLifecycleServiceServer) GetStatus(ctx context.Context,
 			app.Id, err)
 	}
 
-	return &elapb.LifecycleStatus{Status: dapp.App.Status}, nil
+	return &pb.LifecycleStatus{Status: dapp.App.Status}, nil
 }
 
 func (s *ApplicationLifecycleServiceServer) getAppLifecycleHandler(

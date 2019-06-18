@@ -8,8 +8,9 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	empty "github.com/golang/protobuf/ptypes/empty"
-	ela "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -49,7 +50,256 @@ func (x LifecycleCommand_Command) String() string {
 }
 
 func (LifecycleCommand_Command) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_78739cf76c9af146, []int{2, 0}
+	return fileDescriptor_78739cf76c9af146, []int{7, 0}
+}
+
+type LifecycleStatus_Status int32
+
+const (
+	LifecycleStatus_UNKNOWN   LifecycleStatus_Status = 0
+	LifecycleStatus_DEPLOYING LifecycleStatus_Status = 1
+	LifecycleStatus_READY     LifecycleStatus_Status = 2
+	LifecycleStatus_STARTING  LifecycleStatus_Status = 3
+	LifecycleStatus_RUNNING   LifecycleStatus_Status = 4
+	LifecycleStatus_STOPPING  LifecycleStatus_Status = 5
+	LifecycleStatus_STOPPED   LifecycleStatus_Status = 6
+	LifecycleStatus_ERROR     LifecycleStatus_Status = 7
+)
+
+var LifecycleStatus_Status_name = map[int32]string{
+	0: "UNKNOWN",
+	1: "DEPLOYING",
+	2: "READY",
+	3: "STARTING",
+	4: "RUNNING",
+	5: "STOPPING",
+	6: "STOPPED",
+	7: "ERROR",
+}
+
+var LifecycleStatus_Status_value = map[string]int32{
+	"UNKNOWN":   0,
+	"DEPLOYING": 1,
+	"READY":     2,
+	"STARTING":  3,
+	"RUNNING":   4,
+	"STOPPING":  5,
+	"STOPPED":   6,
+	"ERROR":     7,
+}
+
+func (x LifecycleStatus_Status) String() string {
+	return proto.EnumName(LifecycleStatus_Status_name, int32(x))
+}
+
+func (LifecycleStatus_Status) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_78739cf76c9af146, []int{8, 0}
+}
+
+// Application message - contains information about the application we're about
+// to deploy (or one already deployed).
+//
+// Image sources will be added over time. For example, pulling from external
+// Docker registries may be supported with a source such as:
+//
+//    // Image will be downloaded from a Docker registry
+//    message DockerRegistrySource {
+//        string repo = 1;
+//        string tag = 2;
+//
+//        // authentication
+//        string user = 3;
+//        string token = 4;
+//    }
+//
+// And then adding to the source field:
+//
+//     oneof source {
+//         ...
+//         DockerRegistrySource docker_registry = 9 + N;
+//     }
+type Application struct {
+	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name        string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Version     string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	Vendor      string                 `protobuf:"bytes,4,opt,name=vendor,proto3" json:"vendor,omitempty"`
+	Description string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	Cores       int32                  `protobuf:"varint,6,opt,name=cores,proto3" json:"cores,omitempty"`
+	Memory      int32                  `protobuf:"varint,7,opt,name=memory,proto3" json:"memory,omitempty"`
+	Ports       []*PortProto           `protobuf:"bytes,8,rep,name=ports,proto3" json:"ports,omitempty"`
+	Status      LifecycleStatus_Status `protobuf:"varint,9,opt,name=status,proto3,enum=openness.eva.LifecycleStatus_Status" json:"status,omitempty"`
+	// Source to retrieve the container or VM from. It is expected that more
+	// sources will be added over time.
+	//
+	// Types that are valid to be assigned to Source:
+	//	*Application_HttpUri
+	Source               isApplication_Source `protobuf_oneof:"source"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *Application) Reset()         { *m = Application{} }
+func (m *Application) String() string { return proto.CompactTextString(m) }
+func (*Application) ProtoMessage()    {}
+func (*Application) Descriptor() ([]byte, []int) {
+	return fileDescriptor_78739cf76c9af146, []int{0}
+}
+
+func (m *Application) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Application.Unmarshal(m, b)
+}
+func (m *Application) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Application.Marshal(b, m, deterministic)
+}
+func (m *Application) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Application.Merge(m, src)
+}
+func (m *Application) XXX_Size() int {
+	return xxx_messageInfo_Application.Size(m)
+}
+func (m *Application) XXX_DiscardUnknown() {
+	xxx_messageInfo_Application.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Application proto.InternalMessageInfo
+
+func (m *Application) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *Application) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *Application) GetVersion() string {
+	if m != nil {
+		return m.Version
+	}
+	return ""
+}
+
+func (m *Application) GetVendor() string {
+	if m != nil {
+		return m.Vendor
+	}
+	return ""
+}
+
+func (m *Application) GetDescription() string {
+	if m != nil {
+		return m.Description
+	}
+	return ""
+}
+
+func (m *Application) GetCores() int32 {
+	if m != nil {
+		return m.Cores
+	}
+	return 0
+}
+
+func (m *Application) GetMemory() int32 {
+	if m != nil {
+		return m.Memory
+	}
+	return 0
+}
+
+func (m *Application) GetPorts() []*PortProto {
+	if m != nil {
+		return m.Ports
+	}
+	return nil
+}
+
+func (m *Application) GetStatus() LifecycleStatus_Status {
+	if m != nil {
+		return m.Status
+	}
+	return LifecycleStatus_UNKNOWN
+}
+
+type isApplication_Source interface {
+	isApplication_Source()
+}
+
+type Application_HttpUri struct {
+	HttpUri *Application_HTTPSource `protobuf:"bytes,10,opt,name=http_uri,json=httpUri,proto3,oneof"`
+}
+
+func (*Application_HttpUri) isApplication_Source() {}
+
+func (m *Application) GetSource() isApplication_Source {
+	if m != nil {
+		return m.Source
+	}
+	return nil
+}
+
+func (m *Application) GetHttpUri() *Application_HTTPSource {
+	if x, ok := m.GetSource().(*Application_HttpUri); ok {
+		return x.HttpUri
+	}
+	return nil
+}
+
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Application) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
+		(*Application_HttpUri)(nil),
+	}
+}
+
+// Image will be downloaded from an HTTP GET endpoint
+type Application_HTTPSource struct {
+	// Location of VM image or container tarball. In the case of a
+	// container, it will be imported with:
+	//
+	//     docker import ${app.source.uri} ${app.id}:latest
+	HttpUri              string   `protobuf:"bytes,1,opt,name=http_uri,json=httpUri,proto3" json:"http_uri,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Application_HTTPSource) Reset()         { *m = Application_HTTPSource{} }
+func (m *Application_HTTPSource) String() string { return proto.CompactTextString(m) }
+func (*Application_HTTPSource) ProtoMessage()    {}
+func (*Application_HTTPSource) Descriptor() ([]byte, []int) {
+	return fileDescriptor_78739cf76c9af146, []int{0, 0}
+}
+
+func (m *Application_HTTPSource) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Application_HTTPSource.Unmarshal(m, b)
+}
+func (m *Application_HTTPSource) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Application_HTTPSource.Marshal(b, m, deterministic)
+}
+func (m *Application_HTTPSource) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Application_HTTPSource.Merge(m, src)
+}
+func (m *Application_HTTPSource) XXX_Size() int {
+	return xxx_messageInfo_Application_HTTPSource.Size(m)
+}
+func (m *Application_HTTPSource) XXX_DiscardUnknown() {
+	xxx_messageInfo_Application_HTTPSource.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Application_HTTPSource proto.InternalMessageInfo
+
+func (m *Application_HTTPSource) GetHttpUri() string {
+	if m != nil {
+		return m.HttpUri
+	}
+	return ""
 }
 
 type ApplicationID struct {
@@ -63,7 +313,7 @@ func (m *ApplicationID) Reset()         { *m = ApplicationID{} }
 func (m *ApplicationID) String() string { return proto.CompactTextString(m) }
 func (*ApplicationID) ProtoMessage()    {}
 func (*ApplicationID) Descriptor() ([]byte, []int) {
-	return fileDescriptor_78739cf76c9af146, []int{0}
+	return fileDescriptor_78739cf76c9af146, []int{1}
 }
 
 func (m *ApplicationID) XXX_Unmarshal(b []byte) error {
@@ -91,6 +341,251 @@ func (m *ApplicationID) GetId() string {
 	return ""
 }
 
+type Applications struct {
+	Applications         []*Application `protobuf:"bytes,1,rep,name=applications,proto3" json:"applications,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
+}
+
+func (m *Applications) Reset()         { *m = Applications{} }
+func (m *Applications) String() string { return proto.CompactTextString(m) }
+func (*Applications) ProtoMessage()    {}
+func (*Applications) Descriptor() ([]byte, []int) {
+	return fileDescriptor_78739cf76c9af146, []int{2}
+}
+
+func (m *Applications) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Applications.Unmarshal(m, b)
+}
+func (m *Applications) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Applications.Marshal(b, m, deterministic)
+}
+func (m *Applications) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Applications.Merge(m, src)
+}
+func (m *Applications) XXX_Size() int {
+	return xxx_messageInfo_Applications.Size(m)
+}
+func (m *Applications) XXX_DiscardUnknown() {
+	xxx_messageInfo_Applications.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Applications proto.InternalMessageInfo
+
+func (m *Applications) GetApplications() []*Application {
+	if m != nil {
+		return m.Applications
+	}
+	return nil
+}
+
+// VNF message - contains information about the application we're about to
+// deploy (or one already deployed).
+//
+// Image sources will be added over time. For example, pulling from external
+// Docker registries may be supported with a source such as:
+//
+//    // Image will be downloaded from a Docker registry
+//    message DockerRegistrySource {
+//        string repo = 1;
+//        string tag = 2;
+//
+//        // authentication
+//        string user = 3;
+//        string token = 4;
+//    }
+//
+// And then adding to the source field:
+//
+//     oneof source {
+//         ...
+//         DockerRegistrySource docker_registry = 9 + N;
+//     }
+type VNF struct {
+	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name        string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Version     string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	Vendor      string                 `protobuf:"bytes,4,opt,name=vendor,proto3" json:"vendor,omitempty"`
+	Description string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	Cores       int32                  `protobuf:"varint,6,opt,name=cores,proto3" json:"cores,omitempty"`
+	Memory      int32                  `protobuf:"varint,7,opt,name=memory,proto3" json:"memory,omitempty"`
+	Ports       []*PortProto           `protobuf:"bytes,8,rep,name=ports,proto3" json:"ports,omitempty"`
+	Status      LifecycleStatus_Status `protobuf:"varint,9,opt,name=status,proto3,enum=openness.eva.LifecycleStatus_Status" json:"status,omitempty"`
+	// Source to retrieve the container or VM from. It is expected that more
+	// sources will be added over time.
+	//
+	// Types that are valid to be assigned to Source:
+	//	*VNF_HttpUri
+	Source               isVNF_Source `protobuf_oneof:"source"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
+}
+
+func (m *VNF) Reset()         { *m = VNF{} }
+func (m *VNF) String() string { return proto.CompactTextString(m) }
+func (*VNF) ProtoMessage()    {}
+func (*VNF) Descriptor() ([]byte, []int) {
+	return fileDescriptor_78739cf76c9af146, []int{3}
+}
+
+func (m *VNF) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_VNF.Unmarshal(m, b)
+}
+func (m *VNF) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_VNF.Marshal(b, m, deterministic)
+}
+func (m *VNF) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VNF.Merge(m, src)
+}
+func (m *VNF) XXX_Size() int {
+	return xxx_messageInfo_VNF.Size(m)
+}
+func (m *VNF) XXX_DiscardUnknown() {
+	xxx_messageInfo_VNF.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VNF proto.InternalMessageInfo
+
+func (m *VNF) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *VNF) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *VNF) GetVersion() string {
+	if m != nil {
+		return m.Version
+	}
+	return ""
+}
+
+func (m *VNF) GetVendor() string {
+	if m != nil {
+		return m.Vendor
+	}
+	return ""
+}
+
+func (m *VNF) GetDescription() string {
+	if m != nil {
+		return m.Description
+	}
+	return ""
+}
+
+func (m *VNF) GetCores() int32 {
+	if m != nil {
+		return m.Cores
+	}
+	return 0
+}
+
+func (m *VNF) GetMemory() int32 {
+	if m != nil {
+		return m.Memory
+	}
+	return 0
+}
+
+func (m *VNF) GetPorts() []*PortProto {
+	if m != nil {
+		return m.Ports
+	}
+	return nil
+}
+
+func (m *VNF) GetStatus() LifecycleStatus_Status {
+	if m != nil {
+		return m.Status
+	}
+	return LifecycleStatus_UNKNOWN
+}
+
+type isVNF_Source interface {
+	isVNF_Source()
+}
+
+type VNF_HttpUri struct {
+	HttpUri *VNF_HTTPSource `protobuf:"bytes,10,opt,name=http_uri,json=httpUri,proto3,oneof"`
+}
+
+func (*VNF_HttpUri) isVNF_Source() {}
+
+func (m *VNF) GetSource() isVNF_Source {
+	if m != nil {
+		return m.Source
+	}
+	return nil
+}
+
+func (m *VNF) GetHttpUri() *VNF_HTTPSource {
+	if x, ok := m.GetSource().(*VNF_HttpUri); ok {
+		return x.HttpUri
+	}
+	return nil
+}
+
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*VNF) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
+		(*VNF_HttpUri)(nil),
+	}
+}
+
+// Image will be downloaded from an HTTP GET endpoint
+type VNF_HTTPSource struct {
+	// Location of VM image or container tarball. In the case of a
+	// container, it will be imported with:
+	//
+	//     docker import ${app.source.uri} ${app.id}:latest
+	HttpUri              string   `protobuf:"bytes,1,opt,name=http_uri,json=httpUri,proto3" json:"http_uri,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *VNF_HTTPSource) Reset()         { *m = VNF_HTTPSource{} }
+func (m *VNF_HTTPSource) String() string { return proto.CompactTextString(m) }
+func (*VNF_HTTPSource) ProtoMessage()    {}
+func (*VNF_HTTPSource) Descriptor() ([]byte, []int) {
+	return fileDescriptor_78739cf76c9af146, []int{3, 0}
+}
+
+func (m *VNF_HTTPSource) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_VNF_HTTPSource.Unmarshal(m, b)
+}
+func (m *VNF_HTTPSource) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_VNF_HTTPSource.Marshal(b, m, deterministic)
+}
+func (m *VNF_HTTPSource) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VNF_HTTPSource.Merge(m, src)
+}
+func (m *VNF_HTTPSource) XXX_Size() int {
+	return xxx_messageInfo_VNF_HTTPSource.Size(m)
+}
+func (m *VNF_HTTPSource) XXX_DiscardUnknown() {
+	xxx_messageInfo_VNF_HTTPSource.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VNF_HTTPSource proto.InternalMessageInfo
+
+func (m *VNF_HTTPSource) GetHttpUri() string {
+	if m != nil {
+		return m.HttpUri
+	}
+	return ""
+}
+
 type VNFID struct {
 	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -102,7 +597,7 @@ func (m *VNFID) Reset()         { *m = VNFID{} }
 func (m *VNFID) String() string { return proto.CompactTextString(m) }
 func (*VNFID) ProtoMessage()    {}
 func (*VNFID) Descriptor() ([]byte, []int) {
-	return fileDescriptor_78739cf76c9af146, []int{1}
+	return fileDescriptor_78739cf76c9af146, []int{4}
 }
 
 func (m *VNFID) XXX_Unmarshal(b []byte) error {
@@ -130,6 +625,93 @@ func (m *VNFID) GetId() string {
 	return ""
 }
 
+type VNFs struct {
+	Vnfs                 []*VNF   `protobuf:"bytes,1,rep,name=vnfs,proto3" json:"vnfs,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *VNFs) Reset()         { *m = VNFs{} }
+func (m *VNFs) String() string { return proto.CompactTextString(m) }
+func (*VNFs) ProtoMessage()    {}
+func (*VNFs) Descriptor() ([]byte, []int) {
+	return fileDescriptor_78739cf76c9af146, []int{5}
+}
+
+func (m *VNFs) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_VNFs.Unmarshal(m, b)
+}
+func (m *VNFs) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_VNFs.Marshal(b, m, deterministic)
+}
+func (m *VNFs) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VNFs.Merge(m, src)
+}
+func (m *VNFs) XXX_Size() int {
+	return xxx_messageInfo_VNFs.Size(m)
+}
+func (m *VNFs) XXX_DiscardUnknown() {
+	xxx_messageInfo_VNFs.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VNFs proto.InternalMessageInfo
+
+func (m *VNFs) GetVnfs() []*VNF {
+	if m != nil {
+		return m.Vnfs
+	}
+	return nil
+}
+
+// PortProto defines a port and protocol tuple (used for apps & VNFs)
+type PortProto struct {
+	Port                 uint32   `protobuf:"varint,1,opt,name=port,proto3" json:"port,omitempty"`
+	Protocol             string   `protobuf:"bytes,2,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PortProto) Reset()         { *m = PortProto{} }
+func (m *PortProto) String() string { return proto.CompactTextString(m) }
+func (*PortProto) ProtoMessage()    {}
+func (*PortProto) Descriptor() ([]byte, []int) {
+	return fileDescriptor_78739cf76c9af146, []int{6}
+}
+
+func (m *PortProto) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PortProto.Unmarshal(m, b)
+}
+func (m *PortProto) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PortProto.Marshal(b, m, deterministic)
+}
+func (m *PortProto) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PortProto.Merge(m, src)
+}
+func (m *PortProto) XXX_Size() int {
+	return xxx_messageInfo_PortProto.Size(m)
+}
+func (m *PortProto) XXX_DiscardUnknown() {
+	xxx_messageInfo_PortProto.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PortProto proto.InternalMessageInfo
+
+func (m *PortProto) GetPort() uint32 {
+	if m != nil {
+		return m.Port
+	}
+	return 0
+}
+
+func (m *PortProto) GetProtocol() string {
+	if m != nil {
+		return m.Protocol
+	}
+	return ""
+}
+
 type LifecycleCommand struct {
 	Id                   string                   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Cmd                  LifecycleCommand_Command `protobuf:"varint,2,opt,name=cmd,proto3,enum=openness.eva.LifecycleCommand_Command" json:"cmd,omitempty"`
@@ -142,7 +724,7 @@ func (m *LifecycleCommand) Reset()         { *m = LifecycleCommand{} }
 func (m *LifecycleCommand) String() string { return proto.CompactTextString(m) }
 func (*LifecycleCommand) ProtoMessage()    {}
 func (*LifecycleCommand) Descriptor() ([]byte, []int) {
-	return fileDescriptor_78739cf76c9af146, []int{2}
+	return fileDescriptor_78739cf76c9af146, []int{7}
 }
 
 func (m *LifecycleCommand) XXX_Unmarshal(b []byte) error {
@@ -177,6 +759,45 @@ func (m *LifecycleCommand) GetCmd() LifecycleCommand_Command {
 	return LifecycleCommand_START
 }
 
+type LifecycleStatus struct {
+	Status               LifecycleStatus_Status `protobuf:"varint,1,opt,name=status,proto3,enum=openness.eva.LifecycleStatus_Status" json:"status,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
+}
+
+func (m *LifecycleStatus) Reset()         { *m = LifecycleStatus{} }
+func (m *LifecycleStatus) String() string { return proto.CompactTextString(m) }
+func (*LifecycleStatus) ProtoMessage()    {}
+func (*LifecycleStatus) Descriptor() ([]byte, []int) {
+	return fileDescriptor_78739cf76c9af146, []int{8}
+}
+
+func (m *LifecycleStatus) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LifecycleStatus.Unmarshal(m, b)
+}
+func (m *LifecycleStatus) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LifecycleStatus.Marshal(b, m, deterministic)
+}
+func (m *LifecycleStatus) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LifecycleStatus.Merge(m, src)
+}
+func (m *LifecycleStatus) XXX_Size() int {
+	return xxx_messageInfo_LifecycleStatus.Size(m)
+}
+func (m *LifecycleStatus) XXX_DiscardUnknown() {
+	xxx_messageInfo_LifecycleStatus.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LifecycleStatus proto.InternalMessageInfo
+
+func (m *LifecycleStatus) GetStatus() LifecycleStatus_Status {
+	if m != nil {
+		return m.Status
+	}
+	return LifecycleStatus_UNKNOWN
+}
+
 type ContainerIP struct {
 	Ip                   string   `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -188,7 +809,7 @@ func (m *ContainerIP) Reset()         { *m = ContainerIP{} }
 func (m *ContainerIP) String() string { return proto.CompactTextString(m) }
 func (*ContainerIP) ProtoMessage()    {}
 func (*ContainerIP) Descriptor() ([]byte, []int) {
-	return fileDescriptor_78739cf76c9af146, []int{3}
+	return fileDescriptor_78739cf76c9af146, []int{9}
 }
 
 func (m *ContainerIP) XXX_Unmarshal(b []byte) error {
@@ -228,7 +849,7 @@ func (m *ContainerInfo) Reset()         { *m = ContainerInfo{} }
 func (m *ContainerInfo) String() string { return proto.CompactTextString(m) }
 func (*ContainerInfo) ProtoMessage()    {}
 func (*ContainerInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_78739cf76c9af146, []int{4}
+	return fileDescriptor_78739cf76c9af146, []int{10}
 }
 
 func (m *ContainerInfo) XXX_Unmarshal(b []byte) error {
@@ -258,9 +879,18 @@ func (m *ContainerInfo) GetId() string {
 
 func init() {
 	proto.RegisterEnum("openness.eva.LifecycleCommand_Command", LifecycleCommand_Command_name, LifecycleCommand_Command_value)
+	proto.RegisterEnum("openness.eva.LifecycleStatus_Status", LifecycleStatus_Status_name, LifecycleStatus_Status_value)
+	proto.RegisterType((*Application)(nil), "openness.eva.Application")
+	proto.RegisterType((*Application_HTTPSource)(nil), "openness.eva.Application.HTTPSource")
 	proto.RegisterType((*ApplicationID)(nil), "openness.eva.ApplicationID")
+	proto.RegisterType((*Applications)(nil), "openness.eva.Applications")
+	proto.RegisterType((*VNF)(nil), "openness.eva.VNF")
+	proto.RegisterType((*VNF_HTTPSource)(nil), "openness.eva.VNF.HTTPSource")
 	proto.RegisterType((*VNFID)(nil), "openness.eva.VNFID")
+	proto.RegisterType((*VNFs)(nil), "openness.eva.VNFs")
+	proto.RegisterType((*PortProto)(nil), "openness.eva.PortProto")
 	proto.RegisterType((*LifecycleCommand)(nil), "openness.eva.LifecycleCommand")
+	proto.RegisterType((*LifecycleStatus)(nil), "openness.eva.LifecycleStatus")
 	proto.RegisterType((*ContainerIP)(nil), "openness.eva.ContainerIP")
 	proto.RegisterType((*ContainerInfo)(nil), "openness.eva.ContainerInfo")
 }
@@ -268,40 +898,62 @@ func init() {
 func init() { proto.RegisterFile("eva.proto", fileDescriptor_78739cf76c9af146) }
 
 var fileDescriptor_78739cf76c9af146 = []byte{
-	// 527 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x54, 0x4d, 0x6f, 0xd3, 0x40,
-	0x10, 0x8d, 0x4d, 0xd3, 0x24, 0x53, 0x28, 0x61, 0x8b, 0xa0, 0x24, 0x04, 0x2a, 0x1f, 0x50, 0x25,
-	0xa4, 0x8d, 0x14, 0x84, 0x80, 0x13, 0xa4, 0x69, 0x53, 0x45, 0x2a, 0x21, 0xb2, 0x83, 0x0f, 0xdc,
-	0x36, 0xf6, 0x24, 0xac, 0x64, 0xef, 0x5a, 0xf6, 0xc6, 0x52, 0x38, 0x73, 0xe1, 0xb7, 0x70, 0xe3,
-	0x0f, 0xf1, 0x57, 0x50, 0xec, 0x24, 0xb5, 0x43, 0x13, 0x44, 0x7b, 0xeb, 0x69, 0xa5, 0xf9, 0x78,
-	0xfb, 0xf6, 0xcd, 0xdb, 0x81, 0x0a, 0xc6, 0x8c, 0x06, 0xa1, 0x54, 0x92, 0xdc, 0x95, 0x01, 0x0a,
-	0x81, 0x51, 0x44, 0x31, 0x66, 0xb5, 0xfa, 0x44, 0xca, 0x89, 0x87, 0xcd, 0x24, 0x37, 0x9a, 0x8e,
-	0x9b, 0xe8, 0x07, 0x6a, 0x96, 0x96, 0xd6, 0x2a, 0xe8, 0x2d, 0xba, 0x8c, 0xe7, 0x70, 0xaf, 0x1d,
-	0x04, 0x1e, 0x77, 0x98, 0xe2, 0x52, 0xf4, 0x4e, 0xc9, 0x3e, 0xe8, 0xdc, 0x3d, 0xd4, 0x8e, 0xb4,
-	0xe3, 0x8a, 0xa9, 0x73, 0xd7, 0x78, 0x0c, 0x45, 0xbb, 0xdf, 0xbd, 0x22, 0xf1, 0x43, 0x83, 0xea,
-	0x05, 0x1f, 0xa3, 0x33, 0x73, 0x3c, 0xec, 0x48, 0xdf, 0x67, 0xc2, 0x5d, 0x2f, 0x22, 0x6f, 0xe1,
-	0x8e, 0xe3, 0xbb, 0x87, 0xfa, 0x91, 0x76, 0xbc, 0xdf, 0x7a, 0x41, 0xb3, 0x14, 0xe9, 0x7a, 0x33,
-	0x5d, 0x9c, 0xe6, 0xbc, 0xc5, 0x78, 0x09, 0xa5, 0x25, 0x68, 0x05, 0x8a, 0xd6, 0xb0, 0x6d, 0x0e,
-	0xab, 0x05, 0x52, 0x86, 0x1d, 0x6b, 0xf8, 0x69, 0x50, 0xd5, 0xc8, 0x1e, 0x94, 0xcc, 0xb3, 0x34,
-	0xac, 0x1b, 0x0d, 0xd8, 0xeb, 0x48, 0xa1, 0x18, 0x17, 0x18, 0xf6, 0x06, 0x09, 0x8b, 0x60, 0xc5,
-	0x22, 0x98, 0x3f, 0xf2, 0x32, 0x2d, 0xc6, 0x72, 0x9d, 0x66, 0xeb, 0xa7, 0x0e, 0x4f, 0x33, 0x32,
-	0x9c, 0x62, 0xe0, 0xc9, 0x99, 0x8f, 0x42, 0x59, 0x18, 0xc6, 0xdc, 0x41, 0xd2, 0x85, 0xfb, 0x69,
-	0x70, 0x85, 0x43, 0x9e, 0x64, 0x5e, 0xe3, 0x31, 0x9a, 0x69, 0xaf, 0x3d, 0xa2, 0xa9, 0xfa, 0x74,
-	0xa9, 0x3e, 0x3d, 0x9b, 0xab, 0x6f, 0x14, 0xc8, 0x7b, 0x28, 0xa7, 0x38, 0xf6, 0xc7, 0x6b, 0x03,
-	0x98, 0xe8, 0x26, 0x10, 0xd7, 0x03, 0x68, 0x43, 0xf9, 0xb3, 0x58, 0x00, 0xd4, 0xf3, 0x03, 0xc9,
-	0x19, 0x61, 0x33, 0x44, 0xeb, 0x97, 0x0e, 0xf5, 0x4c, 0xed, 0x6a, 0x8e, 0x4b, 0xb1, 0xda, 0x50,
-	0xb4, 0x14, 0x0b, 0x15, 0x79, 0xb6, 0x7d, 0xe0, 0x5b, 0x58, 0x7e, 0x80, 0x1d, 0x4b, 0xc9, 0xe0,
-	0x06, 0x08, 0x1d, 0x28, 0x99, 0x18, 0xdd, 0x90, 0x46, 0x0f, 0x2a, 0xe7, 0xa8, 0x2c, 0xc5, 0xd4,
-	0x34, 0xda, 0xae, 0x56, 0x23, 0x3f, 0x8b, 0x4b, 0x4d, 0x92, 0x5e, 0xa3, 0xd0, 0xfa, 0xae, 0xc3,
-	0x43, 0xbb, 0xdf, 0xfd, 0xdb, 0x5a, 0xaf, 0x61, 0x37, 0x0d, 0x92, 0x07, 0x79, 0x0c, 0xbb, 0xdf,
-	0xdd, 0x3a, 0xc7, 0x0c, 0xb5, 0x83, 0x3c, 0xb5, 0xe4, 0xc3, 0xfe, 0x93, 0x12, 0x79, 0x93, 0xf1,
-	0xd2, 0x7f, 0xdd, 0xfd, 0x2e, 0xe3, 0xa1, 0x2b, 0xaf, 0xde, 0xec, 0x9d, 0xdf, 0x1a, 0x1c, 0xd8,
-	0xfd, 0xee, 0xed, 0xf5, 0x4c, 0xcb, 0x87, 0xc6, 0x7c, 0x49, 0x84, 0xd2, 0xf3, 0x30, 0xb4, 0x79,
-	0xa8, 0xa6, 0xcc, 0xe3, 0xdf, 0x12, 0x9f, 0xb4, 0x27, 0x28, 0x14, 0xb9, 0x80, 0xea, 0x39, 0xaa,
-	0xd5, 0x22, 0x39, 0x99, 0xf5, 0x06, 0xb9, 0xaf, 0x1c, 0x33, 0x9a, 0x59, 0x66, 0xb5, 0xfa, 0xa6,
-	0x94, 0x18, 0x4b, 0xa3, 0x70, 0xd2, 0xf8, 0x52, 0x9f, 0x70, 0xf5, 0x75, 0x3a, 0xa2, 0x8e, 0xf4,
-	0x9b, 0x91, 0xcf, 0x42, 0x85, 0xee, 0x04, 0x7d, 0x74, 0x9a, 0x18, 0xb3, 0xd1, 0x6e, 0xc2, 0xef,
-	0xd5, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xa0, 0x88, 0x17, 0xe0, 0x29, 0x06, 0x00, 0x00,
+	// 879 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x55, 0xdd, 0x8e, 0xdb, 0x44,
+	0x14, 0x8e, 0xf3, 0x9f, 0x93, 0xdd, 0xad, 0x99, 0x56, 0xad, 0x9b, 0x74, 0x21, 0xb2, 0xf8, 0x89,
+	0x84, 0xea, 0x95, 0x82, 0x10, 0x54, 0x80, 0x20, 0xbb, 0x49, 0xb6, 0x11, 0x5b, 0xc7, 0x9a, 0xfc,
+	0xa0, 0x72, 0x83, 0xbc, 0xce, 0x24, 0xb5, 0x64, 0x7b, 0xac, 0xf1, 0x24, 0x52, 0xb8, 0x46, 0x48,
+	0xbc, 0x00, 0x2f, 0xc1, 0x1d, 0x6f, 0xc0, 0x93, 0xf0, 0x2a, 0x68, 0xc6, 0x4e, 0xd6, 0x9b, 0x34,
+	0x11, 0xed, 0x72, 0x85, 0x7a, 0x65, 0x9f, 0xbf, 0xcf, 0xc7, 0xdf, 0xf9, 0xe6, 0x0c, 0x54, 0xc8,
+	0xd2, 0x36, 0x42, 0x46, 0x39, 0x45, 0x47, 0x34, 0x24, 0x41, 0x40, 0xa2, 0xc8, 0x20, 0x4b, 0xbb,
+	0x56, 0x9f, 0x53, 0x3a, 0xf7, 0xc8, 0x99, 0x8c, 0x5d, 0x2f, 0x66, 0x67, 0xc4, 0x0f, 0xf9, 0x2a,
+	0x4e, 0xd5, 0x7f, 0xcf, 0x41, 0xb5, 0x1d, 0x86, 0x9e, 0xeb, 0xd8, 0xdc, 0xa5, 0x01, 0x3a, 0x81,
+	0xac, 0x3b, 0xd5, 0x94, 0x86, 0xd2, 0xac, 0xe0, 0xac, 0x3b, 0x45, 0x08, 0xf2, 0x81, 0xed, 0x13,
+	0x2d, 0x2b, 0x3d, 0xf2, 0x1d, 0x69, 0x50, 0x5a, 0x12, 0x16, 0xb9, 0x34, 0xd0, 0x72, 0xd2, 0xbd,
+	0x36, 0xd1, 0x43, 0x28, 0x2e, 0x49, 0x30, 0xa5, 0x4c, 0xcb, 0xcb, 0x40, 0x62, 0xa1, 0x06, 0x54,
+	0xa7, 0x24, 0x72, 0x98, 0x1b, 0x8a, 0x8f, 0x68, 0x05, 0x19, 0x4c, 0xbb, 0xd0, 0x03, 0x28, 0x38,
+	0x94, 0x91, 0x48, 0x2b, 0x36, 0x94, 0x66, 0x01, 0xc7, 0x86, 0xc0, 0xf3, 0x89, 0x4f, 0xd9, 0x4a,
+	0x2b, 0x49, 0x77, 0x62, 0xa1, 0xa7, 0x50, 0x08, 0x29, 0xe3, 0x91, 0x56, 0x6e, 0xe4, 0x9a, 0xd5,
+	0xd6, 0x23, 0x23, 0xfd, 0xc3, 0x86, 0x45, 0x19, 0xb7, 0xc4, 0xdf, 0xe1, 0x38, 0x0b, 0x7d, 0x0d,
+	0xc5, 0x88, 0xdb, 0x7c, 0x11, 0x69, 0x95, 0x86, 0xd2, 0x3c, 0x69, 0x7d, 0x78, 0x3b, 0xff, 0xca,
+	0x9d, 0x11, 0x67, 0xe5, 0x78, 0x64, 0x28, 0x93, 0x8c, 0xf8, 0x81, 0x93, 0x1a, 0xd4, 0x86, 0xf2,
+	0x2b, 0xce, 0xc3, 0x9f, 0x16, 0xcc, 0xd5, 0xa0, 0xa1, 0x34, 0xab, 0xdb, 0xf5, 0x29, 0xfe, 0x8c,
+	0xe7, 0xa3, 0x91, 0x35, 0xa4, 0x0b, 0xe6, 0x90, 0xe7, 0x19, 0x5c, 0x12, 0x75, 0x63, 0xe6, 0xd6,
+	0x3e, 0x01, 0xb8, 0x09, 0xa0, 0xc7, 0x29, 0xc0, 0x98, 0xe9, 0x75, 0xe2, 0x79, 0x19, 0x8a, 0x91,
+	0x4c, 0xd2, 0x3f, 0x80, 0xe3, 0x14, 0x6e, 0xbf, 0xb3, 0x3d, 0x19, 0xfd, 0x05, 0x1c, 0xa5, 0x12,
+	0x22, 0xf4, 0x0d, 0x1c, 0xd9, 0x29, 0x5b, 0x53, 0x24, 0x35, 0x8f, 0xf7, 0xb6, 0x8a, 0x6f, 0xa5,
+	0xeb, 0xbf, 0xe6, 0x20, 0x37, 0x31, 0x7b, 0xef, 0x04, 0xb0, 0x2b, 0x80, 0x67, 0x3b, 0x02, 0x78,
+	0x72, 0xbb, 0x7e, 0x62, 0xf6, 0xfe, 0xbb, 0xc1, 0x3f, 0x82, 0xc2, 0xc4, 0xec, 0xbd, 0x66, 0xe0,
+	0x4f, 0x21, 0x3f, 0x31, 0x7b, 0x11, 0xfa, 0x08, 0xf2, 0xcb, 0x60, 0xb6, 0x1e, 0xf0, 0x7b, 0x3b,
+	0xad, 0x60, 0x19, 0xd6, 0xbf, 0x82, 0xca, 0x86, 0x07, 0x31, 0x45, 0xc1, 0x84, 0x44, 0x3b, 0xc6,
+	0xf2, 0x1d, 0xd5, 0xa0, 0x2c, 0x77, 0x80, 0x43, 0xbd, 0x64, 0xba, 0x1b, 0x5b, 0xff, 0x4d, 0x01,
+	0x75, 0xc3, 0xca, 0x05, 0xf5, 0x7d, 0x3b, 0x98, 0xee, 0x48, 0xe3, 0x4b, 0xc8, 0x39, 0xfe, 0x54,
+	0xd6, 0x9e, 0xb4, 0x3e, 0xde, 0x43, 0x69, 0x52, 0x6c, 0x24, 0x4f, 0x2c, 0x4a, 0xf4, 0x4f, 0xa1,
+	0xb4, 0x06, 0xad, 0x40, 0x61, 0x38, 0x6a, 0xe3, 0x91, 0x9a, 0x41, 0x65, 0xc8, 0x0f, 0x47, 0x03,
+	0x4b, 0x55, 0x50, 0x15, 0x4a, 0xb8, 0x1b, 0xbb, 0xb3, 0xfa, 0x5f, 0x0a, 0xdc, 0xdb, 0x9a, 0x50,
+	0x6a, 0xa0, 0xca, 0x9b, 0x0f, 0x54, 0x0f, 0xa1, 0x98, 0xe0, 0x54, 0xa1, 0x34, 0x36, 0xbf, 0x37,
+	0x07, 0x3f, 0x98, 0x6a, 0x06, 0x1d, 0x43, 0xa5, 0xd3, 0xb5, 0xae, 0x06, 0x2f, 0xfb, 0xe6, 0xa5,
+	0xaa, 0x88, 0xce, 0x70, 0xb7, 0xdd, 0x79, 0xa9, 0x66, 0xd1, 0x11, 0x94, 0x65, 0x37, 0x22, 0x90,
+	0x93, 0xdd, 0x8d, 0x4d, 0x53, 0x18, 0xf9, 0x38, 0x34, 0xb0, 0x2c, 0x61, 0x15, 0x44, 0x48, 0x5a,
+	0xdd, 0x8e, 0x5a, 0x14, 0x00, 0x5d, 0x8c, 0x07, 0x58, 0x2d, 0xe9, 0xa7, 0x50, 0xbd, 0xa0, 0x01,
+	0xb7, 0xdd, 0x80, 0xb0, 0xbe, 0x25, 0x99, 0x0c, 0x37, 0x4c, 0x86, 0xe2, 0xb0, 0xdf, 0x84, 0x83,
+	0x19, 0xdd, 0xa6, 0xba, 0xf5, 0x47, 0x16, 0x9e, 0xa4, 0xce, 0x6e, 0x87, 0x84, 0x1e, 0x5d, 0xf9,
+	0x24, 0xe0, 0x43, 0xc2, 0x96, 0xae, 0x43, 0x50, 0x0f, 0xee, 0xc5, 0xce, 0x0d, 0x0e, 0xda, 0x7f,
+	0xf4, 0x6b, 0x0f, 0x8d, 0xf8, 0x4e, 0x30, 0xd6, 0x77, 0x82, 0xd1, 0x15, 0x77, 0x82, 0x9e, 0x41,
+	0xdf, 0x42, 0x39, 0xc6, 0x99, 0xbc, 0x78, 0x6b, 0x00, 0x4c, 0xa6, 0x12, 0xe2, 0xed, 0x00, 0xda,
+	0x50, 0x1e, 0x07, 0x09, 0x40, 0x7d, 0x2f, 0x40, 0xbf, 0xb3, 0x1f, 0xa2, 0xf5, 0x67, 0x16, 0xea,
+	0xa9, 0xdc, 0x1b, 0x35, 0x24, 0x64, 0xb5, 0xa1, 0x30, 0xe4, 0x36, 0xe3, 0xe8, 0xfd, 0xc3, 0xa2,
+	0x3d, 0xd0, 0xe5, 0x77, 0x90, 0x1f, 0x72, 0x1a, 0xde, 0x01, 0xe1, 0x02, 0x4a, 0x98, 0x44, 0x77,
+	0x6c, 0xa3, 0x0f, 0x95, 0x4b, 0xc2, 0x13, 0x31, 0x1f, 0x64, 0xeb, 0xf4, 0xe0, 0x09, 0xd1, 0x33,
+	0xad, 0x5f, 0xb2, 0xf0, 0x60, 0x62, 0xf6, 0x76, 0xa5, 0xf5, 0x39, 0x14, 0x63, 0x27, 0xda, 0xdd,
+	0x35, 0x07, 0xe7, 0x98, 0x6a, 0xed, 0xfe, 0x4e, 0xe5, 0xbf, 0x68, 0x09, 0x7d, 0x91, 0xd2, 0xd2,
+	0x1b, 0x7d, 0xfb, 0x59, 0x4a, 0x43, 0xaf, 0xfd, 0xf4, 0x7e, 0xed, 0xfc, 0xad, 0xc0, 0xfd, 0x89,
+	0xd9, 0xfb, 0xff, 0x6a, 0xa6, 0xe5, 0xc3, 0xa9, 0x58, 0x12, 0x8c, 0x7a, 0x1e, 0x61, 0x13, 0x97,
+	0xf1, 0x85, 0xed, 0xb9, 0x3f, 0x4b, 0x9d, 0xb4, 0xe7, 0x24, 0xe0, 0xe8, 0x0a, 0xd4, 0x4b, 0xc2,
+	0x37, 0x8b, 0xe4, 0x7c, 0xd5, 0xb7, 0xb6, 0x8f, 0x72, 0x6a, 0x99, 0xd5, 0xea, 0xfb, 0x42, 0xc1,
+	0x8c, 0xea, 0x99, 0xf3, 0xd3, 0x1f, 0xeb, 0x73, 0x97, 0xbf, 0x5a, 0x5c, 0x1b, 0x0e, 0xf5, 0xcf,
+	0x22, 0xdf, 0x66, 0x9c, 0x4c, 0xe7, 0xc4, 0x27, 0xce, 0x19, 0x59, 0xda, 0xd7, 0x45, 0xd9, 0xdf,
+	0x67, 0xff, 0x04, 0x00, 0x00, 0xff, 0xff, 0xbc, 0x19, 0x93, 0x12, 0xbf, 0x0a, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -316,9 +968,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ApplicationDeploymentServiceClient interface {
-	DeployContainer(ctx context.Context, in *ela.Application, opts ...grpc.CallOption) (*empty.Empty, error)
-	DeployVM(ctx context.Context, in *ela.Application, opts ...grpc.CallOption) (*empty.Empty, error)
-	Redeploy(ctx context.Context, in *ela.Application, opts ...grpc.CallOption) (*empty.Empty, error)
+	DeployContainer(ctx context.Context, in *Application, opts ...grpc.CallOption) (*empty.Empty, error)
+	DeployVM(ctx context.Context, in *Application, opts ...grpc.CallOption) (*empty.Empty, error)
+	Redeploy(ctx context.Context, in *Application, opts ...grpc.CallOption) (*empty.Empty, error)
 	Undeploy(ctx context.Context, in *ApplicationID, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
@@ -330,7 +982,7 @@ func NewApplicationDeploymentServiceClient(cc *grpc.ClientConn) ApplicationDeplo
 	return &applicationDeploymentServiceClient{cc}
 }
 
-func (c *applicationDeploymentServiceClient) DeployContainer(ctx context.Context, in *ela.Application, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *applicationDeploymentServiceClient) DeployContainer(ctx context.Context, in *Application, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/openness.eva.ApplicationDeploymentService/DeployContainer", in, out, opts...)
 	if err != nil {
@@ -339,7 +991,7 @@ func (c *applicationDeploymentServiceClient) DeployContainer(ctx context.Context
 	return out, nil
 }
 
-func (c *applicationDeploymentServiceClient) DeployVM(ctx context.Context, in *ela.Application, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *applicationDeploymentServiceClient) DeployVM(ctx context.Context, in *Application, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/openness.eva.ApplicationDeploymentService/DeployVM", in, out, opts...)
 	if err != nil {
@@ -348,7 +1000,7 @@ func (c *applicationDeploymentServiceClient) DeployVM(ctx context.Context, in *e
 	return out, nil
 }
 
-func (c *applicationDeploymentServiceClient) Redeploy(ctx context.Context, in *ela.Application, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *applicationDeploymentServiceClient) Redeploy(ctx context.Context, in *Application, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/openness.eva.ApplicationDeploymentService/Redeploy", in, out, opts...)
 	if err != nil {
@@ -368,10 +1020,27 @@ func (c *applicationDeploymentServiceClient) Undeploy(ctx context.Context, in *A
 
 // ApplicationDeploymentServiceServer is the server API for ApplicationDeploymentService service.
 type ApplicationDeploymentServiceServer interface {
-	DeployContainer(context.Context, *ela.Application) (*empty.Empty, error)
-	DeployVM(context.Context, *ela.Application) (*empty.Empty, error)
-	Redeploy(context.Context, *ela.Application) (*empty.Empty, error)
+	DeployContainer(context.Context, *Application) (*empty.Empty, error)
+	DeployVM(context.Context, *Application) (*empty.Empty, error)
+	Redeploy(context.Context, *Application) (*empty.Empty, error)
 	Undeploy(context.Context, *ApplicationID) (*empty.Empty, error)
+}
+
+// UnimplementedApplicationDeploymentServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedApplicationDeploymentServiceServer struct {
+}
+
+func (*UnimplementedApplicationDeploymentServiceServer) DeployContainer(ctx context.Context, req *Application) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeployContainer not implemented")
+}
+func (*UnimplementedApplicationDeploymentServiceServer) DeployVM(ctx context.Context, req *Application) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeployVM not implemented")
+}
+func (*UnimplementedApplicationDeploymentServiceServer) Redeploy(ctx context.Context, req *Application) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Redeploy not implemented")
+}
+func (*UnimplementedApplicationDeploymentServiceServer) Undeploy(ctx context.Context, req *ApplicationID) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Undeploy not implemented")
 }
 
 func RegisterApplicationDeploymentServiceServer(s *grpc.Server, srv ApplicationDeploymentServiceServer) {
@@ -379,7 +1048,7 @@ func RegisterApplicationDeploymentServiceServer(s *grpc.Server, srv ApplicationD
 }
 
 func _ApplicationDeploymentService_DeployContainer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ela.Application)
+	in := new(Application)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -391,13 +1060,13 @@ func _ApplicationDeploymentService_DeployContainer_Handler(srv interface{}, ctx 
 		FullMethod: "/openness.eva.ApplicationDeploymentService/DeployContainer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApplicationDeploymentServiceServer).DeployContainer(ctx, req.(*ela.Application))
+		return srv.(ApplicationDeploymentServiceServer).DeployContainer(ctx, req.(*Application))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ApplicationDeploymentService_DeployVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ela.Application)
+	in := new(Application)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -409,13 +1078,13 @@ func _ApplicationDeploymentService_DeployVM_Handler(srv interface{}, ctx context
 		FullMethod: "/openness.eva.ApplicationDeploymentService/DeployVM",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApplicationDeploymentServiceServer).DeployVM(ctx, req.(*ela.Application))
+		return srv.(ApplicationDeploymentServiceServer).DeployVM(ctx, req.(*Application))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ApplicationDeploymentService_Redeploy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ela.Application)
+	in := new(Application)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -427,7 +1096,7 @@ func _ApplicationDeploymentService_Redeploy_Handler(srv interface{}, ctx context
 		FullMethod: "/openness.eva.ApplicationDeploymentService/Redeploy",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApplicationDeploymentServiceServer).Redeploy(ctx, req.(*ela.Application))
+		return srv.(ApplicationDeploymentServiceServer).Redeploy(ctx, req.(*Application))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -482,7 +1151,7 @@ type ApplicationLifecycleServiceClient interface {
 	Start(ctx context.Context, in *LifecycleCommand, opts ...grpc.CallOption) (*empty.Empty, error)
 	Stop(ctx context.Context, in *LifecycleCommand, opts ...grpc.CallOption) (*empty.Empty, error)
 	Restart(ctx context.Context, in *LifecycleCommand, opts ...grpc.CallOption) (*empty.Empty, error)
-	GetStatus(ctx context.Context, in *ApplicationID, opts ...grpc.CallOption) (*ela.LifecycleStatus, error)
+	GetStatus(ctx context.Context, in *ApplicationID, opts ...grpc.CallOption) (*LifecycleStatus, error)
 }
 
 type applicationLifecycleServiceClient struct {
@@ -520,8 +1189,8 @@ func (c *applicationLifecycleServiceClient) Restart(ctx context.Context, in *Lif
 	return out, nil
 }
 
-func (c *applicationLifecycleServiceClient) GetStatus(ctx context.Context, in *ApplicationID, opts ...grpc.CallOption) (*ela.LifecycleStatus, error) {
-	out := new(ela.LifecycleStatus)
+func (c *applicationLifecycleServiceClient) GetStatus(ctx context.Context, in *ApplicationID, opts ...grpc.CallOption) (*LifecycleStatus, error) {
+	out := new(LifecycleStatus)
 	err := c.cc.Invoke(ctx, "/openness.eva.ApplicationLifecycleService/GetStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -534,7 +1203,24 @@ type ApplicationLifecycleServiceServer interface {
 	Start(context.Context, *LifecycleCommand) (*empty.Empty, error)
 	Stop(context.Context, *LifecycleCommand) (*empty.Empty, error)
 	Restart(context.Context, *LifecycleCommand) (*empty.Empty, error)
-	GetStatus(context.Context, *ApplicationID) (*ela.LifecycleStatus, error)
+	GetStatus(context.Context, *ApplicationID) (*LifecycleStatus, error)
+}
+
+// UnimplementedApplicationLifecycleServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedApplicationLifecycleServiceServer struct {
+}
+
+func (*UnimplementedApplicationLifecycleServiceServer) Start(ctx context.Context, req *LifecycleCommand) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Start not implemented")
+}
+func (*UnimplementedApplicationLifecycleServiceServer) Stop(ctx context.Context, req *LifecycleCommand) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
+}
+func (*UnimplementedApplicationLifecycleServiceServer) Restart(ctx context.Context, req *LifecycleCommand) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Restart not implemented")
+}
+func (*UnimplementedApplicationLifecycleServiceServer) GetStatus(ctx context.Context, req *ApplicationID) (*LifecycleStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStatus not implemented")
 }
 
 func RegisterApplicationLifecycleServiceServer(s *grpc.Server, srv ApplicationLifecycleServiceServer) {
@@ -642,9 +1328,9 @@ var _ApplicationLifecycleService_serviceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type VNFDeploymentServiceClient interface {
-	Deploy(ctx context.Context, in *ela.VNF, opts ...grpc.CallOption) (*empty.Empty, error)
-	GetStatus(ctx context.Context, in *VNFID, opts ...grpc.CallOption) (*ela.LifecycleStatus, error)
-	Redeploy(ctx context.Context, in *ela.VNF, opts ...grpc.CallOption) (*empty.Empty, error)
+	Deploy(ctx context.Context, in *VNF, opts ...grpc.CallOption) (*empty.Empty, error)
+	GetStatus(ctx context.Context, in *VNFID, opts ...grpc.CallOption) (*LifecycleStatus, error)
+	Redeploy(ctx context.Context, in *VNF, opts ...grpc.CallOption) (*empty.Empty, error)
 	Undeploy(ctx context.Context, in *VNFID, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
@@ -656,7 +1342,7 @@ func NewVNFDeploymentServiceClient(cc *grpc.ClientConn) VNFDeploymentServiceClie
 	return &vNFDeploymentServiceClient{cc}
 }
 
-func (c *vNFDeploymentServiceClient) Deploy(ctx context.Context, in *ela.VNF, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *vNFDeploymentServiceClient) Deploy(ctx context.Context, in *VNF, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/openness.eva.VNFDeploymentService/Deploy", in, out, opts...)
 	if err != nil {
@@ -665,8 +1351,8 @@ func (c *vNFDeploymentServiceClient) Deploy(ctx context.Context, in *ela.VNF, op
 	return out, nil
 }
 
-func (c *vNFDeploymentServiceClient) GetStatus(ctx context.Context, in *VNFID, opts ...grpc.CallOption) (*ela.LifecycleStatus, error) {
-	out := new(ela.LifecycleStatus)
+func (c *vNFDeploymentServiceClient) GetStatus(ctx context.Context, in *VNFID, opts ...grpc.CallOption) (*LifecycleStatus, error) {
+	out := new(LifecycleStatus)
 	err := c.cc.Invoke(ctx, "/openness.eva.VNFDeploymentService/GetStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -674,7 +1360,7 @@ func (c *vNFDeploymentServiceClient) GetStatus(ctx context.Context, in *VNFID, o
 	return out, nil
 }
 
-func (c *vNFDeploymentServiceClient) Redeploy(ctx context.Context, in *ela.VNF, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *vNFDeploymentServiceClient) Redeploy(ctx context.Context, in *VNF, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/openness.eva.VNFDeploymentService/Redeploy", in, out, opts...)
 	if err != nil {
@@ -694,10 +1380,27 @@ func (c *vNFDeploymentServiceClient) Undeploy(ctx context.Context, in *VNFID, op
 
 // VNFDeploymentServiceServer is the server API for VNFDeploymentService service.
 type VNFDeploymentServiceServer interface {
-	Deploy(context.Context, *ela.VNF) (*empty.Empty, error)
-	GetStatus(context.Context, *VNFID) (*ela.LifecycleStatus, error)
-	Redeploy(context.Context, *ela.VNF) (*empty.Empty, error)
+	Deploy(context.Context, *VNF) (*empty.Empty, error)
+	GetStatus(context.Context, *VNFID) (*LifecycleStatus, error)
+	Redeploy(context.Context, *VNF) (*empty.Empty, error)
 	Undeploy(context.Context, *VNFID) (*empty.Empty, error)
+}
+
+// UnimplementedVNFDeploymentServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedVNFDeploymentServiceServer struct {
+}
+
+func (*UnimplementedVNFDeploymentServiceServer) Deploy(ctx context.Context, req *VNF) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Deploy not implemented")
+}
+func (*UnimplementedVNFDeploymentServiceServer) GetStatus(ctx context.Context, req *VNFID) (*LifecycleStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStatus not implemented")
+}
+func (*UnimplementedVNFDeploymentServiceServer) Redeploy(ctx context.Context, req *VNF) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Redeploy not implemented")
+}
+func (*UnimplementedVNFDeploymentServiceServer) Undeploy(ctx context.Context, req *VNFID) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Undeploy not implemented")
 }
 
 func RegisterVNFDeploymentServiceServer(s *grpc.Server, srv VNFDeploymentServiceServer) {
@@ -705,7 +1408,7 @@ func RegisterVNFDeploymentServiceServer(s *grpc.Server, srv VNFDeploymentService
 }
 
 func _VNFDeploymentService_Deploy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ela.VNF)
+	in := new(VNF)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -717,7 +1420,7 @@ func _VNFDeploymentService_Deploy_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: "/openness.eva.VNFDeploymentService/Deploy",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VNFDeploymentServiceServer).Deploy(ctx, req.(*ela.VNF))
+		return srv.(VNFDeploymentServiceServer).Deploy(ctx, req.(*VNF))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -741,7 +1444,7 @@ func _VNFDeploymentService_GetStatus_Handler(srv interface{}, ctx context.Contex
 }
 
 func _VNFDeploymentService_Redeploy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ela.VNF)
+	in := new(VNF)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -753,7 +1456,7 @@ func _VNFDeploymentService_Redeploy_Handler(srv interface{}, ctx context.Context
 		FullMethod: "/openness.eva.VNFDeploymentService/Redeploy",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VNFDeploymentServiceServer).Redeploy(ctx, req.(*ela.VNF))
+		return srv.(VNFDeploymentServiceServer).Redeploy(ctx, req.(*VNF))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -850,6 +1553,20 @@ type VNFLifecycleServiceServer interface {
 	Start(context.Context, *LifecycleCommand) (*empty.Empty, error)
 	Stop(context.Context, *LifecycleCommand) (*empty.Empty, error)
 	Restart(context.Context, *LifecycleCommand) (*empty.Empty, error)
+}
+
+// UnimplementedVNFLifecycleServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedVNFLifecycleServiceServer struct {
+}
+
+func (*UnimplementedVNFLifecycleServiceServer) Start(ctx context.Context, req *LifecycleCommand) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Start not implemented")
+}
+func (*UnimplementedVNFLifecycleServiceServer) Stop(ctx context.Context, req *LifecycleCommand) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
+}
+func (*UnimplementedVNFLifecycleServiceServer) Restart(ctx context.Context, req *LifecycleCommand) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Restart not implemented")
 }
 
 func RegisterVNFLifecycleServiceServer(s *grpc.Server, srv VNFLifecycleServiceServer) {
@@ -968,6 +1685,14 @@ type ControllerVirtualizationAgentServer interface {
 	// request is determined by the TLS certificate it presents at transport
 	// authentication time.
 	GetContainerByIP(context.Context, *ContainerIP) (*ContainerInfo, error)
+}
+
+// UnimplementedControllerVirtualizationAgentServer can be embedded to have forward compatible implementations.
+type UnimplementedControllerVirtualizationAgentServer struct {
+}
+
+func (*UnimplementedControllerVirtualizationAgentServer) GetContainerByIP(ctx context.Context, req *ContainerIP) (*ContainerInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetContainerByIP not implemented")
 }
 
 func RegisterControllerVirtualizationAgentServer(s *grpc.Server, srv ControllerVirtualizationAgentServer) {

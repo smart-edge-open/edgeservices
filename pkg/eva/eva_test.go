@@ -25,7 +25,6 @@ import (
 
 	"github.com/smartedgemec/appliance-ce/internal/authtest"
 	"github.com/smartedgemec/appliance-ce/pkg/config"
-	elapb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 	"github.com/smartedgemec/appliance-ce/pkg/eva"
 	pb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
 
@@ -214,10 +213,10 @@ func callDockerDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 	client := pb.NewApplicationDeploymentServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-	uri := elapb.Application_HttpUri{
-		HttpUri: &elapb.Application_HTTPSource{HttpUri: file},
+	uri := pb.Application_HttpUri{
+		HttpUri: &pb.Application_HTTPSource{HttpUri: file},
 	}
-	app := elapb.Application{Id: id, Cores: 2, Memory: 40960, Source: &uri}
+	app := pb.Application{Id: id, Cores: 2, Memory: 40960, Source: &uri}
 
 	_, err := client.DeployContainer(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {
@@ -234,10 +233,10 @@ func callLibvirtDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 	client := pb.NewApplicationDeploymentServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-	uri := elapb.Application_HttpUri{
-		HttpUri: &elapb.Application_HTTPSource{HttpUri: file},
+	uri := pb.Application_HttpUri{
+		HttpUri: &pb.Application_HTTPSource{HttpUri: file},
 	}
-	app := elapb.Application{Id: id, Cores: 1, Memory: 40961, Source: &uri}
+	app := pb.Application{Id: id, Cores: 1, Memory: 40961, Source: &uri}
 
 	_, err := client.DeployVM(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {
