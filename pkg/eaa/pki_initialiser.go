@@ -87,6 +87,10 @@ func InitRootCA(certPaths CertsInfo) (*CertKeyPair, error) {
 
 		log.Info("Generated and stored CA certificate at: ",
 			certPaths.CaRootPath)
+	} else {
+		if err = validateRCACert(cert); err != nil {
+			return nil, errors.Wrap(err, "CA cert validation failed")
+		}
 	}
 
 	if certDER, err = x509.MarshalPKIXPublicKey(
@@ -197,34 +201,10 @@ func InitEaaCert(certPaths CertsInfo) (*CertKeyPair, error) {
 	// Load EAA certificate
 	if signedEaaCert, err = auth.LoadCert(
 		certPaths.ServerCertPath); err != nil {
-		// Prepare certificate
-		cert := &x509.Certificate{
-			SerialNumber: big.NewInt(1658),
-			Subject: pkix.Name{
-				Organization: []string{"Appliance Authority"},
-				CommonName:   EaaCommonName,
-			},
-			NotBefore:    time.Now().Add(-15 * time.Second),
-			NotAfter:     time.Now().Add(3 * 365 * 24 * time.Hour),
-			SubjectKeyId: []byte{1, 2, 3, 4, 6},
-			KeyUsage:     x509.KeyUsageDigitalSignature,
-			ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		}
 
-		// Sign the certificate
-		signedDerCert, err := x509.CreateCertificate(
-			rand.Reader,
-			cert,
-			rootCaCert,
-			eaaKey.(crypto.Signer).Public(),
-			rootCaKey)
-		if err != nil {
-			return nil, errors.Wrap(err, "Unable to create EAA cert data")
-		}
-
-		if signedEaaCert, err = x509.ParseCertificate(
-			signedDerCert); err != nil {
-			return nil, errors.Wrap(err, "Unable to create EAA cert")
+		if signedEaaCert, err = generateEAACert(
+			rootCaCert, eaaKey, rootCaKey); err != nil {
+			return nil, errors.Wrap(err, "Unable to create directory")
 		}
 
 		//Store signed cert
@@ -236,12 +216,49 @@ func InitEaaCert(certPaths CertsInfo) (*CertKeyPair, error) {
 			return nil, errors.Wrap(err, "Unable to store EAA certificate")
 		}
 		log.Info("Generated and stored EAA cert at: ", certPaths.ServerCertPath)
+	} else {
+		if err = validateCert(signedEaaCert); err != nil {
+			return nil, errors.Wrap(err, "EAA cert validation failed")
+		}
 	}
 
 	return &CertKeyPair{
 		x509Cert: signedEaaCert,
 		prvKey:   eaaKey,
 	}, nil
+}
+
+// generateEAACert generates certificate for EAA
+func generateEAACert(rcaCert *x509.Certificate,
+	eaaPrivateKey crypto.PrivateKey,
+	rootCaKey crypto.PrivateKey) (*x509.Certificate, error) {
+
+	// Prepare certificate
+	cert := &x509.Certificate{
+		SerialNumber: big.NewInt(1658),
+		Subject: pkix.Name{
+			Organization: []string{"Appliance Authority"},
+			CommonName:   EaaCommonName,
+		},
+		NotBefore:    time.Now().Add(-15 * time.Second),
+		NotAfter:     time.Now().Add(3 * 365 * 24 * time.Hour),
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+
+	// Sign the certificate
+	signedDerCert, err := x509.CreateCertificate(
+		rand.Reader,
+		cert,
+		rcaCert, //rootCaCert,
+		eaaPrivateKey.(crypto.Signer).Public(),
+		rootCaKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to create EAA cert data")
+	}
+
+	return x509.ParseCertificate(signedDerCert)
 }
 
 // SignCSR signs a "PEM-encoded" signing request.
@@ -310,4 +327,23 @@ func createDir(filePath string) error {
 		}
 	}
 	return nil
+}
+
+func validateCert(cert *x509.Certificate) error {
+	if time.Now().Before(cert.NotBefore) {
+		return errors.New("Cartificate expired, valid from: " +
+			cert.NotBefore.String())
+	}
+	if time.Now().After(cert.NotAfter) {
+		return errors.New("Cartificate expired, valid to: " +
+			cert.NotAfter.String())
+	}
+	return nil
+}
+
+func validateRCACert(cert *x509.Certificate) error {
+	if !cert.IsCA {
+		return errors.New("loaded cert is not CA")
+	}
+	return validateCert(cert)
 }

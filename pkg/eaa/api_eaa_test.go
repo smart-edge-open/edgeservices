@@ -101,7 +101,8 @@ func GetValidTLSClient(prvKey *ecdsa.PrivateKey) *http.Client {
 
 var _ = Describe("ApiEaa", func() {
 	BeforeEach(func() {
-		runAppliance()
+		err := runAppliance()
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {

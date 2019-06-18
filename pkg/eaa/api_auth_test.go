@@ -25,10 +25,14 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"math/big"
 	"net/http"
+	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/smartedgemec/appliance-ce/pkg/auth"
 	"github.com/smartedgemec/appliance-ce/pkg/eaa"
 )
 
@@ -69,10 +73,9 @@ var _ = Describe("ApiAuth", func() {
 	)
 
 	BeforeEach(func() {
-		runAppliance()
-	})
+		err = runAppliance()
+		Expect(err).ShouldNot(HaveOccurred())
 
-	BeforeEach(func() {
 		clientPriv, err = ecdsa.GenerateKey(
 			elliptic.P256(),
 			rand.Reader,
@@ -188,6 +191,221 @@ var _ = Describe("ApiAuth", func() {
 					Equal(http.StatusUnauthorized))
 
 				responseFromEva = oldEvaResponse
+			})
+		})
+	})
+})
+
+func replaceRCACert(isCA bool, start time.Time, stop time.Time) {
+
+	// load private key
+	key, err := auth.LoadKey(tempConfCaRootKeyPath)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	// create new one
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1658),
+		Subject: pkix.Name{
+			Organization: []string{"Test Cert"},
+		},
+		NotBefore:             start,
+		NotAfter:              stop,
+		IsCA:                  isCA,
+		KeyUsage:              x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+		MaxPathLen:            0,
+		MaxPathLenZero:        true,
+		BasicConstraintsValid: true,
+	}
+
+	certDER, err := x509.CreateCertificate(
+		rand.Reader,
+		template,
+		template,
+		key.(crypto.Signer).Public(),
+		key,
+	)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	newCert, err := x509.ParseCertificate(certDER)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	// remove old certificate
+	os.Remove(tempConfCaRootPath)
+
+	// save new certificate
+	err = auth.SaveCert(tempConfCaRootPath, newCert)
+	Expect(err).ShouldNot(HaveOccurred())
+}
+
+func replaceEAACert(start time.Time, stop time.Time) {
+
+	rootCaCert, err := auth.LoadCert(tempConfCaRootPath)
+	Expect(err).ShouldNot(HaveOccurred())
+	eaaKey, err := auth.LoadKey(tempConfServerKeyPath)
+	Expect(err).ShouldNot(HaveOccurred())
+	rootCaKey, err := auth.LoadKey(tempConfCaRootKeyPath)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	// Prepare certificate
+	cert := &x509.Certificate{
+		SerialNumber: big.NewInt(1658),
+		Subject: pkix.Name{
+			Organization: []string{"Test Authority"},
+			CommonName:   "test.eaa.community.appliance.mec",
+		},
+		NotBefore:    start,
+		NotAfter:     stop,
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+
+	// Sign the certificate
+	signedDerCert, err := x509.CreateCertificate(
+		rand.Reader,
+		cert,
+		rootCaCert,
+		eaaKey.(crypto.Signer).Public(),
+		rootCaKey)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	newCert, err := x509.ParseCertificate(signedDerCert)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	// remove old certificate
+	os.Remove(tempConfServerCertPath)
+
+	// save new certificate
+	err = auth.SaveCert(tempConfServerCertPath, newCert)
+	Expect(err).ShouldNot(HaveOccurred())
+}
+
+func initCerts() {
+	ci := eaa.CertsInfo{
+		tempConfCaRootKeyPath,
+		tempConfCaRootPath,
+		tempConfServerCertPath,
+		tempConfServerKeyPath}
+
+	_, err := eaa.InitRootCA(ci)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	_, err = eaa.InitEaaCert(ci)
+	Expect(err).ShouldNot(HaveOccurred())
+}
+
+func removeCerts() {
+	os.Remove(tempConfCaRootPath)
+	os.Remove(tempConfServerCertPath)
+}
+
+var _ = Describe("CertsValidation", func() {
+
+	Describe("Validate RCA", func() {
+
+		Context("RCA cert is not rootCA", func() {
+			Specify("Init of Applicance should fail", func() {
+
+				initCerts()
+
+				// replace certificate
+				isCA := false
+				start := time.Now().Add(-1 * time.Minute)
+				stop := time.Now().Add(1 * time.Minute)
+				replaceRCACert(isCA, start, stop)
+
+				err := runAppliance() //should fail
+				Expect(err).Should(HaveOccurred())
+
+				exitCode := stopAppliance()
+				Expect(exitCode).NotTo(Equal(0))
+
+				removeCerts()
+			})
+		})
+
+		Context("RCA cert with start date set in the future", func() {
+			Specify("Init of Applicance should fail", func() {
+
+				initCerts()
+
+				// replace certificate
+				isCA := false
+				start := time.Now().Add(1 * time.Minute)
+				stop := time.Now().Add(1 * time.Minute)
+				replaceRCACert(isCA, start, stop)
+
+				err := runAppliance() //should fail
+				Expect(err).Should(HaveOccurred())
+
+				exitCode := stopAppliance()
+				Expect(exitCode).NotTo(Equal(0))
+
+				removeCerts()
+			})
+		})
+
+		Context("RCA cert with expiration date set in the past", func() {
+			Specify("Init of Applicance should fail", func() {
+
+				initCerts()
+
+				// replace certificate
+				isCA := false
+				start := time.Now().Add(-1 * time.Minute)
+				stop := time.Now().Add(-1 * time.Minute)
+				replaceRCACert(isCA, start, stop)
+
+				err := runAppliance() //should fail
+				Expect(err).Should(HaveOccurred())
+
+				exitCode := stopAppliance()
+				Expect(exitCode).NotTo(Equal(0))
+
+				removeCerts()
+			})
+		})
+	})
+
+	Describe("Validate EAA Cert", func() {
+
+		Context("EAA cert with start date set in the future", func() {
+			Specify("Init of Applicance should fail", func() {
+
+				initCerts()
+
+				// replace certificate
+				start := time.Now().Add(1 * time.Minute)
+				stop := time.Now().Add(2 * time.Minute)
+				replaceEAACert(start, stop)
+
+				err := runAppliance()
+				Expect(err).Should(HaveOccurred())
+
+				exitCode := stopAppliance()
+				Expect(exitCode).NotTo(Equal(0))
+
+				removeCerts()
+			})
+		})
+
+		Context("EAA cert with expiration date set in the past", func() {
+			Specify("Init of Applicance should fail", func() {
+				initCerts()
+
+				// replace certificate
+				start := time.Now().Add(-2 * time.Minute)
+				stop := time.Now().Add(-1 * time.Minute)
+				replaceEAACert(start, stop)
+
+				err := runAppliance() //should fail
+				Expect(err).Should(HaveOccurred())
+
+				exitCode := stopAppliance()
+				Expect(exitCode).NotTo(Equal(0))
+
+				removeCerts()
 			})
 		})
 	})

@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"flag"
+	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -229,7 +230,7 @@ func generateConfigs() {
 	Expect(err).ToNot(HaveOccurred(), "Error when creating eaa.json")
 }
 
-func runAppliance() {
+func runAppliance() error {
 	By("Starting appliance")
 	var err error
 	cmd := exec.Command(tempdir + "/appliance")
@@ -255,17 +256,21 @@ func runAppliance() {
 	case <-c1:
 		By("Appliance ready")
 	case <-time.After(time.Duration(cfg.ApplianceTimeoutSec) * time.Second):
-		Fail("Starting appliance - timeout!")
+		return errors.New("starting appliance - timeout")
 	}
+	return nil
 }
 
-func stopAppliance() {
+func stopAppliance() int {
 	if appliance != nil {
 		By("Stopping appliance")
 		appliance.Terminate()
 		appliance.Wait((time.Duration(cfg.ApplianceTimeoutSec) * time.Second))
-		Expect(appliance.ExitCode()).To(Equal(0))
+		exitCode := appliance.ExitCode()
+		appliance = nil
+		return exitCode
 	}
+	return 0
 }
 
 func GenerateTLSCert(cTempl, cParent *x509.Certificate, pub,

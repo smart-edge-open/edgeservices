@@ -93,12 +93,12 @@ func RunServer(parentCtx context.Context) error {
 	}
 
 	if eaaCtx.certsEaaCa.rca, err = InitRootCA(cfg.Certs); err != nil {
-		log.Errf("CA cert craetion error: %#v", err)
+		log.Errf("CA cert creation error: %#v", err)
 		return err
 	}
 
 	if eaaCtx.certsEaaCa.eaa, err = InitEaaCert(cfg.Certs); err != nil {
-		log.Errf("EAA cert craetion error: %#v", err)
+		log.Errf("EAA cert creation error: %#v", err)
 		return err
 	}
 
