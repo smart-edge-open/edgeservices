@@ -13,8 +13,4 @@
 # limitations under the License.
 
 - name: Install matching kernel development package
-  yum:
-    name: kernel-rt-devel
-    state: present
-    allow_downgrade: yes
-    disable_excludes: all
+  shell: "yum -y --disableexcludes=all install kernel-rt-devel-{{ centos_rt_kernel_package_version }}"

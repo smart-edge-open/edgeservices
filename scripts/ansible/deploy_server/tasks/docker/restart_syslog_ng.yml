@@ -13,6 +13,6 @@
 # limitations under the License.
 
 - name: Restart syslog-ng container
-  shell: "REMOTE_SYSLOG_IP={{ remote_syslog_endpoint }} VER={{ docker_syslog_ng_tag }} docker-compose restart syslog-ng"
+  shell: "REMOTE_SYSLOG_IP={{ remote_syslog_ip }} VER={{ docker_syslog_ng_tag }} docker-compose restart syslog-ng"
   args:
     chdir: "{{ base_path }}"

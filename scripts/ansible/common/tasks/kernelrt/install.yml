@@ -19,9 +19,4 @@
     allow_downgrade: yes
 
 - name: Install required RT kernel
-  yum:
-    name: "{{ centos_rt_kernel_package_name }}-{{ centos_rt_kernel_package_version }}"
-    update_cache: yes
-    state: present
-    allow_downgrade: yes
-    disable_excludes: all
+  shell: "yum -y --disableexcludes=all install {{ centos_rt_kernel_package_name }}-{{ centos_rt_kernel_package_version }}"

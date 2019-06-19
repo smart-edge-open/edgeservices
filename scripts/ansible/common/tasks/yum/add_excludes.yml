@@ -15,5 +15,5 @@
 - name: Add yum.conf excludes to yum.conf
   lineinfile:
     dest: /etc/yum.conf
-    line: "exclude=kernel-3* kernel-rt*"
+    line: "exclude=kernel-3* kernel-rt* kernel-rt-kvm* kernel-rt-devel*"
     insertafter: EOF

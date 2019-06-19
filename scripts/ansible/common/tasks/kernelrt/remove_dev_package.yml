@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- name: Bring up syslog-ng container
-  shell: "REMOTE_SYSLOG_IP={{ remote_syslog_ip }} VER={{ docker_syslog_ng_tag }} docker-compose up -d --no-build syslog-ng"
-  args:
-    chdir: "{{ base_path }}"
+- name: Remove kernel development package
+  yum:
+    name: kernel-rt-devel
+    state: absent

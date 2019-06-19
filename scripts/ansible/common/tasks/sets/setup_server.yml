@@ -30,4 +30,5 @@
 
   - include_tasks: ../../common/tasks/os/enable_ipv4_forwarding.yml
   - include_tasks: ../../common/tasks/yum/install_base_packages.yml
+  - include_tasks: ../../common/tasks/kernelrt/remove_dev_package.yml
   - include_tasks: ../../common/tasks/kernelrt/install_dev_package.yml
