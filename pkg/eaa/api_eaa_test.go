@@ -26,6 +26,7 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -33,6 +34,90 @@ import (
 
 	"github.com/smartedgemec/appliance-ce/pkg/eaa"
 )
+
+// notifLess is a comparison function for NotificationDescriptor structs
+func notifLess(a, b eaa.NotificationDescriptor) bool {
+	if a.Name < b.Name {
+		return true
+	}
+	if a.Name == b.Name {
+		if a.Version < b.Version {
+			return true
+		}
+	}
+
+	return false
+}
+
+// servLess is a comparison function for Service structs
+func servLess(a, b eaa.Service) bool {
+	if a.URN.ID < b.URN.ID {
+		return true
+	}
+	if a.URN.ID == b.URN.ID {
+		if a.URN.Namespace < b.URN.Namespace {
+			return true
+		}
+	}
+
+	return false
+}
+
+// sortServiceSlices sorts a lists of Service slices and the Notifications
+// slice within all Service structs to help accommodate equality assertions
+func sortServiceSlices(slices ...[]eaa.Service) {
+	for _, serviceSlice := range slices {
+		sort.Slice(serviceSlice,
+			func(i, j int) bool {
+				return servLess(serviceSlice[i], serviceSlice[j])
+			},
+		)
+		for _, service := range serviceSlice {
+			sort.Slice(service.Notifications,
+				func(i, j int) bool {
+					return notifLess(service.Notifications[i],
+						service.Notifications[j])
+				},
+			)
+		}
+	}
+}
+
+// registerProducer sends a registration POST request to the appliance
+func registerProducer(c *http.Client, service eaa.Service,
+	subject string) {
+	By("Service struct list " + subject + "encoding")
+	payload, err := json.Marshal(service)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Sending service registration POST " + subject + "request")
+	req, _ := http.NewRequest("POST", "https://"+cfg.TLSEndpoint+"/services",
+		bytes.NewBuffer(payload))
+	respPost, err := c.Do(req)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing POST " + subject + "response code")
+	defer respPost.Body.Close()
+	Expect(respPost.Status).To(Equal("200 OK"))
+}
+
+// getServiceList sends a GET request to the appliance and retrieves
+// a list of currently registered services
+func getServiceList(c *http.Client, list *eaa.ServiceList) {
+	By("Sending service list GET request")
+	respGet, err := c.Get(
+		"https://" + cfg.TLSEndpoint + "/services")
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing GET response code")
+	defer respGet.Body.Close()
+	Expect(respGet.Status).To(Equal("200 OK"))
+
+	By("Received service list decoding")
+	err = json.NewDecoder(respGet.Body).
+		Decode(list)
+	Expect(err).ShouldNot(HaveOccurred())
+}
 
 func RequestCredentials(prvKey *ecdsa.PrivateKey) eaa.AuthCredentials {
 
@@ -166,10 +251,22 @@ var _ = Describe("ApiEaa", func() {
 
 	Describe("Producer registration", func() {
 		var (
-			prodClient   *http.Client
-			prodCert     tls.Certificate
-			prodCertPool *x509.CertPool
+			prodClient       *http.Client
+			prodCert         tls.Certificate
+			prodCertPool     *x509.CertPool
+			accessClient     *http.Client
+			receivedServList eaa.ServiceList
+			expectedServList eaa.ServiceList
 		)
+
+		BeforeEach(func() {
+			clientPriv, err := ecdsa.GenerateKey(
+				elliptic.P256(),
+				rand.Reader,
+			)
+			Expect(err).ShouldNot(HaveOccurred())
+			accessClient = GetValidTLSClient(clientPriv)
+		})
 
 		BeforeEach(func() {
 			prodCertTempl := GetCertTempl()
@@ -182,70 +279,283 @@ var _ = Describe("ApiEaa", func() {
 			prodClient = createHTTPClient(prodCert, prodCertPool)
 		})
 
-		Specify("Register: Sanity Case", func() {
-			var (
-				receivedServList eaa.ServiceList
-				expectedServList eaa.ServiceList
-			)
-
-			sampleService := eaa.Service{
-				Description: "The Sanity Producer",
-				EndpointURI: "https://1.2.3.4",
-				Notifications: []eaa.NotificationDescriptor{
-					{
-						Name:    "Event #1",
-						Version: "1.0.0",
-						Description: "Description for " +
-							"Event #1 by Producer #1",
+		Context("one producer", func() {
+			Specify("Register: Sanity Case", func() {
+				sampleService := eaa.Service{
+					Description: "The Sanity Producer",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
 					},
-				},
-			}
+				}
 
-			expectedOutput := strings.NewReader(
-				"{\"services\":[{\"urn\":{\"id\"" +
-					":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-					"\"description\":\"The Sanity Producer\"," +
-					"\"endpoint_uri\":\"https://1.2.3.4\"," +
-					"\"notifications\":[{\"name\":\"Event #1\"," +
-					"\"version\":\"1.0.0\",\"description\"" +
-					":\"Description for Event #1 by Producer #1\"}]}]}")
+				expectedOutput := strings.NewReader(
+					"{\"services\":[{\"urn\":{\"id\"" +
+						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
+						"\"description\":\"The Sanity Producer\"," +
+						"\"endpoint_uri\":\"https://1.2.3.4\"," +
+						"\"notifications\":[{\"name\":\"Event #1\"," +
+						"\"version\":\"1.0.0\",\"description\"" +
+						":\"Description for Event #1 by Producer #1\"}]}]}")
 
-			By("Service struct encoding")
-			payload, err := json.Marshal(sampleService)
-			Expect(err).ShouldNot(HaveOccurred())
+				registerProducer(prodClient, sampleService, "")
 
-			By("Sending service registration POST request")
-			respPost, err := prodClient.Post(
-				"https://"+cfg.TLSEndpoint+"/services",
-				"application/json; charset=UTF-8",
-				bytes.NewBuffer(payload))
-			Expect(err).ShouldNot(HaveOccurred())
+				getServiceList(accessClient, &receivedServList)
 
-			By("Comparing POST response code")
-			defer respPost.Body.Close()
-			Expect(respPost.Status).To(Equal("200 OK"))
+				By("Expected service list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
 
-			By("Sending service list GET request")
-			respGet, err := prodClient.Get(
-				"https://" + cfg.TLSEndpoint + "/services")
-			Expect(err).ShouldNot(HaveOccurred())
+				sortServiceSlices(expectedServList.Services,
+					receivedServList.Services)
 
-			By("Comparing GET response code")
-			defer respGet.Body.Close()
-			Expect(respGet.Status).To(Equal("200 OK"))
+				By("Comparing GET response data")
+				Expect(receivedServList).To(Equal(expectedServList))
+			})
 
-			By("Service list decoding")
-			err = json.NewDecoder(respGet.Body).
-				Decode(&receivedServList)
-			Expect(err).ShouldNot(HaveOccurred())
+			Specify("Register: Producer registers twice", func() {
+				sampleService := eaa.Service{
+					Description: "example description",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:        "Event #1",
+							Version:     "1.0.0",
+							Description: "example description",
+						},
+					},
+				}
 
-			By("Service list encoding")
-			err = json.NewDecoder(expectedOutput).
-				Decode(&expectedServList)
-			Expect(err).ShouldNot(HaveOccurred())
+				expectedOutput := strings.NewReader(
+					"{\"services\":[{\"urn\":{\"id\"" +
+						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
+						"\"description\":\"example description\"," +
+						"\"endpoint_uri\":\"https://1.2.3.4\"," +
+						"\"notifications\":[{\"name\":\"Event #1\"," +
+						"\"version\":\"1.0.0\",\"description\"" +
+						":\"example description\"}]}]}")
 
-			By("Comparing GET response data")
-			Expect(receivedServList).To(Equal(expectedServList))
+				registerProducer(prodClient, sampleService, "1 ")
+				registerProducer(prodClient, sampleService, "1 (second time) ")
+
+				getServiceList(accessClient, &receivedServList)
+
+				By("Expected service list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortServiceSlices(expectedServList.Services,
+					receivedServList.Services)
+
+				By("Comparing GET response data")
+				Expect(receivedServList).To(Equal(expectedServList))
+			})
+
+			Specify("Register: Producer registers twice"+
+				" with different notification", func() {
+				sampleService := eaa.Service{
+					Description: "example description",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:        "Event #1",
+							Version:     "1.0.0",
+							Description: "example description",
+						},
+					},
+				}
+
+				sampleService2 := eaa.Service{
+					Description: "example description",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:        "Event #2",
+							Version:     "1.0.0",
+							Description: "example description",
+						},
+					},
+				}
+
+				expectedOutput := strings.NewReader(
+					"{\"services\":[{\"urn\":{\"id\"" +
+						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
+						"\"description\":\"example description\"," +
+						"\"endpoint_uri\":\"https://1.2.3.4\"," +
+						"\"notifications\":[{\"name\":\"Event #2\"," +
+						"\"version\":\"1.0.0\",\"description\"" +
+						":\"example description\"}]}]}")
+
+				registerProducer(prodClient, sampleService, "1 ")
+				registerProducer(prodClient, sampleService2,
+					"1 (different notification) ")
+
+				getServiceList(accessClient, &receivedServList)
+
+				By("Expected service list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortServiceSlices(expectedServList.Services,
+					receivedServList.Services)
+
+				By("Comparing GET response data")
+				Expect(receivedServList).To(Equal(expectedServList))
+			})
+
+			Specify("Register: Producer registers"+
+				" with more than one notification", func() {
+				sampleService := eaa.Service{
+					Description: "example description",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:        "Event #1",
+							Version:     "1.0.0",
+							Description: "example description",
+						},
+						{
+							Name:        "Event #2",
+							Version:     "1.0.0",
+							Description: "example description",
+						},
+					},
+				}
+
+				expectedOutput := strings.NewReader(
+					"{\"services\":[{\"urn\":{\"id\"" +
+						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
+						"\"description\":\"example description\"," +
+						"\"endpoint_uri\":\"https://1.2.3.4\"," +
+						"\"notifications\":[" +
+						"{\"name\":\"Event #1\"," +
+						"\"version\":\"1.0.0\",\"description\"" +
+						":\"example description\"}," +
+						"{\"name\":\"Event #2\"," +
+						"\"version\":\"1.0.0\",\"description\"" +
+						":\"example description\"}" +
+						"]}]}")
+
+				registerProducer(prodClient, sampleService, "")
+
+				getServiceList(accessClient, &receivedServList)
+
+				By("Expected service list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortServiceSlices(expectedServList.Services,
+					receivedServList.Services)
+
+				By("Comparing GET response data")
+				Expect(receivedServList).To(Equal(expectedServList))
+			})
+
+			Specify("Register: Producer registers two notifications"+
+				" that vary just by version number", func() {
+				sampleService := eaa.Service{
+					Description: "example description",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:        "Event #1",
+							Version:     "1.0.0",
+							Description: "example description",
+						},
+						{
+							Name:        "Event #1",
+							Version:     "2.0.0",
+							Description: "example description",
+						},
+					},
+				}
+
+				expectedOutput := strings.NewReader(
+					"{\"services\":[{\"urn\":{\"id\"" +
+						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
+						"\"description\":\"example description\"," +
+						"\"endpoint_uri\":\"https://1.2.3.4\"," +
+						"\"notifications\":[" +
+						"{\"name\":\"Event #1\"," +
+						"\"version\":\"1.0.0\",\"description\"" +
+						":\"example description\"}," +
+						"{\"name\":\"Event #1\"," +
+						"\"version\":\"2.0.0\",\"description\"" +
+						":\"example description\"}" +
+						"]}]}")
+
+				registerProducer(prodClient, sampleService, "")
+
+				getServiceList(accessClient, &receivedServList)
+
+				By("Expected service list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortServiceSlices(expectedServList.Services,
+					receivedServList.Services)
+
+				By("Comparing GET response data")
+				Expect(receivedServList).To(Equal(expectedServList))
+			})
+
+			Specify("Register: Producer registers two identical notifications",
+				func() {
+					// skip test due to the functionality not implemented yet
+					Skip("functionality not implemented yet")
+					sampleService := eaa.Service{
+						Description: "example description",
+						EndpointURI: "https://1.2.3.4",
+						Notifications: []eaa.NotificationDescriptor{
+							{
+								Name:        "Event #1",
+								Version:     "1.0.0",
+								Description: "example description",
+							},
+							{
+								Name:        "Event #1",
+								Version:     "1.0.0",
+								Description: "example description",
+							},
+						},
+					}
+
+					expectedOutput := strings.NewReader(
+						"{\"services\":[{\"urn\":{\"id\"" +
+							":\"producer-1\",\"namespace\":\"namespace-1\"}," +
+							"\"description\":\"example description\"," +
+							"\"endpoint_uri\":\"https://1.2.3.4\"," +
+							"\"notifications\":[" +
+							"{\"name\":\"Event #1\"," +
+							"\"version\":\"1.0.0\",\"description\"" +
+							":\"example description\"}" +
+							"]}]}")
+
+					registerProducer(prodClient, sampleService, "")
+
+					getServiceList(accessClient, &receivedServList)
+
+					By("Expected service list decoding")
+					err := json.NewDecoder(expectedOutput).
+						Decode(&expectedServList)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					sortServiceSlices(expectedServList.Services,
+						receivedServList.Services)
+
+					By("Comparing GET response data")
+					Expect(receivedServList).To(Equal(expectedServList))
+				})
 		})
 
 		Context("two producers", func() {
@@ -267,11 +577,6 @@ var _ = Describe("ApiEaa", func() {
 			})
 
 			Specify("Register: Two producers", func() {
-				var (
-					receivedServList eaa.ServiceList
-					expectedServList eaa.ServiceList
-				)
-
 				sampleService := eaa.Service{
 					Description: "example description",
 					EndpointURI: "https://1.2.3.4",
@@ -314,54 +619,79 @@ var _ = Describe("ApiEaa", func() {
 						":\"example description\"}]}" +
 						"]}")
 
-				By("Service struct 1 encoding")
-				payload, err := json.Marshal(sampleService)
-				Expect(err).ShouldNot(HaveOccurred())
+				registerProducer(prodClient, sampleService, "1 ")
+				registerProducer(prodClient2, sampleService2, "2 ")
 
-				By("Sending service 1 registration POST request")
-				respPost, err := prodClient.Post(
-					"https://"+cfg.TLSEndpoint+"/services",
-					"application/json; charset=UTF-8",
-					bytes.NewBuffer(payload))
-				Expect(err).ShouldNot(HaveOccurred())
+				getServiceList(accessClient, &receivedServList)
 
-				By("Comparing POST 1 response code")
-				defer respPost.Body.Close()
-				Expect(respPost.Status).To(Equal("200 OK"))
-
-				By("Service struct 2 encoding")
-				payload2, err := json.Marshal(sampleService2)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				By("Sending service 2 registration POST request")
-				respPost2, err := prodClient2.Post(
-					"https://"+cfg.TLSEndpoint+"/services",
-					"application/json; charset=UTF-8",
-					bytes.NewBuffer(payload2))
-				Expect(err).ShouldNot(HaveOccurred())
-
-				By("Comparing POST 2 response code")
-				defer respPost2.Body.Close()
-				Expect(respPost2.Status).To(Equal("200 OK"))
-
-				By("Sending service list GET request")
-				respGet, err := prodClient.Get(
-					"https://" + cfg.TLSEndpoint + "/services")
-				Expect(err).ShouldNot(HaveOccurred())
-
-				By("Comparing GET response code")
-				defer respGet.Body.Close()
-				Expect(respGet.Status).To(Equal("200 OK"))
-
-				By("Service list decoding")
-				err = json.NewDecoder(respGet.Body).
-					Decode(&receivedServList)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				By("Service list encoding")
-				err = json.NewDecoder(expectedOutput).
+				By("Expected service list decoding")
+				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedServList)
 				Expect(err).ShouldNot(HaveOccurred())
+
+				sortServiceSlices(expectedServList.Services,
+					receivedServList.Services)
+
+				By("Comparing response data")
+				Expect(receivedServList).To(Equal(expectedServList))
+			})
+
+			Specify("Register: Two producers register"+
+				" the same notification", func() {
+				sampleService := eaa.Service{
+					Description: "example description",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:        "Event #1",
+							Version:     "1.0.0",
+							Description: "example description",
+						},
+					},
+				}
+
+				sampleService2 := eaa.Service{
+					Description: "example description",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:        "Event #1",
+							Version:     "1.0.0",
+							Description: "example description",
+						},
+					},
+				}
+
+				expectedOutput := strings.NewReader(
+					"{\"services\":[" +
+						"{\"urn\":{\"id\"" +
+						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
+						"\"description\":\"example description\"," +
+						"\"endpoint_uri\":\"https://1.2.3.4\"," +
+						"\"notifications\":[{\"name\":\"Event #1\"," +
+						"\"version\":\"1.0.0\",\"description\"" +
+						":\"example description\"}]}," +
+						"{\"urn\":{\"id\"" +
+						":\"producer-2\",\"namespace\":\"namespace-2\"}," +
+						"\"description\":\"example description\"," +
+						"\"endpoint_uri\":\"https://1.2.3.4\"," +
+						"\"notifications\":[{\"name\":\"Event #1\"," +
+						"\"version\":\"1.0.0\",\"description\"" +
+						":\"example description\"}]}" +
+						"]}")
+
+				registerProducer(prodClient, sampleService, "1 ")
+				registerProducer(prodClient2, sampleService2, "2 ")
+
+				getServiceList(accessClient, &receivedServList)
+
+				By("Expected service list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortServiceSlices(expectedServList.Services,
+					receivedServList.Services)
 
 				By("Comparing response data")
 				Expect(receivedServList).To(Equal(expectedServList))
