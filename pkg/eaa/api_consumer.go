@@ -32,25 +32,26 @@ var socket = websocket.Upgrader{
 // to receive data from subscribed producers
 func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 	// Get the consumer app ID from the Common Name in the certificate
-	appID := r.TLS.PeerCertificates[0].Subject.CommonName
+	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
+	urn, err := CommonNameStringToURN(commonName)
 
-	// Check if appID matches the Host included in the request header
-	if appID != r.Host {
+	// Check if urn ID matches the Host included in the request header
+	if err != nil || urn.ID != r.Host {
 		return http.StatusUnauthorized,
 			errors.New("401: Incorrect app ID")
 	}
 
-	// Check if connection was created for appID, if so send close
+	// Check if connection was created for urn ID, if so send close
 	// message, close the connection and delete the entry in the
 	// connections structure
-	foundConn, connFound := eaaCtx.consumerConnections[appID]
+	foundConn, connFound := eaaCtx.consumerConnections[commonName]
 	if connFound {
 		prevConn := foundConn.connection
 		msgType := websocket.CloseMessage
 		closeMessage := websocket.FormatCloseMessage(
 			websocket.CloseServiceRestart,
 			"New connection request, closing this connection")
-		err := prevConn.WriteMessage(msgType, closeMessage)
+		err = prevConn.WriteMessage(msgType, closeMessage)
 		if err != nil {
 			return http.StatusInternalServerError,
 				errors.New("Failed to send close message to old connection")
@@ -60,7 +61,7 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 			return http.StatusInternalServerError,
 				errors.New("Failed to close previous websocket connection")
 		}
-		delete(eaaCtx.consumerConnections, appID)
+		delete(eaaCtx.consumerConnections, commonName)
 	}
 
 	conn, err := socket.Upgrade(w, r, nil)
@@ -68,7 +69,8 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 		return 0, err
 	}
 
-	eaaCtx.consumerConnections[appID] = ConsumerConnection{connection: conn}
+	eaaCtx.consumerConnections[commonName] = ConsumerConnection{
+		connection: conn}
 
 	return 0, nil
 }

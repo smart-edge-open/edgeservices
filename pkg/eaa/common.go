@@ -21,7 +21,7 @@ import (
 
 // CommonNameStringToURN parses a common name string to a URN struct
 func CommonNameStringToURN(commonName string) (URN, error) {
-	splittedCN := strings.Split(commonName, ":")
+	splittedCN := strings.SplitN(commonName, ":", 2)
 
 	if len(splittedCN) != 2 {
 		return URN{}, errors.New("Cannot translate Common Name to URN")
