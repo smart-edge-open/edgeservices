@@ -634,6 +634,7 @@ var _ = Describe("ApiEaa", func() {
 
 				By("Comparing response data")
 				Expect(receivedServList).To(Equal(expectedServList))
+
 			})
 
 			Specify("Register: Two producers register"+

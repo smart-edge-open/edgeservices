@@ -23,6 +23,25 @@ import (
 	"github.com/pkg/errors"
 )
 
+func validServiceNotifications(
+	servNotifications []NotificationDescriptor) []NotificationDescriptor {
+
+	var validNotificationList []NotificationDescriptor
+
+	for _, notif := range servNotifications {
+
+		if notif.Name == "" || notif.Version == "" {
+
+			log.Errf("Service notification is invalid - missing required" +
+				" fields: Name or Version")
+		} else {
+			validNotificationList = append(validNotificationList, notif)
+		}
+	}
+	return validNotificationList
+
+}
+
 func addService(commonName string, serv Service) error {
 	if eaaCtx.serviceInfo == nil {
 		return errors.New(
@@ -37,6 +56,11 @@ func addService(commonName string, serv Service) error {
 
 	serv.URN = &urn
 
+	if serv.Notifications != nil {
+
+		serv.Notifications = validServiceNotifications(serv.Notifications)
+
+	}
 	eaaCtx.serviceInfo[commonName] = serv
 
 	return nil
