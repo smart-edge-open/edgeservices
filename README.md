@@ -40,6 +40,18 @@ Section 9 - changelog
 
 OpenNESS Edge Node uses a set of open source applications and framework, both inside the product and during installation/deployment process.
 
+OpenNESS User and developer Prerequisites: 
+- Understanding and usage of virtualization environment based on Libvirt 
+- Understanding and usage of Container environment based on Dockers 
+- Understanding and usage of Cloud Native environment based on Kubernetes
+- Basic understanding of Networking 
+- Go lang for OpenNESS microservices 
+- C lang and DPDK for dataplane 
+- HTTP REST, json, gRPC, Protobuf for API 
+- Amazon AWS IoT Greengrass Core for Cloud adapters 
+- Baidu Cloud for Cloud adapters 
+- TLS for authentication  
+
 ## 2.1. CentOS Linux 
 Product is running on CentOS 7.6 x86_64 operating system. The same one is used for building product components and deploying/running them in dedicated hardware platform.
 It's suggested to install a minimal amount of rpm packages inside operating system, so the "Minimal" ISO of CentOS is recommended for use when preparing any of the test machine.
@@ -68,8 +80,18 @@ It will be installed automatically by the first automation script being ran on h
 OpenNESS Edge Node requires CentOS 7.6 x64 operating system to be installed on hardware.
 For building product binaries, images and containers only one server is required. 
 
+![OpenNESS Build and Execution setup](ug-images/openness_setup.png)
+
 In this scenario, all actions will take place on the same machine.
 > NOTE: For a dual server setup, where one server is being used for building binaries, product images, and a second server for deplyoing them in a production server, please see README.md documents under the following repository subfolders: `./scripts/ansible/build_server` and `./scripts/ansible/deploy_server` that will guide you throught a different setup on two machines.
+
+OpenNESS supports Network Edge and On-Premise edge deployment. For details of these two deployment model please refer to the OpenNESS architecture specification. 
+- Network Edge deployment is based on Kubernetes 
+- On-Premise Edge deployment is based on Docker Containers and VMs based on libvirt. 
+
+The OpenNESS Edge Node and OpenNESS controller components build would remain unchanged for both the deployments. For the Network Edge deployment this document assumes that a Kubernetes cluster is setup with Kubernetes master and Node is added to the cluster. The document does not provide the steps for setting up Kubernetes cluster. 
+
+Reference for setting up Kubernetes cluster on CentOS: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
 
 # 4. Hardware requirements
 ## 4.1. Supported platform
@@ -161,7 +183,7 @@ Their names represent the order in which they shall be run, like:
 - 02_install_tools.sh
 - 03_build_and_deploy.sh
 
-NOTE: For dual server setup, please see README.md files in `./scripts/ansible/build_server` and `./scripts/ansible/deploy_server` subfolders. They contain a detailed instructions on how to run all scripts and describe an expected outcome.
+NOTE: For dual server setup (see image with a second variant in chapter 3. above), please read README.md files in `./scripts/ansible/build_server` and `./scripts/ansible/deploy_server` subfolders. They contain a detailed instructions on how to run all scripts on two separate machines (instead of one) and describe an expected outcome.
 
 ### 7.1. Preconditions
 The following actions must be complete prior to running OpenNESS Edge Node automation setup scripts on the server:
