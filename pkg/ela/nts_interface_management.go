@@ -280,7 +280,7 @@ func waitForNTS(ctx context.Context) error {
 		}
 
 		if err := isNTSrunning(ctx); err != nil {
-			return err
+			return errors.Wrap(err, "NTS failed to start")
 		}
 
 		if _, err := os.Stat(ntsVhostFile); err == nil {

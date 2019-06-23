@@ -258,7 +258,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring(
-							"driver 'KERNEL' is not supported"))
+							"KERNEL driver is not supported"))
 					})
 				})
 
