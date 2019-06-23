@@ -75,16 +75,18 @@ func (data *InterfacesData) toMap() (map[string]interfaceData, error) {
 	d := make(map[string]interfaceData)
 
 OUTER:
-	for _, policy := range data.TrafficPolicies {
-		for _, netIf := range data.NetworkInterfaces.NetworkInterfaces {
+	for _, netIf := range data.NetworkInterfaces.NetworkInterfaces {
+		for _, policy := range data.TrafficPolicies {
 			if policy.Id == netIf.Id {
-				d[policy.Id] = interfaceData{policy, netIf}
+				d[netIf.Id] = interfaceData{policy, netIf}
 				continue OUTER
 			}
 		}
 
-		return nil, errors.Errorf("NetworkInterface with PCI %s not found",
-			policy.Id)
+		d[netIf.Id] = interfaceData{
+			NetworkInterface: netIf,
+			TrafficPolicy:    &pb.TrafficPolicy{Id: netIf.Id},
+		}
 	}
 
 	return d, nil

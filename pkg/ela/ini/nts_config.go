@@ -107,6 +107,10 @@ func (nts *NtsConfig) WriteToBuffer() (*bytes.Buffer, error) {
 	// route = <r2>
 	output := strings.Replace(buf.String(), "|", "\nroute = ", -1)
 
+	// Because ini library errounously handles empty slices with shadow values
+	// following hack is required. Removes line 'route = ' which is invalid.
+	output = strings.Replace(output, "route = \n", "", -1)
+
 	return bytes.NewBufferString(output), nil
 }
 
