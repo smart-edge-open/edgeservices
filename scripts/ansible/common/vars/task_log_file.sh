@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enable loggin Ansible output form console to files in given folder.
-# Comment out below export to disable console logs saving to files.
+# Enable logging of screen output (Ansible scripts) to files in given folder.
+# Logs will be saved to folder: <appliance-ce_repository/scripts/ansible/logs/
 
 currdir=${PWD##*/} 
 BASE_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 [ -d ${BASE_PATH}/../logs ] || mkdir  ${BASE_PATH}/../logs
 FILENAME="`date +%Y-%m-%d_%H-%M-%S_ansible.log`"
 
+# Comment out below export to disable console logs saving to files.
 export ANSIBLE_LOG_PATH="${BASE_PATH}/../logs/${FILENAME}"

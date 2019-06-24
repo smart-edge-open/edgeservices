@@ -193,8 +193,8 @@ The following actions must be complete prior to running OpenNESS Edge Node autom
 - network access proxy – if used – has been set up correctly and proxy config files from `./exmples/proxy` subfolder were copied to the correct locations on local disk
 - firewall allows outgoing TCP ports 21,80,443 (or proxy ports if proxy is used) and UDP 53
 - operating system software is up to date (run yum update before running any of below scripts)
-- root account is required (each script requires root permissions)
-- server terminal console access or remote ssh access is needed (only on of them)
+- root account is required (each script mentioned below must be run as root user)
+- server terminal console access or remote ssh access is needed (only one of them)
 
 >  NOTE: If SELinux is enabled, it will be disabled temporarily for the time of running script, but also permanently set to disabled (permissive mode) after the first server reboot.
 
@@ -207,15 +207,17 @@ Automation scripts are located in the following repository subfolder: ./scripts/
 Scripts shall be ran in a correct order as listed above.
 > NOTE: They can be run locally from the server console or through SSH session.
 
+> NOTE: Each scripts shall be run as root user directly, not via `sudo`.
+
 ### Steps to follow:
 - Enter the folder with scripts for single server:
 ```
-  # cd <appliance-ce_repostiory>/scripts/ansible single_server/
+  # cd <appliance-ce_repostiory>/scripts/ansible/single_server/
 ```
 - Run script `01_setup_server.sh`
 - Reboot server if requested/informed by the script
-- Run script `02_install_tools.sh`
-- Once previous script completes, run the last script: `03_build_and_deploy.sh`
+- Run the second script `02_install_tools.sh`
+- Once this script completes, run the last script: `03_build_and_deploy.sh`
 - At some point, the script will print a key on the console
 - This key will be needed on the controller
 - Wait for communication from controller side and wait for certificates exchange
