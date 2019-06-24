@@ -13,4 +13,4 @@
 # limitations under the License.
 
 - name: Reload udev rules
-  shell: udevadm control --reload-rules
+  shell: udevadm control --reload-rules && udevadm trigger
