@@ -48,7 +48,7 @@ var _ = Describe("NtsConfig", func() {
 				Expect(nts.VMCommon.Max).To(Equal(32))
 				Expect(nts.VMCommon.Number).To(Equal(2))
 				Expect(nts.VMCommon.VHostDev).
-					To(Equal("/var/lib/nts/usvhost-1"))
+					To(Equal("/var/lib/nts/qemu/usvhost-1"))
 			})
 		})
 

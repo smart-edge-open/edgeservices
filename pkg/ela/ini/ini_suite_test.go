@@ -54,7 +54,7 @@ route = prio:99,epc_ip:2.2.2.2/22
 [VM common]
 max = 32
 number = 2
-vhost-dev = /var/lib/nts/usvhost-1
+vhost-dev = /var/lib/nts/qemu/usvhost-1
 
 [NES_SERVER]
 ctrl_socket = /var/lib/nts/control-socket

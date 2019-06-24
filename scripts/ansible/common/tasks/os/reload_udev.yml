@@ -12,24 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- name: Get a list of running VMs (libvirtd)
-  shell: virsh list --name |  awk 'NF'
-  register: virsh_vms_running
-
-- debug:
-    msg: "{{ virsh_vms_running.stdout_lines|list }}"
-
-- name: Get a list of all VMs (libvirtd)
-  shell: virsh list --all --name |  awk 'NF'
-  register: virsh_vms_all
-
-- debug:
-    msg: "{{ virsh_vms_all.stdout_lines|list }}"
-
-- name: Destroy VMs
-  shell: "virsh destroy {{ item }}"
-  with_items: "{{ virsh_vms_running.stdout_lines }}"
-
-- name: Undefine VMs
-  shell: "virsh undefine {{ item }}"
-  with_items: "{{ virsh_vms_all.stdout_lines }}"
+- name: Reload udev rules
+  shell: udevadm control --reload-rules

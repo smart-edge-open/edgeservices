@@ -272,7 +272,7 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	// Round up to next 2 MiB boundary and switch unit to MiB
 	memRounded := math.Ceil(float64(pbapp.Memory)/2048) * 2
 	domcfg := libvirtxml.Domain{
-		Type: "qemu", Name: pbapp.Id,
+		Type: "kvm", Name: pbapp.Id,
 		OS: &libvirtxml.DomainOS{
 			Type: &libvirtxml.DomainOSType{Arch: "x86_64", Type: "hvm"},
 		},

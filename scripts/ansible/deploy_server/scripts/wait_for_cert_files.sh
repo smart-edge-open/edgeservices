@@ -23,3 +23,6 @@ while true; do
   [[ $found -eq 4 ]] && break
   sleep 5
 done
+cd ${base_path}
+ln -s root.pem `openssl x509 -hash -noout -in root.pem`.0
+cd -

@@ -34,6 +34,7 @@ sigterm_handler() {
 
 trap 'sigterm_handler' SIGTERM
 
+umask 002
 exec /root/nes-daemon \
     -n 4 \
     --lcores='(0,3,4,5)@0,1@3,2@4' \

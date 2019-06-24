@@ -36,7 +36,7 @@ type InterfacesData struct {
 
 const (
 	ntsContainerName = "nts"
-	ntsVhostFile     = "/var/lib/appliance/nts/usvhost-1"
+	ntsVhostFile     = "/var/lib/appliance/nts/qemu/usvhost-1"
 	dnsContainerName = "mec-app-edgednssvr"
 )
 

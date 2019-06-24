@@ -12,10 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-- name: Create additional Docker directories
+- name: Create additional Docker directory (nts)
   file:
-    path: "{{ item }}"
+    path: /var/lib/appliance/nts
     state: directory
-  with_items:
-    - /var/lib/appliance/nts
-    - /var/lib/appliance/edgednssvr
+
+- name: Create additional Docker directory (nts/qemu)
+  file:
+    path: /var/lib/appliance/nts/qemu
+    state: directory
+    group: kvm
+    mode: g+s
+
+
+- name: Create additional Docker directories (edgednssvr)
+  file:
+    path: /var/lib/appliance/edgednssvr
+    state: directory

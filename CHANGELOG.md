@@ -23,7 +23,7 @@
 - Fixed application stop handler to avoid stopping already stopped VM
 - Fixed application undeployment code to allow removal of running container
 - Fixed system setup and deployment scripts to correctly and automatically setup hugepages
-- Fixed system deployment script to recreate docker daemon libvirt network config files 
+- Fixed system deployment script to recreate docker daemon libvirt network config files
 
 ## [0.2.3] - 2019-06-14
 - Fixed docker configuration to disable userland proxy to allow source IP detection
@@ -41,3 +41,7 @@
 - Added Baidu OpenEdge example scripts
 - Fixed appliance container to include controller root CA
 - Fixed system setup and deployment scripts to remove all libvirt VMs when reinstalling deploy server
+
+## [0.3.1] - To be released
+ - Fix vhost socket file permission issues
+ - Add CA hash(required by syslog-ng)

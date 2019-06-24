@@ -28,6 +28,8 @@
   - include_tasks: ../../common/tasks/sets/reinstall_docker.yml
   - include_tasks: ../../common/tasks/yum/remove_qemu-img_package.yml
   - include_tasks: ../../common/tasks/qemu/install_qemu_from_source.yml
+  - include_tasks: ../../common/tasks/os/add_udev_kvm_system_rule.yml
+  - include_tasks: ../../common/tasks/os/reload_udev.yml
   - include_tasks: ../../common/tasks/sets/reinstall_dpdk.yml
   - include_tasks: ../../common/tasks/dpdk/enable_load_modules_at_boot.yml
   - include_tasks: ../../common/tasks/dpdk/unload_modules.yml
