@@ -118,7 +118,30 @@ OpenNESS Edge Node product has been tested using the following hardware specific
 | Other card       | 2x PCIe Riser cards                                           |
 
 # 5. Hardware setup
-There are no special requirements for setting up hardware compared to a typical network server setup.
+There are no special requirements for setting up hardware compared to a typical network server setup, except BIOS settings and making sure the server is able to reach the internet (required to download other packages).
+
+## 5.1. BIOS revision upgrade
+Before proceeding, make sure the BIOS is updated to the latest available stable release.
+Please refer to the manufacturer user guide on upgrading BIOS firmware.
+
+## 5.2. BIOS setting
+There are few required BIOS settings for OpenNESS Edge Node server that operator needs to set. They are CPU and power management related.
+It's recommended to first reset BIOS to factory defaults, and then set the following options as shown below:
+- BIOS - Advanced - Processor Configuration:
+  - Intel(R) Hyper-Threading = DISABLED
+  - Intel(R) Virtualization Technology = ENABLED
+- BIOS - Advanced - Power & Performance:
+  - Workload Configuration = BALANCED
+- BIOS - Advanced - Power & Performance - CPU C State Control:
+  - Package C-State = C0C1 state
+  - C1E = DISABLED
+  - PRocessor C6 = DISABLED
+- BIOS - Advanced - Power & Performance - Hardware P States:
+  - Hardware P-States = DISABLED
+- BIOS - Advanced - Power & Performance - CPU P State Control:
+  - Enchanced Intel SpeedStep(R) Tech = DISABLED
+  - Intel(R) Turbo Boost Technology = DISABLED
+  - Energy Efficient Turbo = DISABLED
 
 # 6. CentOS operating system set up
 Evaluated version of CentOS Linux is v7.6.1810 (Minimal). The iso file is available from mirror sites listed at the link:
