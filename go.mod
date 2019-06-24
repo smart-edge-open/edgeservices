@@ -16,7 +16,6 @@ module github.com/smartedgemec/appliance-ce
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
-	github.com/Flaque/filet v0.0.0-20190209224823-fc4d33cfcf93
 	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
@@ -41,7 +40,6 @@ require (
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/smartedgemec/log v0.0.0-20190528164224-a4280b88c44b
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
-	github.com/spf13/afero v1.2.2 // indirect
 	github.com/stretchr/testify v1.3.0 // indirect
 	go.etcd.io/bbolt v1.3.2
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c // indirect

@@ -21,7 +21,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Flaque/filet"
 	"github.com/smartedgemec/appliance-ce/internal/authtest"
 	"github.com/smartedgemec/appliance-ce/pkg/ela"
 	"github.com/smartedgemec/log"
@@ -37,7 +36,6 @@ var (
 )
 
 func TestEdgeLifecycleAgent(t *testing.T) {
-	defer filet.CleanUp(t)
 	RegisterFailHandler(Fail)
 	certsDir, err := ioutil.TempDir("", "elaCerts")
 	Expect(err).NotTo(HaveOccurred())
@@ -45,11 +43,12 @@ func TestEdgeLifecycleAgent(t *testing.T) {
 	Expect(authtest.EnrollStub(certsDir)).ToNot(HaveOccurred())
 	transportCreds, err = authtest.ClientCredentialsStub()
 	Expect(err).NotTo(HaveOccurred())
-	filet.File(t, "ela.json", fmt.Sprintf(`
+	err = ioutil.WriteFile("ela.json", []byte(fmt.Sprintf(`
 	{
 		"endpoint": "%s",
 		"certsDirectory": "%s"
-	}`, elaTestEndpoint, certsDir))
+	}`, elaTestEndpoint, certsDir)), os.FileMode(0644))
+	Expect(err).NotTo(HaveOccurred())
 
 	srvErrChan := make(chan error)
 	srvCtx, srvCancel := context.WithCancel(context.Background())
@@ -70,4 +69,7 @@ func TestEdgeLifecycleAgent(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	log.SetOutput(GinkgoWriter)
+})
+var _ = AfterSuite(func() {
+	os.Remove("ela.json")
 })

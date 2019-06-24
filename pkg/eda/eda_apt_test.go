@@ -16,7 +16,6 @@ package eda_test
 
 import (
 	"context"
-	"github.com/Flaque/filet"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -33,12 +32,7 @@ import (
 )
 
 func TestEdgeDataPlaneAgent(t *testing.T) {
-	defer filet.CleanUp(t)
 	RegisterFailHandler(Fail)
-	filet.File(t, "eda_test.json", `
-        {
-                "endpoint": "localhost:50051"
-        }`)
 
 	RunSpecs(t, "Edge Data Plane Agent  suite")
 }
@@ -214,7 +208,7 @@ var _ = Describe("EDA gRPC Set() request handling", func() {
 		srvCtx, srvCancel = context.WithCancel(context.Background())
 		_ = srvCancel
 		go func() {
-			err = eda.Run(srvCtx, "eda_test.json")
+			err = eda.Run(srvCtx, "testdata/conf.json")
 			if err != nil {
 				log.Errf("Run() exited with error: %#v", err)
 			}

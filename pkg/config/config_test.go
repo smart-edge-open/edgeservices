@@ -17,15 +17,12 @@ package config
 import (
 	"testing"
 
-	"github.com/Flaque/filet"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 func TestConfig(t *testing.T) {
-	defer filet.CleanUp(t)
 	RegisterFailHandler(Fail)
-	filet.File(t, "conf.json", "{\"val\":0}")
 	RunSpecs(t, "Config suite")
 }
 
@@ -39,7 +36,7 @@ var _ = Describe("LoadJSONonfig", func() {
 				conf := struct {
 					Val int `json:"val"`
 				}{}
-				Expect(LoadJSONConfig("conf.json", &conf)).To(BeNil())
+				Expect(LoadJSONConfig("testdata/conf.json", &conf)).To(BeNil())
 				Expect(conf.Val).To(Equal(0))
 			})
 	})

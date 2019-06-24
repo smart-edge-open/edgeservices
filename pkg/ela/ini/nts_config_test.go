@@ -19,6 +19,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"io/ioutil"
 
 	. "github.com/smartedgemec/appliance-ce/pkg/ela/ini"
 	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
@@ -99,9 +100,12 @@ var _ = Describe("NtsConfig", func() {
 				Expect(buf).ShouldNot(BeNil())
 
 				serializedConfig := strings.TrimSpace(buf.String())
-
+				ntsConfigTestFileContent, err := ioutil.ReadFile(
+					"testdata/nts.cfg")
+				Expect(err).ShouldNot(HaveOccurred())
 				Expect(serializedConfig).
-					Should(Equal(strings.TrimSpace(ntsConfigTestFileContent)))
+					Should(Equal(strings.TrimSpace(
+						string(ntsConfigTestFileContent))))
 			})
 		})
 	})
