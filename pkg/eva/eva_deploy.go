@@ -327,6 +327,10 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 			Disks: []libvirtxml.DomainDisk{
 				{
 					Device: "disk",
+					Driver: &libvirtxml.DomainDiskDriver{
+						Name: "qemu",
+						Type: "qcow2",
+					},
 					Source: &libvirtxml.DomainDiskSource{
 						File: &libvirtxml.DomainDiskSourceFile{
 							File: dapp.ImageFilePath()},
@@ -335,6 +339,14 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 				},
 			},
 			Interfaces: []libvirtxml.DomainInterface{
+				{
+					Source: &libvirtxml.DomainInterfaceSource{
+						Network: &libvirtxml.DomainInterfaceSourceNetwork{
+							Network: "default",
+						},
+					},
+					Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
+				},
 				{
 					Source: &libvirtxml.DomainInterfaceSource{
 						VHostUser: &libvirtxml.DomainChardevSource{
