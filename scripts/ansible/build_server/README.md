@@ -24,7 +24,8 @@ Make sure to read given NOTES below and troubleshooting section.
 
 ### Prerequisites
 Before running any script provided, please make sure that the following requirements are already met:
-- server is running CentOS 7.5 18.10 release (minimal install recommended; no GUI is needed)
+- server is running CentOS 7.6 18.10 release (minimal install recommended; no GUI is needed)
+- BIOS configuration is complete according to requirements - see chapter "Hardware setup" and "BIOS settings" in README.md file in the main repository folder
 - connection to the internet is available (TCP ports 21, 80 and 443)
 - if proxy is used, make sure that it is set up correctly before running any further scripts (see chapter 3.)
 - operating system software is up to date (run yum update before running any script)

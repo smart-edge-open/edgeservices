@@ -149,6 +149,8 @@ https://wiki.centos.org/Download
 
 > NOTE: It's recommended to use a Minimal CentOS Linux installation media, as only a minimal set of packages will be installed on disk. This brings the benefits of faster installation time, reduced OS complexity and overload (GUI, needless services running in background).
 
+> NOTE: Running CentOS operating system for EdgeNode Build/Deploy server as a virtual machine is not supported. Install it directly on physical server.
+
 ## 6.1. Base OS installation options
 Since Minimal installation image does not contain any options for packages to be installed, the only options operator has to set are:
 - correct time and timezone

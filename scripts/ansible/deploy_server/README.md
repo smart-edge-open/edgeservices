@@ -23,7 +23,8 @@ Make sure to read given NOTES below and troubleshooting section.
 
 ### Prerequisites
 Before running any script provided, please make sure that the following requirements are already met:
-- server is running CentOS 7.5 18.10 release (minimal install is fine; no GUI is needed)
+- server is running CentOS 7.6 18.10 release (minimal install is fine; no GUI is needed)
+- BIOS configuration is complete according to requirements - see chapter "Hardware setup" and "BIOS settings" in README.md file in the main repository folder
 - connection to the internet is available (TCP ports 21, 80 and 443)
 - if proxy is used, make sure that it is set up correctly before running any further scripts (see procedure below)
 - operating system software is up to date (run yum update before running any script)
@@ -31,6 +32,8 @@ Before running any script provided, please make sure that the following requirem
 - server terminal console access or remote ssh access is needed (only on of them)
 - two product images (components) created previously on build server. They are required in Docker format:
  appliance.image and edgednssvt.docker
+
+> NOTE: Running CentOS operating system for EdgeNode Build/Deploy server as a virtual machine is not supported. Install it directly on physical server.
 
 ### Proxy setup
 If the server is not using proxy to to access the internet, please skip this chapter.
