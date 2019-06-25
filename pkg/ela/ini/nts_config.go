@@ -59,6 +59,7 @@ type NtsConfig struct {
 	Ports     []Port    `ini:"-"`
 }
 
+// SaveToFile saves data to a file
 func (nts *NtsConfig) SaveToFile(filePath string) error {
 	buf, err := nts.WriteToBuffer()
 
@@ -174,8 +175,11 @@ func (nts *NtsConfig) RemovePort(pci string) {
 type TrafficType string
 
 const (
-	IP    TrafficType = "IP"
-	LTE   TrafficType = "LTE"
+	// IP traffic type
+	IP TrafficType = "IP"
+	// LTE traffic type
+	LTE TrafficType = "LTE"
+	// Mixed traffic type
 	Mixed TrafficType = "mixed"
 )
 
@@ -183,11 +187,16 @@ const (
 type TrafficDirection string
 
 const (
-	Unknown    TrafficDirection = "unknown"
-	Upstream   TrafficDirection = "upstream"
+	// Unknown traffic direction
+	Unknown TrafficDirection = "unknown"
+	// Upstream traffic direction
+	Upstream TrafficDirection = "upstream"
+	// Downstream traffic direction
 	Downstream TrafficDirection = "downstream"
-	Both       TrafficDirection = "both"
-	LBP        TrafficDirection = "lbp"
+	// Both traffic direction
+	Both TrafficDirection = "both"
+	// LBP traffic direction
+	LBP TrafficDirection = "lbp"
 )
 
 // Port struct represents configuration of a port for NTS
@@ -205,6 +214,7 @@ type Port struct {
 	Routes []string `ini:"route,omitempty,allowshadow" delim:"|"`
 }
 
+// TrafficDirectionFromInterfaceType find traffic direction
 func TrafficDirectionFromInterfaceType(
 	t pb.NetworkInterface_InterfaceType) (TrafficDirection, error) {
 
@@ -223,6 +233,7 @@ func TrafficDirectionFromInterfaceType(
 	}
 }
 
+// InterfaceTypeFromTrafficDirection finds interface type
 func InterfaceTypeFromTrafficDirection(
 	t TrafficDirection) (pb.NetworkInterface_InterfaceType, error) {
 
@@ -241,6 +252,7 @@ func InterfaceTypeFromTrafficDirection(
 	}
 }
 
+// Update do the update
 func (nts *NtsConfig) Update() {
 	for idx, p := range nts.Ports {
 		if p.TrafficDirection != LBP {
@@ -255,6 +267,7 @@ func (nts *NtsConfig) Update() {
 	}
 }
 
+// GetNetworkInterface gets network interface
 func (p *Port) GetNetworkInterface() (*pb.NetworkInterface, error) {
 	n := &pb.NetworkInterface{}
 
@@ -274,6 +287,7 @@ func (p *Port) GetNetworkInterface() (*pb.NetworkInterface, error) {
 	return n, nil
 }
 
+// UpdateFromNetworkInterface updates from network interface
 func (p *Port) UpdateFromNetworkInterface(n *pb.NetworkInterface) error {
 	if p.PciAddress != "" && p.PciAddress != n.Id {
 		return errors.Errorf(
@@ -318,6 +332,7 @@ func (p *Port) setLBPMAC(tr *pb.TrafficRule) {
 	}
 }
 
+// UpdateFromTrafficPolicy updates from traffic policy
 func (p *Port) UpdateFromTrafficPolicy(tp *pb.TrafficPolicy) error {
 	if p.PciAddress != "" && p.PciAddress != tp.Id {
 		return errors.Errorf(

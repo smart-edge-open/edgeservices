@@ -25,12 +25,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+// Configuration JSON file
 type Configuration struct {
 	Endpoint          string        `json:"endpoint"`
 	HeartbeatInterval util.Duration `json:"heartbeatInterval"`
 }
 
 var (
+	// Config is a global config
 	Config Configuration
 	log    = logger.DefaultLogger.WithField("eda", nil)
 )
@@ -70,6 +72,7 @@ func runServer(ctx context.Context) error {
 	return nil
 }
 
+// Run start EDA
 func Run(ctx context.Context, cfgPath string) error {
 
 	log.Infof("Starting with config: '%s'", cfgPath)

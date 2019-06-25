@@ -40,6 +40,7 @@ var (
 	log = logger.DefaultLogger.WithField("eva", nil)
 )
 
+// Config describes a global eva JSON config
 type Config struct {
 	Endpoint          string        `json:"endpoint"`
 	EndpointInternal  string        `json:"endpointInternal"`
@@ -181,6 +182,7 @@ func sanitizeConfig(cfg *Config) error {
 	return nil
 }
 
+// Run runs eva
 func Run(ctx context.Context, cfgFile string) error {
 	var cfg Config
 

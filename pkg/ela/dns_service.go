@@ -29,6 +29,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// EdgeDNSSocket string name for Edge DNS Socket
 var EdgeDNSSocket = "/run/edgedns.sock"
 
 // DNSServiceServer struct implementing ela.pb.go interface
@@ -82,6 +83,7 @@ func (s DNSServiceServer) DeleteForwarders(ctx context.Context,
 		status.Error(codes.Unimplemented, "not implemented")
 }
 
+// DNSClient describes a dns client
 type DNSClient struct {
 	cn *grpc.ClientConn
 	cc edgednspb.ControlClient
@@ -113,7 +115,11 @@ func set(ctx context.Context, hr *edgednspb.HostRecordSet) error {
 	if err != nil {
 		return err
 	}
-	defer client.cn.Close()
+	defer func() {
+		if err1 := client.cn.Close(); err1 != nil {
+			log.Errf("Failed to close client connection: %v", err1)
+		}
+	}()
 
 	if _, err := client.cc.SetAuthoritativeHost(ctx, hr); err != nil {
 		return status.Errorf(codes.FailedPrecondition,
@@ -127,7 +133,11 @@ func del(ctx context.Context, rr *edgednspb.RecordSet) error {
 	if err != nil {
 		return err
 	}
-	defer client.cn.Close()
+	defer func() {
+		if err1 := client.cn.Close(); err1 != nil {
+			log.Errf("Failed to close client connection: %v", err1)
+		}
+	}()
 
 	if _, err := client.cc.DeleteAuthoritative(ctx, rr); err != nil {
 		return status.Errorf(codes.FailedPrecondition,

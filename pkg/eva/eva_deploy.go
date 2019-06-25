@@ -45,6 +45,7 @@ import (
 	libvirt "github.com/libvirt/libvirt-go"
 )
 
+// DeploySrv describes deplyment
 type DeploySrv struct {
 	cfg  *Config
 	meta *metadata.AppMetadata
@@ -59,14 +60,24 @@ func downloadImage(url string, target string) error {
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err1 := resp.Body.Close(); err1 != nil {
+				log.Errf("Failed to close body reader from %s: %v", url, err1)
+			}
+		}()
+
 		input = resp.Body
 	} else {
 		file, err := os.Open(filepath.Clean(url))
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer func() {
+			if err1 := file.Close(); err1 != nil {
+				log.Errf("Failed to close file %s: %v", url, err1)
+			}
+		}()
+
 		input = file
 	}
 
@@ -175,7 +186,11 @@ func loadImage(ctx context.Context,
 	if err != nil {
 		return errors.Wrap(err, "Failed to ImageLoad() the docker image")
 	}
-	defer respLoad.Body.Close()
+	defer func() {
+		if err1 := respLoad.Body.Close(); err1 != nil {
+			log.Errf("Failed to close docker reader %v", err1)
+		}
+	}()
 
 	if !respLoad.JSON {
 		return fmt.Errorf("No JSON output loading app %s", dapp.App.Id)
@@ -195,6 +210,7 @@ func loadImage(ctx context.Context,
 	return err
 }
 
+// DeployContainer deploys a container
 func (s *DeploySrv) DeployContainer(ctx context.Context,
 	pbapp *pb.Application) (*empty.Empty, error) {
 
@@ -254,6 +270,7 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
+// DeployVM deploys VM
 func (s *DeploySrv) DeployVM(ctx context.Context,
 	pbapp *pb.Application) (*empty.Empty, error) {
 
@@ -267,7 +284,12 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer func() {
+		if c, err1 := conn.Close(); err1 != nil || c < 0 {
+			log.Errf("Failed to close libvirt connection: code: %v, error: %v",
+				c, err1)
+		}
+	}()
 
 	// Round up to next 2 MiB boundary and switch unit to MiB
 	memRounded := math.Ceil(float64(pbapp.Memory)/2048) * 2
@@ -356,6 +378,7 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
+// Redeploy trigger the deployment again
 func (s *DeploySrv) Redeploy(ctx context.Context,
 	app *pb.Application) (*empty.Empty, error) {
 
@@ -417,7 +440,12 @@ func libvirtUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if c, err1 := conn.Close(); err1 != nil || c < 0 {
+			log.Errf("Failed to close libvirt connection: code: %v, error: %v",
+				c, err1)
+		}
+	}()
 
 	dom, err := conn.LookupDomainByName(dapp.App.Id)
 	if err != nil {
@@ -446,6 +474,7 @@ func libvirtUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
 	return dapp.SetUndeployed()
 }
 
+// Undeploy do the removel of deployment
 func (s *DeploySrv) Undeploy(ctx context.Context,
 	app *pb.ApplicationID) (*empty.Empty, error) {
 

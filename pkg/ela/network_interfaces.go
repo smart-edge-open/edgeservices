@@ -34,6 +34,7 @@ import (
 	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 )
 
+// NetworkDevice contains data for network device
 type NetworkDevice struct {
 	PCI          string
 	Manufacturer string
@@ -167,6 +168,7 @@ func fillMACAddrForDPDKDevs(devs []NetworkDevice) error {
 	return nil
 }
 
+// GetNetworkDevices gets network devices
 func GetNetworkDevices() ([]NetworkDevice, error) {
 	devs, err := getNetworkPCIs()
 	if err != nil {
@@ -186,6 +188,7 @@ func GetNetworkDevices() ([]NetworkDevice, error) {
 	return devs, err
 }
 
+// ToNetworkInterface converts a device to an interface
 func (dev *NetworkDevice) ToNetworkInterface() *pb.NetworkInterface {
 	iface := &pb.NetworkInterface{}
 	iface.Id = dev.PCI
@@ -197,6 +200,7 @@ func (dev *NetworkDevice) ToNetworkInterface() *pb.NetworkInterface {
 	return iface
 }
 
+// GetNetworkInterfaces gets network interfaces
 func GetNetworkInterfaces() (*pb.NetworkInterfaces, error) {
 	devs, err := GetNetworkDevices()
 	if err != nil {

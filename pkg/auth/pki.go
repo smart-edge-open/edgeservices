@@ -33,7 +33,11 @@ func readFileWithPerm(path string, perm os.FileMode) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to open %s", path)
 	}
-	defer f.Close()
+	defer func() {
+		if err1 := f.Close(); err1 != nil {
+			log.Errf("Failed to close %s: %v", path, err1)
+		}
+	}()
 
 	stat, err := f.Stat()
 	if err != nil {

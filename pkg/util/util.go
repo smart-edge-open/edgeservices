@@ -50,7 +50,6 @@ func Heartbeat(ctx context.Context, interval Duration, handler func()) {
 					handler()
 				case <-ctx.Done():
 					t.Stop()
-					break
 				}
 			}
 		}()

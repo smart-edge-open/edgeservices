@@ -33,10 +33,12 @@ import (
 	"unsafe"
 )
 
+// NtsConnection represents nts connection
 type NtsConnection struct {
 	cConnection C.nes_remote_t
 }
 
+// NtsDeviceStats represents nts device status
 type NtsDeviceStats struct {
 	ReceivedPackets  uint64
 	SentPackets      uint64
@@ -48,6 +50,7 @@ type NtsDeviceStats struct {
 	IPFragment       uint64
 }
 
+// NtsDevice represent nts device
 type NtsDevice struct {
 	Name    string
 	Index   uint16
@@ -55,6 +58,7 @@ type NtsDevice struct {
 	Stats   NtsDeviceStats
 }
 
+// NewNtsConnection creates a new nts connection
 func NewNtsConnection() (*NtsConnection, error) {
 
 	conn := new(NtsConnection)
@@ -70,6 +74,7 @@ func NewNtsConnection() (*NtsConnection, error) {
 	return conn, nil
 }
 
+// Disconnect disconnect a connection
 func (conn *NtsConnection) Disconnect() error {
 
 	cConnP := &(conn.cConnection)
@@ -82,6 +87,7 @@ func (conn *NtsConnection) Disconnect() error {
 	return nil
 }
 
+// RouteAdd adds a route
 func (conn *NtsConnection) RouteAdd(macAddr net.HardwareAddr,
 	lookupKeys string) error {
 
@@ -103,6 +109,7 @@ func (conn *NtsConnection) RouteAdd(macAddr net.HardwareAddr,
 	return nil
 }
 
+// RouteRemove removes a route
 func (conn *NtsConnection) RouteRemove(lookupKeys string) error {
 
 	cLookupKeys := C.CString(lookupKeys)
@@ -118,6 +125,7 @@ func (conn *NtsConnection) RouteRemove(lookupKeys string) error {
 	return nil
 }
 
+// GetDevices gets a list of devices
 func (conn *NtsConnection) GetDevices() ([]NtsDevice, error) {
 
 	cConnP := &(conn.cConnection)

@@ -34,15 +34,18 @@ const (
 	imageFileName    = "image"
 )
 
+// AppMetadata describes metadata for an app
 type AppMetadata struct {
 	RootPath string
 }
 
-// ApplicationType is type for specifying type of application
+// AppType is type for specifying type of application
 type AppType string
 
 const (
-	VM        AppType = "LibvirtDomain"   // VM
+	// VM is a virtual machine type
+	VM AppType = "LibvirtDomain" // VM
+	// Container is a container machine type
 	Container AppType = "DockerContainer" // container
 )
 
@@ -52,7 +55,7 @@ type AppData struct {
 	App  *pb.Application
 }
 
-// Application is type storing metadata and additional not serialized data
+// DeployedApp is type storing metadata and additional not serialized data
 type DeployedApp struct {
 	AppData
 	IsDeployed bool
@@ -72,10 +75,12 @@ func (a *DeployedApp) deployedFilePath() string {
 	return path.Join(a.Path, deployedFileName)
 }
 
+// ImageFilePath joins path with imageFileName
 func (a *DeployedApp) ImageFilePath() string {
 	return path.Join(a.Path, imageFileName)
 }
 
+// NewDeployedApp create a new deplyed app
 func (m *AppMetadata) NewDeployedApp(appType AppType,
 	app *pb.Application) *DeployedApp {
 	a := new(DeployedApp)
@@ -87,7 +92,7 @@ func (m *AppMetadata) NewDeployedApp(appType AppType,
 	return a
 }
 
-// Loads application's metadata from disk
+// Load loads application's metadata from disk
 func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 	if appID == "" {
 		return nil, errors.New("ApplicationID is empty")
@@ -115,9 +120,12 @@ func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 		}
 		return nil, fmt.Errorf("Failed to open %s", deployedFileName)
 	}
-	defer file.Close()
 	dapp.IsDeployed = true
 	num, err := file.Read(bytes) // bytes is definitely big enough
+
+	if err1 := file.Close(); err == nil {
+		err = err1
+	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to read %v", file.Name())
 	}
@@ -128,7 +136,7 @@ func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 	return dapp, nil
 }
 
-// This function will write into a temporary file that's in the same directory
+// Save function will write into a temporary file that's in the same directory
 // as target first. Only when temp file is fully written, will it atomically
 // rename it to the target file. This ensures we don't end up with a parially
 // written file in case of power failure / system hang etc, since mostly we're
@@ -171,6 +179,7 @@ func (a *DeployedApp) Save(updateOnly bool) error {
 	return os.Rename(tmpfile, a.metadataFilePath()) // Atomic rename
 }
 
+// SetDeployed sets deployed
 func (a *DeployedApp) SetDeployed(deployedID string) error {
 	a.DeployedID = deployedID
 	file, err := os.Create(a.deployedFilePath())
@@ -189,6 +198,7 @@ func (a *DeployedApp) SetDeployed(deployedID string) error {
 	return err
 }
 
+// SetUndeployed sets undeployed
 func (a *DeployedApp) SetUndeployed() error {
 	path := a.deployedFilePath()
 

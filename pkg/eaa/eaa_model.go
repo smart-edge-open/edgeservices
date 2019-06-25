@@ -16,6 +16,7 @@ package eaa
 
 import "encoding/json"
 
+// NotificationDescriptor describes a type used in EAA API
 type NotificationDescriptor struct {
 	// Name of notification
 	Name string `json:"name,omitempty"`
@@ -25,6 +26,7 @@ type NotificationDescriptor struct {
 	Description string `json:"description,omitempty"`
 }
 
+// NotificationFromProducer describes a type used in EAA API
 type NotificationFromProducer struct {
 	// Name of notification
 	Name string `json:"name,omitempty"`
@@ -35,6 +37,7 @@ type NotificationFromProducer struct {
 	Payload json.RawMessage `json:"payload,omitempty"`
 }
 
+// NotificationToConsumer describes a type used in EAA API
 type NotificationToConsumer struct {
 	// Name of notification
 	Name string `json:"name,omitempty"`
@@ -47,10 +50,12 @@ type NotificationToConsumer struct {
 	URN URN `json:"producer,omitempty"`
 }
 
+// ServiceList JSON struct
 type ServiceList struct {
 	Services []Service `json:"services,omitempty"`
 }
 
+// Service JSON struct
 type Service struct {
 	URN           *URN                     `json:"urn,omitempty"`
 	Description   string                   `json:"description,omitempty"`
@@ -59,10 +64,12 @@ type Service struct {
 	Notifications []NotificationDescriptor `json:"notifications,omitempty"`
 }
 
+// SubscriptionList JSON struct
 type SubscriptionList struct {
 	Subscriptions []Subscription `json:"subscriptions,omitempty"`
 }
 
+// Subscription describes a type used in EAA API
 type Subscription struct {
 
 	// The name of the producer app. The unique ID is optional for
@@ -75,6 +82,7 @@ type Subscription struct {
 	Notifications []NotificationDescriptor `json:"notifications,omitempty"`
 }
 
+// URN describes a type used in EAA API
 type URN struct {
 
 	// The per-namespace unique portion of the URN that when appended to

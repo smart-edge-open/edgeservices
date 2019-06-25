@@ -21,6 +21,7 @@ import (
 	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
 )
 
+// InterfacePolicyService describes interface policy service
 type InterfacePolicyService struct{}
 
 // Set stores received TrafficPolicy to be later used

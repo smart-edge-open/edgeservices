@@ -14,7 +14,7 @@
 
 package eaa
 
-// Credentials defines a response for a request to obtain authentication
+// AuthCredentials defines a response for a request to obtain authentication
 // credentials. These credentials may be used to further communicate with
 // endpoint(s) that are protected by a form of authentication.
 //
@@ -29,7 +29,7 @@ type AuthCredentials struct {
 	CaPool      []string `json:"ca_pool,omitempty"`
 }
 
-// Identity defines a request to obtain authentication credentials. These
+// AuthIdentity defines a request to obtain authentication credentials. These
 // credentials would be used to further communicate with endpoint(s) that are
 // protected by a form of authentication.
 //

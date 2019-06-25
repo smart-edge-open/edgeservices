@@ -42,7 +42,11 @@ var (
 			return nil, errors.Wrapf(err,
 				"Failed to create a connection to %s", endpoint)
 		}
-		defer conn.Close()
+		defer func() {
+			if err1 := conn.Close(); err1 != nil {
+				log.Errf("Failed to close connection: %v", err1)
+			}
+		}()
 
 		policyCLI := pb.NewApplicationPolicyServiceClient(conn)
 
@@ -59,8 +63,10 @@ type MACAddressProvider interface {
 	GetMacAddress(ctx context.Context, applicationID string) (string, error)
 }
 
+// ApplicationPolicyServiceServerImpl empty struct
 type ApplicationPolicyServiceServerImpl struct{}
 
+// Set sets traffic policy
 func (srv *ApplicationPolicyServiceServerImpl) Set(ctx context.Context,
 	trafficPolicy *pb.TrafficPolicy) (*empty.Empty, error) {
 	log.Info("ApplicationPolicyService Set: Received request")

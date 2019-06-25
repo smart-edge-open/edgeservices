@@ -27,11 +27,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// NewConnFn is a fun to new Connection
 var NewConnFn = func() (NtsConnectionInt, error) {
-
 	return NewNtsConnection()
 }
 
+// NtsConnectionInt interface representing nts connection
 type NtsConnectionInt interface {
 	RouteRemove(lookupKeys string) error
 	RouteAdd(macAddr net.HardwareAddr, lookupKeys string) error
@@ -40,18 +41,22 @@ type NtsConnectionInt interface {
 
 type edaTrafficPolicyServerImpl struct{}
 
+// AppTrafficPolicy represents app traffic policy
 type AppTrafficPolicy struct {
 	Policy          pb.TrafficPolicy
 	NtsTrafficRules []TrafficRuleParsed
 }
 
+// TrafficRuleParsed represents traffic rule parsed
 type TrafficRuleParsed struct {
 	LookupKeys string
 	Mac        net.HardwareAddr
 }
 
+// AppTrafficPolicies represents app traffic policies
 var AppTrafficPolicies map[string]*AppTrafficPolicy
 
+// RemoveRules removes rules
 func RemoveRules(appID string, conn NtsConnectionInt) error {
 
 	log.Info("Removing Traffic Rules for App ID: " + appID)
@@ -110,6 +115,7 @@ func RemoveRules(appID string, conn NtsConnectionInt) error {
 	return nil
 }
 
+// DisconnectNTS disonnects nts connection
 func DisconnectNTS(conn NtsConnectionInt) {
 
 	err := conn.Disconnect()
@@ -119,6 +125,7 @@ func DisconnectNTS(conn NtsConnectionInt) {
 	log.Info("Connection to NTS closed")
 }
 
+// ValidateTrafficRules validates traffic rules
 func ValidateTrafficRules(tp *pb.TrafficPolicy) (*[]TrafficRuleParsed, error) {
 
 	var netMacAddr net.HardwareAddr
@@ -160,6 +167,7 @@ func ValidateTrafficRules(tp *pb.TrafficPolicy) (*[]TrafficRuleParsed, error) {
 	return &tempAppTrafficRules, nil
 }
 
+// AddRequest adds a request
 func AddRequest(conn NtsConnectionInt, tp *pb.TrafficPolicy) error {
 
 	parsedTrafficRules, err := ValidateTrafficRules(tp)

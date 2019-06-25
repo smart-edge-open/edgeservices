@@ -98,6 +98,7 @@ func trafficSelectorToString(ts *pb.TrafficSelector,
 	return gtp + ip, nil
 }
 
+// TrafficRuleProtoToString to string function
 func TrafficRuleProtoToString(rule *pb.TrafficRule) (string, error) {
 	if rule == nil {
 		return "", errors.New("traffic rule is nil")
@@ -313,6 +314,7 @@ var parsers = map[string]func(*pb.TrafficRule, string) error{
 	"encap_proto": encapNoop,
 }
 
+// TrafficRuleStringToProto parses traffic rule string to proto
 func TrafficRuleStringToProto(s string) (*pb.TrafficRule, error) {
 	tr := &pb.TrafficRule{}
 

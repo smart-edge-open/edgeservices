@@ -61,7 +61,12 @@ func getMACForVMvhostuser(appID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
+	defer func() {
+		if c, err1 := conn.Close(); err1 != nil || c < 0 {
+			log.Errf("Failed to close libvirt connection: code: %v, error: %v",
+				c, err1)
+		}
+	}()
 
 	virtDomain, err := conn.LookupDomainByName(appID)
 	if err != nil {
@@ -136,6 +141,7 @@ func getMACForContainerKNI(ctx context.Context, appID string) (string, error) {
 		"nsenter --net=%s "+
 		"ip link | grep vEth -A1 | awk '/ether/ {print $2}'", nsPath)
 
+	// nolint cmdline is constant
 	cmd := exec.Command("bash", "-c", cmdline)
 	var out bytes.Buffer
 	cmd.Stdout = &out

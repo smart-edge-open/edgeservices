@@ -16,6 +16,7 @@ package eaa
 
 import "github.com/smartedgemec/appliance-ce/pkg/util"
 
+// CertsInfo describes paths for certs used in configuration
 type CertsInfo struct {
 	CaRootKeyPath  string `json:"CaRootKeyPath"`
 	CaRootPath     string `json:"caRootPath"`
@@ -23,6 +24,7 @@ type CertsInfo struct {
 	ServerKeyPath  string `json:"serverKeyPath"`
 }
 
+// Config describes EAA JSON config file
 type Config struct {
 	TLSEndpoint       string        `json:"tlsEndpoint"`
 	OpenEndpoint      string        `json:"openEndpoint"`

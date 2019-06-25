@@ -29,6 +29,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
+// InterfacesData describes data for interfaces
 type InterfacesData struct {
 	TrafficPolicies   []*pb.TrafficPolicy
 	NetworkInterfaces *pb.NetworkInterfaces
@@ -41,6 +42,7 @@ const (
 )
 
 var (
+	// InterfaceConfigurationData interface configuration data
 	InterfaceConfigurationData = InterfacesData{}
 
 	ntsConfigTemplate = ini.NtsConfig{

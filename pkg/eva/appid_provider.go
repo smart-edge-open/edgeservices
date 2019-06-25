@@ -24,6 +24,8 @@ import (
 	apppb "github.com/smartedgemec/appliance-ce/pkg/eva/internal_pb"
 )
 
+// IPApplicationLookupServiceServerImpl describes
+// IP Application Lookup Service Server Implementation
 type IPApplicationLookupServiceServerImpl struct{}
 
 // GetApplicationByIP retreives application ID of instance owning
@@ -75,12 +77,16 @@ func getDomMAC(d *libvirt.Domain) (string, error) {
 }
 
 func lookupDomainsByIP(ctx context.Context, addrIP string) (string, error) {
-
 	conn, err := libvirt.NewConnect("qemu:///system")
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
+	defer func() {
+		if c, err1 := conn.Close(); err1 != nil || c < 0 {
+			log.Errf("Failed to close libvirt connection: code: %v, error: %v",
+				c, err1)
+		}
+	}()
 
 	doms, err := conn.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_ACTIVE)
 	if err != nil {
@@ -96,9 +102,13 @@ func lookupDomainsByIP(ctx context.Context, addrIP string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	return searchDonamainByIP(doms, leases, addrIP)
+}
 
+func searchDonamainByIP(doms []libvirt.Domain,
+	leases []libvirt.NetworkDHCPLease,
+	addrIP string) (string, error) {
 	for _, dom := range doms {
-
 		domName, err := dom.GetName()
 		if err != nil {
 			log.Errf("Failed to get name of domain")

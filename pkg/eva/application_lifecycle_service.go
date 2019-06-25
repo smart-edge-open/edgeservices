@@ -30,19 +30,24 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// ApplicationLifecycleServiceServer describers
+// application lifecycle service server
 type ApplicationLifecycleServiceServer struct {
 	cfg  *Config
 	meta *metadata.AppMetadata
 }
 
+// ContainerHandler describes handler for container
 type ContainerHandler struct {
 	meta *metadata.DeployedApp
 }
 
+// VMHandler VM Handler interface
 type VMHandler struct {
 	meta *metadata.DeployedApp
 }
 
+// ApplicationLifecycleServiceHandler interface for handlers
 type ApplicationLifecycleServiceHandler interface {
 	UpdateStatus(pb.LifecycleStatus_Status) error
 	StartHandler(context.Context, time.Duration) error
@@ -50,11 +55,13 @@ type ApplicationLifecycleServiceHandler interface {
 	RestartHandler(context.Context, time.Duration) error
 }
 
+// UpdateStatus updates a status
 func (c *ContainerHandler) UpdateStatus(
 	status pb.LifecycleStatus_Status) error {
 	return updateStatus(c.meta, status)
 }
 
+// UpdateStatus update a status
 func (v *VMHandler) UpdateStatus(status pb.LifecycleStatus_Status) error {
 	return updateStatus(v.meta, status)
 }
@@ -70,6 +77,7 @@ func updateStatus(m *metadata.DeployedApp,
 	return err
 }
 
+// StartHandler is a start handler
 func (c ContainerHandler) StartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
@@ -89,6 +97,7 @@ func (c ContainerHandler) StartHandler(ctx context.Context,
 	return nil
 }
 
+// StopHandler is a stop handler
 func (c ContainerHandler) StopHandler(ctx context.Context,
 	timeout time.Duration) error {
 
@@ -107,6 +116,7 @@ func (c ContainerHandler) StopHandler(ctx context.Context,
 	return nil
 }
 
+// RestartHandler is a restart handler
 func (c ContainerHandler) RestartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
@@ -147,6 +157,7 @@ func waitForDomStateChange(dom *libvirt.Domain, expected libvirt.DomainState,
 	}
 }
 
+// StartHandler is a handler for start
 func (v VMHandler) StartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
@@ -154,7 +165,12 @@ func (v VMHandler) StartHandler(ctx context.Context,
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if c, err1 := conn.Close(); err1 != nil || c < 0 {
+			log.Errf("Failed to close libvirt connection: code: %v, error: %v",
+				c, err1)
+		}
+	}()
 
 	d, err := conn.LookupDomainByName(v.meta.DeployedID)
 	if err != nil {
@@ -179,6 +195,7 @@ func (v VMHandler) StartHandler(ctx context.Context,
 	return nil
 }
 
+// StopHandler is a stop handler
 func (v VMHandler) StopHandler(ctx context.Context,
 	timeout time.Duration) error {
 
@@ -186,7 +203,12 @@ func (v VMHandler) StopHandler(ctx context.Context,
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if c, err1 := conn.Close(); err1 != nil || c < 0 {
+			log.Errf("Failed to close libvirt connection: code: %v, error: %v",
+				c, err1)
+		}
+	}()
 
 	d, err := conn.LookupDomainByName(v.meta.DeployedID)
 	if err != nil {
@@ -220,6 +242,7 @@ func (v VMHandler) StopHandler(ctx context.Context,
 	return nil
 }
 
+// RestartHandler is a restart handler
 func (v VMHandler) RestartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
@@ -227,7 +250,12 @@ func (v VMHandler) RestartHandler(ctx context.Context,
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if c, err1 := conn.Close(); err1 != nil || c < 0 {
+			log.Errf("Failed to close libvirt connection: code: %v, error: %v",
+				c, err1)
+		}
+	}()
 
 	d, err := conn.LookupDomainByName(v.meta.DeployedID)
 	if err != nil {
@@ -261,6 +289,7 @@ func (v VMHandler) RestartHandler(ctx context.Context,
 	return nil
 }
 
+// Start do the start
 func (s *ApplicationLifecycleServiceServer) Start(ctx context.Context,
 	l *pb.LifecycleCommand) (*empty.Empty, error) {
 
@@ -296,6 +325,7 @@ func (s *ApplicationLifecycleServiceServer) Start(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
+// Stop stops the app
 func (s *ApplicationLifecycleServiceServer) Stop(ctx context.Context,
 	l *pb.LifecycleCommand) (*empty.Empty, error) {
 
@@ -331,6 +361,7 @@ func (s *ApplicationLifecycleServiceServer) Stop(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
+// Restart do the restart
 func (s *ApplicationLifecycleServiceServer) Restart(ctx context.Context,
 	l *pb.LifecycleCommand) (*empty.Empty, error) {
 
@@ -367,6 +398,7 @@ func (s *ApplicationLifecycleServiceServer) Restart(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
+// GetStatus gets a status
 func (s *ApplicationLifecycleServiceServer) GetStatus(ctx context.Context,
 	app *pb.ApplicationID) (*pb.LifecycleStatus, error) {
 

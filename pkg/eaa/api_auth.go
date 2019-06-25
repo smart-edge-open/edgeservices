@@ -35,7 +35,11 @@ func validateAppIP(ipAddress string, validationEndpoint string) (bool, error) {
 		return false, errors.Wrapf(err,
 			"Failed to create a connection to %s", validationEndpoint)
 	}
-	defer conn.Close()
+	defer func() {
+		if err1 := conn.Close(); err1 != nil {
+			log.Errf("Failed to close connection: %v", err1)
+		}
+	}()
 	ctx, cancel := context.WithTimeout(context.Background(),
 		3*time.Second)
 	defer cancel()

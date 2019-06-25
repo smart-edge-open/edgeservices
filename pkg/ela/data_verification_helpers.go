@@ -195,6 +195,7 @@ func VerifyTrafficPolicy(trafficPolicy *pb.TrafficPolicy) error {
 	return nil
 }
 
+// ValidateNetworkInterface validates network interface
 func ValidateNetworkInterface(iface *pb.NetworkInterface) error {
 	if iface == nil {
 		return errors.New("NetworkInterface is nil")
@@ -233,6 +234,7 @@ func ValidateNetworkInterface(iface *pb.NetworkInterface) error {
 	return nil
 }
 
+// ValidateNetworkInterfaces validates network interfaces
 func ValidateNetworkInterfaces(interfaces *pb.NetworkInterfaces) error {
 	if interfaces == nil {
 		return errors.New("NetworkInterfaces is nil")

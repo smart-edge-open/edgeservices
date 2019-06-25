@@ -53,7 +53,7 @@ var (
 	log = logger.DefaultLogger.WithField("eaa", nil)
 )
 
-// Initialize EAA context structures
+// Init initialize EAA context structures
 func Init() error {
 	if eaaCtx.serviceInfo != nil || eaaCtx.subscriptionInfo != nil {
 		return errors.New("EAA is already initialized")
@@ -66,6 +66,7 @@ func Init() error {
 	return nil
 }
 
+// CreateAndSetCACertPool creates and set CA cert pool
 func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
 
 	certPool := x509.NewCertPool()
@@ -83,7 +84,8 @@ func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
 	return certPool, nil
 }
 
-// Start Edge Application Agent server listening on port read from config file
+// RunServer starts Edge Application Agent server listening
+// on port read from config file
 func RunServer(parentCtx context.Context) error {
 	var err error
 
@@ -165,6 +167,7 @@ func RunServer(parentCtx context.Context) error {
 	return nil
 }
 
+// Run start EAA
 func Run(parentCtx context.Context, cfgPath string) error {
 	err := config.LoadJSONConfig(cfgPath, &cfg)
 	if err != nil {

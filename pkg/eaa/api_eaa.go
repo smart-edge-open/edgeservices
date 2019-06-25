@@ -21,6 +21,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// DeregisterApplication implements https API
 func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
@@ -35,6 +36,7 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetNotifications implements https API
 func GetNotifications(w http.ResponseWriter, r *http.Request) {
 	if eaaCtx.serviceInfo == nil {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -52,6 +54,7 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetServices implements https API
 func GetServices(w http.ResponseWriter, r *http.Request) {
 	var servList ServiceList
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -74,6 +77,7 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetSubscriptions implements https API
 func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -101,6 +105,7 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PushNotificationToSubscribers implements https API
 func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	var notif NotificationFromProducer
@@ -122,6 +127,7 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statCode)
 }
 
+// RegisterApplication implements https API
 func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 	var serv Service
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -145,6 +151,7 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// SubscribeNamespaceNotifications implements https API
 func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
@@ -177,6 +184,7 @@ func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statCode)
 }
 
+// SubscribeServiceNotifications implements https API
 func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
@@ -207,6 +215,7 @@ func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statCode)
 }
 
+// UnsubscribeAllNotifications implements https API
 func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
@@ -219,6 +228,7 @@ func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statCode)
 }
 
+// UnsubscribeNamespaceNotifications implements https API
 func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
@@ -251,6 +261,7 @@ func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statCode)
 }
 
+// UnsubscribeServiceNotifications implements https API
 func UnsubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 

@@ -21,6 +21,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Route describes traffic routing
 type Route struct {
 	Name        string
 	Method      string
@@ -28,8 +29,10 @@ type Route struct {
 	HandlerFunc http.HandlerFunc
 }
 
+// Routes represents a routing table
 type Routes []Route
 
+// NewEaaRouter initializes EAA router
 func NewEaaRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range eaaRoutes {
@@ -43,6 +46,7 @@ func NewEaaRouter() *mux.Router {
 	return router
 }
 
+// NewAuthRouter initializes EAA Auth router
 func NewAuthRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range authRoutes {

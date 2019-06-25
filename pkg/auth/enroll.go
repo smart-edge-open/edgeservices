@@ -89,7 +89,11 @@ func (c EnrollClient) Get(id *pb.Identity, timeout time.Duration,
 		return nil, errors.Wrapf(err,
 			"Failed create a connection to %s", endpoint)
 	}
-	defer conn.Close()
+	defer func() {
+		if err1 := conn.Close(); err1 != nil {
+			log.Errf("Failed to close connection: %v", err1)
+		}
+	}()
 
 	authCLI := pb.NewAuthServiceClient(conn)
 

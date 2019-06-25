@@ -33,6 +33,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+// Configuration describes JSON configuration
 type Configuration struct {
 	Endpoint          string        `json:"endpoint"`
 	HeartbeatInterval util.Duration `json:"heartbeatInterval"`
@@ -43,7 +44,8 @@ type Configuration struct {
 }
 
 var (
-	log    = logger.DefaultLogger.WithField("ela", nil)
+	log = logger.DefaultLogger.WithField("ela", nil)
+	// Config instantiate a configuration
 	Config Configuration
 )
 

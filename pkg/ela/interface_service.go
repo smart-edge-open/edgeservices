@@ -26,8 +26,10 @@ import (
 )
 
 var (
+	// GetInterfaces stores gets Interfaces functionality
 	GetInterfaces func() (*pb.NetworkInterfaces, error) = GetNetworkInterfaces
 
+	// NTSConfigurationHandler is a NTS configuration handler
 	NTSConfigurationHandler = configureNTS
 )
 
@@ -55,14 +57,17 @@ func checkForNotAllowedChanges(
 	return nil
 }
 
+// InterfaceService is a service interface
 type InterfaceService struct{}
 
+// Update do the update
 func (*InterfaceService) Update(context.Context,
 	*pb.NetworkInterface) (*empty.Empty, error) {
 
 	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
+// BulkUpdate do the Bulk Update
 func (*InterfaceService) BulkUpdate(ctx context.Context,
 	networkInterfaces *pb.NetworkInterfaces) (*empty.Empty, error) {
 	log.Info("InterfaceService BulkUpdate: received request")
@@ -100,6 +105,7 @@ func (*InterfaceService) BulkUpdate(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
+// GetAll gets all service interfaces
 func (*InterfaceService) GetAll(context.Context,
 	*empty.Empty) (*pb.NetworkInterfaces, error) {
 	log.Info("InterfaceService GetAll: received request")
@@ -113,6 +119,7 @@ func (*InterfaceService) GetAll(context.Context,
 	return nis, nil
 }
 
+// Get gets interfaces
 func (*InterfaceService) Get(ctx context.Context,
 	id *pb.InterfaceID) (*pb.NetworkInterface, error) {
 	log.Info("InterfaceService Get: received request")
