@@ -36,12 +36,13 @@ import (
 
 // NetworkDevice contains data for network device
 type NetworkDevice struct {
-	PCI          string
-	Manufacturer string
-	MAC          string
-	Description  string
-	Driver       pb.NetworkInterface_InterfaceDriver
-	Direction    pb.NetworkInterface_InterfaceType
+	PCI               string
+	Manufacturer      string
+	MAC               string
+	Description       string
+	FallbackInterface string
+	Driver            pb.NetworkInterface_InterfaceDriver
+	Direction         pb.NetworkInterface_InterfaceType
 }
 
 func getNetworkPCIs() ([]NetworkDevice, error) {
@@ -155,6 +156,7 @@ func fillMACAddrForDPDKDevs(devs []NetworkDevice) error {
 			if devs[idx].PCI == port.PciAddress {
 				devs[idx].MAC = port.MAC
 				devs[idx].Description = port.Description
+				devs[idx].FallbackInterface = port.EgressPortID
 
 				dir, _ := ini.InterfaceTypeFromTrafficDirection(
 					port.TrafficDirection)
@@ -196,6 +198,7 @@ func (dev *NetworkDevice) ToNetworkInterface() *pb.NetworkInterface {
 	iface.MacAddress = dev.MAC
 	iface.Driver = dev.Driver
 	iface.Type = dev.Direction
+	iface.FallbackInterface = dev.FallbackInterface
 
 	return iface
 }
