@@ -103,27 +103,33 @@ func TestEva(t *testing.T) {
 	/* TODO: add negative tests - undeploying a non-existent app */
 	if dockerTestOn {
 		callDockerDeploy(t, conn, "app-test-1",
-			"http://localhost/hello-world.img")
+			"https://localhost/hello-world.tar.gz") // https test
+		callUndeployAPI(t, conn, "app-test-1")
+
+		callDockerDeploy(t, conn, "app-test-1",
+			"https://localhost/hello-world.tar.gz") // http test
 		callGetStatus(t, conn, "app-test-1")
 		callDockerDeploy(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
 		callUndeployAPI(t, conn, "app-test-1")
 		callGetStatus(t, conn, "app-test-1")
 		callUndeployAPI(t, conn, "app-test-2")
 
-		testLifecycleAPI(t, conn, "hello-world-app",
-			"/var/www/html/hello-world.tar.gz")
+		testLifecycleDocker(t, conn, "hello-world-app",
+			"/var/www/html/hello-world.tar.gz") // file test
 	}
 
 	if libvirtTestOn {
 		callLibvirtDeploy(t, conn, "app-test-vm-1",
-			"http://localhost/freedos-1.0.7z")
+			"https://localhost/freedos-1.0.7z") // http test
 		callGetStatus(t, conn, "app-test-vm-1")
 		callLibvirtDeploy(t, conn, "app-test-vm-2",
-			"http://localhost/freedos-1.0.7z")
+			"https://localhost/freedos-1.0.7z") // https test
 		callUndeployAPI(t, conn, "app-test-vm-1")
 		callGetStatus(t, conn, "app-test-vm-1")
 		callUndeployAPI(t, conn, "app-test-vm-2")
 
+		testLifecycleVM(t, conn, "hello-world-app",
+			"/var/www/html/freedos-1.0.7z") // file test
 	}
 
 	cancel()  // stop the EVA running in other thread
@@ -176,7 +182,7 @@ func TestEvaKubernetesMode(t *testing.T) {
 	}
 	defer conn.Close()
 
-	callDockerDeploy(t, conn, "app-test-1", "http://localhost/hello-world.img")
+	callDockerDeploy(t, conn, "app-test-1", "https://localhost/hello-world.img")
 	callGetStatus(t, conn, "app-test-1")
 
 	callDockerDeploy(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
@@ -281,12 +287,12 @@ func callGetStatus(t *testing.T, conn *grpc.ClientConn, id string) {
 
 // Deploy application in container from given image; start, restart and stop
 // container; undeploy application.
-func testLifecycleAPI(t *testing.T, conn *grpc.ClientConn, id string,
+func testLifecycleDocker(t *testing.T, conn *grpc.ClientConn, id string,
 	image string) {
 
 	var err error
 
-	callDockerDeploy(t, conn, id, image) //"/var/www/html/hello-world.tar.gz")
+	callDockerDeploy(t, conn, id, image)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -307,6 +313,39 @@ func testLifecycleAPI(t *testing.T, conn *grpc.ClientConn, id string,
 	_, err = alsClient.Stop(ctx, &lc, grpc.WaitForReady(true))
 	if err != nil {
 		t.Errorf("StopContainer failed: %v", err)
+	}
+
+	callUndeployAPI(t, conn, id)
+}
+
+// Deploy application in VM from given image; start, restart and stop
+// VM; undeploy application.
+func testLifecycleVM(t *testing.T, conn *grpc.ClientConn, id string,
+	image string) {
+
+	var err error
+
+	callLibvirtDeploy(t, conn, id, image)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	alsClient := pb.NewApplicationLifecycleServiceClient(conn)
+
+	lc := pb.LifecycleCommand{Id: id}
+
+	_, err = alsClient.Start(ctx, &lc, grpc.WaitForReady(true))
+	if err != nil {
+		t.Errorf("StartVM failed: %+v", err)
+	}
+
+	_, err = alsClient.Restart(ctx, &lc, grpc.WaitForReady(true))
+	if err != nil {
+		t.Errorf("RestartVM failed: %v", err)
+	}
+
+	_, err = alsClient.Stop(ctx, &lc, grpc.WaitForReady(true))
+	if err != nil {
+		t.Errorf("StopVM failed: %v", err)
 	}
 
 	callUndeployAPI(t, conn, id)

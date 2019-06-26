@@ -54,6 +54,7 @@ type Config struct {
 	CertsDir          string        `json:"certsDirectory"`
 	KubernetesMode    bool          `json:"kubernetesMode"`
 	VhostSocket       string        `json:"vhostSocket"`
+	DownloadTimeout   util.Duration `json:"downloadTimeout"`
 }
 
 // Wait for cancellation event and then stop the server from other goroutine

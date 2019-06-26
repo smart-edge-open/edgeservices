@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 
 	"math"
+	"regexp"
 	"strings"
 	"time"
 
@@ -51,20 +52,32 @@ type DeploySrv struct {
 	meta *metadata.AppMetadata
 }
 
-func downloadImage(url string, target string) error {
+var httpMatcher = regexp.MustCompile("^http://.")
+var httpsMatcher = regexp.MustCompile("^https://.")
+
+func downloadImage(url string, target string, timeout time.Duration) error {
 	var input io.Reader
 
-	if strings.Contains(url, "http://") {
-		client := &http.Client{Timeout: time.Minute * 5}
+	if httpMatcher.MatchString(url) {
+		return fmt.Errorf("HTTP image path unsupported as insecure, " +
+			"please use HTTPS")
+	} else if httpsMatcher.MatchString(url) {
+		client := &http.Client{Timeout: timeout}
 		resp, err := client.Get(url)
 		if err != nil {
 			return err
 		}
+
 		defer func() {
 			if err1 := resp.Body.Close(); err1 != nil {
 				log.Errf("Failed to close body reader from %s: %v", url, err1)
 			}
 		}()
+
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("unexpected HTTP code %v returned",
+				resp.StatusCode)
+		}
 
 		input = resp.Body
 	} else {
@@ -89,7 +102,8 @@ func downloadImage(url string, target string) error {
 	if err1 := output.Close(); err == nil {
 		err = err1
 	}
-	log.Infof("Downloaded %v", url)
+	log.Infof("Downloaded %v to %v", url, target)
+
 	return err
 }
 
@@ -137,9 +151,10 @@ func (s *DeploySrv) deployCommon(ctx context.Context,
 	}
 
 	/* Now download the image. */
-	switch s := source.(type) {
+	switch uri := source.(type) {
 	case *pb.Application_HttpUri:
-		return downloadImage(s.HttpUri.HttpUri, dapp.ImageFilePath())
+		return downloadImage(uri.HttpUri.HttpUri, dapp.ImageFilePath(),
+			s.cfg.DownloadTimeout.Duration)
 	default:
 		return status.Errorf(codes.Unimplemented, "unknown app source")
 	}

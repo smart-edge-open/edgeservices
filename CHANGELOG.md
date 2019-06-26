@@ -45,3 +45,4 @@
 ## [0.3.1] - To be released
  - Fix vhost socket file permission issues
  - Add CA hash(required by syslog-ng)
+ - Add support for downloading image over https, block http
