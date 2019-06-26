@@ -178,21 +178,7 @@ func (v VMHandler) StartHandler(ctx context.Context,
 	}
 	defer func() { _ = d.Free() }()
 
-	err = d.Create()
-	if err != nil {
-		return err
-	}
-
-	tout, err := waitForDomStateChange(d, libvirt.DOMAIN_RUNNING, timeout)
-	if err != nil {
-		return err
-	}
-
-	if tout {
-		return errors.New("Timeout when starting domain: " + v.meta.DeployedID)
-	}
-
-	return nil
+	return startVM(d, timeout, v)
 }
 
 // StopHandler is a stop handler
@@ -263,6 +249,14 @@ func (v VMHandler) RestartHandler(ctx context.Context,
 	}
 	defer func() { _ = d.Free() }()
 
+	state, _, err := d.GetState()
+	if err != nil {
+		return err
+	}
+
+	if state == libvirt.DOMAIN_SHUTOFF {
+		return startVM(d, timeout, v)
+	}
 	err = d.Reboot(libvirt.DOMAIN_REBOOT_DEFAULT)
 	if err != nil {
 		return err
@@ -286,6 +280,23 @@ func (v VMHandler) RestartHandler(ctx context.Context,
 		return nil
 	}
 
+	return nil
+}
+
+func startVM(d *libvirt.Domain, timeout time.Duration, v VMHandler) error {
+	if err := d.Create(); err != nil {
+		return err
+	}
+
+	tout, err := waitForDomStateChange(d, libvirt.DOMAIN_RUNNING, timeout)
+	if err != nil {
+		return err
+	}
+
+	if tout {
+		return errors.New("Timeout when starting domain: " +
+			v.meta.DeployedID)
+	}
 	return nil
 }
 
