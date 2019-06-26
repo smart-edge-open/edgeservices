@@ -29,6 +29,7 @@
 #include <rte_log.h>
 #include <rte_ethdev.h>
 #include <rte_vhost.h>
+#include <rte_launch.h>
 
 #include "nes_main.h"
 #include "io/nes_dev.h"
@@ -150,8 +151,16 @@ int NES_MAIN(int argc, char** argv)
 		return NES_FAIL;
 	}
 
-	int eal_args, io_lcore = 1, nts_lcore = 2, nis_lcore = 3, nts_ctrl_lcore = 4,
-		nts_dns_agent_lcore = 5;
+	typedef enum {
+		LCORE_IO = 1,
+		LCORE_NTS,
+		LCORE_NIS,
+		LCORE_CTRL,
+		LCORE_DNS
+	} lcores;
+	const int lcores_count = 5;
+
+	int eal_args, i;
 	eal_args = rte_eal_init(argc, argv);
 	argc -= eal_args;
 	argv += eal_args;
@@ -181,12 +190,12 @@ int NES_MAIN(int argc, char** argv)
 		NES_LOG(ERR, "Could not initialize interfaces.\n");
 		return NES_FAIL;
 	}
-	rte_eal_remote_launch(nes_io_main, NULL, io_lcore);
-	rte_eal_remote_launch(nts_io_main, NULL, nts_lcore);
-	rte_eal_remote_launch(nis_io_main, NULL, nis_lcore);
-	rte_eal_remote_launch(nes_ctrl_main, NULL, nts_ctrl_lcore);
-	rte_eal_remote_launch(nes_dns_agent_main, NULL, nts_dns_agent_lcore);
-	NES_LATENCY_START_THREAD(nts_dns_agent_lcore + 1);
+	rte_eal_remote_launch(nes_io_main, NULL, LCORE_IO);
+	rte_eal_remote_launch(nts_io_main, NULL, LCORE_NTS);
+	rte_eal_remote_launch(nis_io_main, NULL, LCORE_NIS);
+	rte_eal_remote_launch(nes_ctrl_main, NULL, LCORE_CTRL);
+	rte_eal_remote_launch(nes_dns_agent_main, NULL, LCORE_DNS);
+	NES_LATENCY_START_THREAD(LCORE_DNS + 1);
 	if (NES_SUCCESS != is_avp_enabled()) {
 		if (NES_SUCCESS == nes_cfgfile_has_section("KNI")) {
 			if (NES_SUCCESS != nes_dev_kni_init()) {
@@ -200,8 +209,31 @@ int NES_MAIN(int argc, char** argv)
 			return NES_FAIL;
 		}
 	}
-	if (rte_eal_wait_lcore(io_lcore) < 0) {
-		return NES_FAIL;
+
+	// wait for all lcores
+	for (;;) {
+		for (i = 1; i <= lcores_count; i++) {
+			enum rte_lcore_state_t state = rte_eal_get_lcore_state(i);
+			if (state != RUNNING) {
+				// DNS IS NOT REQUIRED TO RUN
+				if (i != LCORE_DNS) {
+					NES_LOG(INFO, "Lcore %d stopped\n", i);
+					if (NES_SUCCESS != is_avp_enabled()) {
+						const char *dev_basename;
+						if (NES_SUCCESS == nes_cfgfile_entry("VM common",
+								"vhost-dev", &dev_basename)) {
+							rte_vhost_driver_unregister(dev_basename);
+						}
+						if (NES_SUCCESS == nes_cfgfile_has_section("KNI")) {
+							nes_dev_kni_stop();
+						}
+					}
+					nes_cfgfile_close();
+					return rte_eal_wait_lcore(i);
+				}
+			}
+		}
+		rte_pause();
 	}
 
 	nes_cfgfile_close();
