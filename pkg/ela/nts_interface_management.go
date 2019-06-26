@@ -78,6 +78,12 @@ func (data *InterfacesData) toMap() (map[string]interfaceData, error) {
 
 OUTER:
 	for _, netIf := range data.NetworkInterfaces.NetworkInterfaces {
+
+		// Skip KERNEL driver interfaces
+		if netIf.Driver == pb.NetworkInterface_KERNEL {
+			continue
+		}
+
 		for _, policy := range data.TrafficPolicies {
 			if policy.Id == netIf.Id {
 				d[netIf.Id] = interfaceData{policy, netIf}
@@ -92,6 +98,43 @@ OUTER:
 	}
 
 	return d, nil
+}
+
+func (data *InterfacesData) getDevicesToUnbind() ([]string, error) {
+	nis, err := GetNetworkInterfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	var pcis []string
+
+	for _, ifaceUpdate := range data.NetworkInterfaces.NetworkInterfaces {
+		for _, ifaceCurrent := range nis.NetworkInterfaces {
+
+			if ifaceUpdate.Id == ifaceCurrent.Id {
+				// Unbind only if change is from USERSPACE to KERNEL
+				if ifaceUpdate.Driver == pb.NetworkInterface_KERNEL &&
+					ifaceCurrent.Driver == pb.NetworkInterface_USERSPACE {
+
+					pcis = append(pcis, ifaceUpdate.Id)
+				}
+			}
+		}
+	}
+
+	return pcis, nil
+}
+
+func (data *InterfacesData) getDevicesToBind() []string {
+	var pcis []string
+
+	for _, ifaceUpdate := range data.NetworkInterfaces.NetworkInterfaces {
+		if ifaceUpdate.Driver == pb.NetworkInterface_USERSPACE {
+			pcis = append(pcis, ifaceUpdate.Id)
+		}
+	}
+
+	return pcis
 }
 
 type interfaceData struct {
@@ -142,19 +185,21 @@ func isAnyAppRunning() (bool, error) {
 	return false, nil
 }
 
-func makeNtsConfig(data map[string]interfaceData) (*ini.NtsConfig, error) {
+func makeAndSaveNtsConfig(data map[string]interfaceData,
+	filePath string) error {
+
 	cfg := ntsConfigTemplate
 
 	for pci, d := range data {
 		port := ini.Port{}
 		if err := port.UpdateFromTrafficPolicy(d.TrafficPolicy); err != nil {
-			return nil, errors.Wrapf(err,
+			return errors.Wrapf(err,
 				"failed to create port from traffic policy (pci: %s)", pci)
 		}
 
 		if err := port.UpdateFromNetworkInterface(
 			d.NetworkInterface); err != nil {
-			return nil, errors.Wrapf(err,
+			return errors.Wrapf(err,
 				"failed to create port from network interface (pci: %s)", pci)
 		}
 
@@ -163,15 +208,21 @@ func makeNtsConfig(data map[string]interfaceData) (*ini.NtsConfig, error) {
 
 	cfg.Update()
 
-	return &cfg, nil
+	return cfg.SaveToFile(Config.NtsConfigPath)
 }
 
-func rebindDevices(nts *ini.NtsConfig) error {
+func rebindDevices(pcis []string,
+	driver pb.NetworkInterface_InterfaceDriver) error {
+
 	var bindParams []string
-	bindParams = append(bindParams, "-b", "igb_uio")
-	for _, port := range nts.Ports {
-		bindParams = append(bindParams, port.PciAddress)
+
+	if driver == pb.NetworkInterface_KERNEL {
+		bindParams = append(bindParams, "-b", "none")
+	} else {
+		bindParams = append(bindParams, "-b", "igb_uio")
 	}
+
+	bindParams = append(bindParams, pcis...)
 
 	if len(bindParams) == 2 {
 		return nil
@@ -222,6 +273,10 @@ func restartDNSAndSetRules(ctx context.Context) error {
 		if err = ctx.Err(); err != nil {
 			return errors.Wrap(err,
 				"context error while waiting for Edge DNS KNI")
+		}
+
+		if err = isNTSrunning(ctx); err != nil {
+			return errors.Wrap(err, "NTS failed to start")
 		}
 
 		dnsKNImac, err = getMACForContainerKNI(ctx, dnsContainerName)
@@ -295,10 +350,31 @@ func waitForNTS(ctx context.Context) error {
 	return nil
 }
 
+func startNTSandDNS(ctx context.Context) error {
+	if err := startContainer(ctx, ntsContainerName); err != nil {
+		return errors.Wrap(err, "failed to start NTS")
+	}
+
+	InterfaceConfigurationData = InterfacesData{}
+
+	if err := waitForNTS(ctx); err != nil {
+		return errors.Wrap(err, "NTS did not start fully")
+	}
+
+	return restartDNSAndSetRules(ctx)
+}
+
 func configureNTS(ctx context.Context) error {
 	if err := InterfaceConfigurationData.validate(); err != nil {
 		return errors.Wrap(err, "invalid configuration data")
 	}
+
+	devsToUnbind, err := InterfaceConfigurationData.getDevicesToUnbind()
+	if err != nil {
+		return errors.Wrap(err, "failed to get list of devices to unbind")
+	}
+
+	devsToBind := InterfaceConfigurationData.getDevicesToBind()
 
 	mappedConfig, mapErr := InterfaceConfigurationData.toMap()
 	if mapErr != nil {
@@ -312,13 +388,10 @@ func configureNTS(ctx context.Context) error {
 		return errors.New("there's at least 1 app currently running")
 	}
 
-	ntsCfg, cfgErr := makeNtsConfig(mappedConfig)
-	if cfgErr != nil {
-		return errors.Wrap(cfgErr, "failed to make new NTS config")
-	}
+	if err := makeAndSaveNtsConfig(mappedConfig,
+		Config.NtsConfigPath); err != nil {
 
-	if err := ntsCfg.SaveToFile(Config.NtsConfigPath); err != nil {
-		return errors.Wrap(err, "failed to write new NTS config")
+		return errors.Wrap(err, "failed to make new NTS config")
 	}
 
 	if err := stopDNSAndRemoveRules(ctx); err != nil {
@@ -329,19 +402,17 @@ func configureNTS(ctx context.Context) error {
 		return errors.Wrap(err, "failed to stop NTS")
 	}
 
-	if err := rebindDevices(ntsCfg); err != nil {
-		return errors.Wrap(err, "failed to rebind devices")
+	if err := rebindDevices(devsToUnbind,
+		pb.NetworkInterface_KERNEL); err != nil {
+		return errors.Wrapf(err,
+			"failed to unbind devices: %v", devsToUnbind)
 	}
 
-	if err := startContainer(ctx, ntsContainerName); err != nil {
-		return errors.Wrap(err, "failed to start NTS")
+	if err := rebindDevices(devsToBind,
+		pb.NetworkInterface_USERSPACE); err != nil {
+		return errors.Wrapf(err, "failed to bind devices to DPDK driver: %v",
+			devsToBind)
 	}
 
-	InterfaceConfigurationData = InterfacesData{}
-
-	if err := waitForNTS(ctx); err != nil {
-		return err
-	}
-
-	return restartDNSAndSetRules(ctx)
+	return startNTSandDNS(ctx)
 }

@@ -251,14 +251,16 @@ var _ = Describe("gRPC InterfaceService", func() {
 				})
 
 				When("kernel driver is requested", func() {
-					It("returns an error", func() {
+					It("is successful", func() {
+						ela.NTSConfigurationHandler = func(
+							context.Context) error {
+							return nil
+						}
 						nis.NetworkInterfaces[0].Driver =
 							pb.NetworkInterface_KERNEL
 						err := bulkUpdate(nis)
 
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring(
-							"KERNEL driver is not supported"))
+						Expect(err).ToNot(HaveOccurred())
 					})
 				})
 

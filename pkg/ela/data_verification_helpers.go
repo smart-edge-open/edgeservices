@@ -206,7 +206,8 @@ func ValidateNetworkInterface(iface *pb.NetworkInterface) error {
 	}
 
 	if iface.Driver == pb.NetworkInterface_KERNEL {
-		return errors.New("driver 'KERNEL' is not supported")
+		// Do not validate interfaces with KERNEL driver
+		return nil
 	}
 
 	if iface.Type == pb.NetworkInterface_NONE {

@@ -33,30 +33,6 @@ var (
 	NTSConfigurationHandler = configureNTS
 )
 
-func checkForNotAllowedChanges(
-	networkInterfaces *pb.NetworkInterfaces) error {
-
-	nis, err := GetInterfaces()
-	if err != nil {
-		return err
-	}
-
-	for _, ifaceUpdate := range networkInterfaces.NetworkInterfaces {
-		for _, ifaceCurrent := range nis.NetworkInterfaces {
-			if ifaceUpdate.Id == ifaceCurrent.Id {
-				if ifaceUpdate.Driver == pb.NetworkInterface_KERNEL &&
-					ifaceCurrent.Driver == pb.NetworkInterface_USERSPACE {
-					return errors.Errorf("Device %s: "+
-						"Changing from USERSPACE to KERNEL driver "+
-						"is not supported", ifaceUpdate.Id)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 // InterfaceService is a service interface
 type InterfaceService struct{}
 
@@ -72,29 +48,14 @@ func (*InterfaceService) BulkUpdate(ctx context.Context,
 	networkInterfaces *pb.NetworkInterfaces) (*empty.Empty, error) {
 	log.Info("InterfaceService BulkUpdate: received request")
 
-	if err := checkForNotAllowedChanges(networkInterfaces); err != nil {
-		log.Errf("InterfaceService BulkUpdate: unsupported action: %v", err)
-
-		return nil, err
-	}
-
-	newInterfaces := new(pb.NetworkInterfaces)
-
-	for _, ifaceUpdate := range networkInterfaces.NetworkInterfaces {
-		if ifaceUpdate.Driver == pb.NetworkInterface_USERSPACE {
-			newInterfaces.NetworkInterfaces =
-				append(newInterfaces.NetworkInterfaces, ifaceUpdate)
-		}
-	}
-
-	if err := ValidateNetworkInterfaces(newInterfaces); err != nil {
+	if err := ValidateNetworkInterfaces(networkInterfaces); err != nil {
 		log.Errf("InterfaceService BulkUpdate: invalid NetworkInterface: %v",
 			err)
 
 		return nil, err
 	}
 
-	InterfaceConfigurationData.NetworkInterfaces = newInterfaces
+	InterfaceConfigurationData.NetworkInterfaces = networkInterfaces
 
 	if err := NTSConfigurationHandler(ctx); err != nil {
 		log.Errf("InterfaceService BulkUpdate: Failed to configure NTS: %+v",
