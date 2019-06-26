@@ -25,6 +25,7 @@ NES_ROOT_DIR ?= $(shell pwd)/
 export NES_ROOT_DIR
 
 SEC_CFLAGS = -fstack-protector-strong -fPIC -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security
+SEC_CFLAGS += -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -fstack-protector
 export SEC_CFLAGS
 
 SEC_LDFLAGS = -z noexecstack -z relro -z now
