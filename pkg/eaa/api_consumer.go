@@ -52,13 +52,11 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 			"New connection request, closing this connection")
 		err := prevConn.WriteMessage(msgType, closeMessage)
 		if err != nil {
-			return http.StatusInternalServerError,
-				errors.New("Failed to send close message to old connection")
+			log.Info("Failed to send close message to old connection")
 		}
 		err = prevConn.Close()
 		if err != nil {
-			return http.StatusInternalServerError,
-				errors.New("Failed to close previous websocket connection")
+			log.Info("Failed to close previous websocket connection")
 		}
 		delete(eaaCtx.consumerConnections, commonName)
 	}
