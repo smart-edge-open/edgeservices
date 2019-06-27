@@ -172,10 +172,21 @@ func parseImageName(body io.Reader) (out string, hadTag bool, err error) {
 			"failed to read JSON from docker.ImageLoad()")
 	}
 	err = json.Unmarshal(bytes, &parsed)
+
+	// Validate output
 	if err != nil {
 		return "", false, errors.Wrap(err,
-			"failed to parse out docker image name")
+			"failed to parse docker image name")
 	}
+	if parsed.Stream == "" {
+		return "", false, fmt.Errorf(
+			"failed to parse docker image name: stream empty")
+	}
+	if !strings.Contains(parsed.Stream, "Loaded image") {
+		return "", false, fmt.Errorf(
+			"failed to parse docker image name: stream malformed")
+	}
+
 	out = strings.Replace(parsed.Stream, "Loaded image ID: ", "", 1)
 	if strings.Contains(out, "Loaded image: ") {
 		hadTag = true // Image already tagged, we'll need to untag

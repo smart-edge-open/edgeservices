@@ -102,12 +102,14 @@ func TestEva(t *testing.T) {
 
 	/* TODO: add negative tests - undeploying a non-existent app */
 	if dockerTestOn {
+		failDockerDeploy(t, conn, "corrupt", "https://localhost/corrupt.img")
+
 		callDockerDeploy(t, conn, "app-test-1",
-			"https://localhost/hello-world.tar.gz") // https test
+			"https://localhost/hello-world.tar.gz")
 		callUndeployAPI(t, conn, "app-test-1")
 
 		callDockerDeploy(t, conn, "app-test-1",
-			"https://localhost/hello-world.tar.gz") // http test
+			"https://localhost/hello-world.tar.gz")
 		callGetStatus(t, conn, "app-test-1")
 		callDockerDeploy(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
 		callUndeployAPI(t, conn, "app-test-1")
@@ -115,15 +117,15 @@ func TestEva(t *testing.T) {
 		callUndeployAPI(t, conn, "app-test-2")
 
 		testLifecycleDocker(t, conn, "hello-world-app",
-			"/var/www/html/hello-world.tar.gz") // file test
+			"/var/www/html/hello-world.tar.gz")
 	}
 
 	if libvirtTestOn {
 		callLibvirtDeploy(t, conn, "app-test-vm-1",
-			"https://localhost/freedos-1.0.7z") // http test
+			"https://localhost/freedos-1.0.7z")
 		callGetStatus(t, conn, "app-test-vm-1")
 		callLibvirtDeploy(t, conn, "app-test-vm-2",
-			"https://localhost/freedos-1.0.7z") // https test
+			"https://localhost/freedos-1.0.7z")
 		callUndeployAPI(t, conn, "app-test-vm-1")
 		callGetStatus(t, conn, "app-test-vm-1")
 		callUndeployAPI(t, conn, "app-test-vm-2")
@@ -227,6 +229,28 @@ func callDockerDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 	_, err := client.DeployContainer(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {
 		t.Errorf("DeployContainer failed: %+v", err)
+	}
+
+	cancel()
+}
+
+func failDockerDeploy(t *testing.T, conn *grpc.ClientConn, id string,
+	file string) {
+
+	fmt.Printf("---------------------%v--DEPLOY-BAD---------------\n", id)
+	client := pb.NewApplicationDeploymentServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+	uri := pb.Application_HttpUri{
+		HttpUri: &pb.Application_HTTPSource{HttpUri: file},
+	}
+	app := pb.Application{Id: id, Cores: 2, Memory: 40960, Source: &uri}
+
+	_, err := client.DeployContainer(ctx, &app, grpc.WaitForReady(true))
+	if err == nil {
+		t.Errorf("DeployContainer succeeded")
+	} else {
+		fmt.Printf("DeployContainer failed on bad image: %v\n", err)
 	}
 
 	cancel()
