@@ -33,10 +33,9 @@ var socket = websocket.Upgrader{
 func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 	// Get the consumer app ID from the Common Name in the certificate
 	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
-	urn, err := CommonNameStringToURN(commonName)
 
 	// Check if urn ID matches the Host included in the request header
-	if err != nil || urn.ID != r.Host {
+	if commonName != r.Host {
 		return http.StatusUnauthorized,
 			errors.New("401: Incorrect app ID")
 	}
@@ -51,7 +50,7 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 		closeMessage := websocket.FormatCloseMessage(
 			websocket.CloseServiceRestart,
 			"New connection request, closing this connection")
-		err = prevConn.WriteMessage(msgType, closeMessage)
+		err := prevConn.WriteMessage(msgType, closeMessage)
 		if err != nil {
 			return http.StatusInternalServerError,
 				errors.New("Failed to send close message to old connection")
