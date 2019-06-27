@@ -61,7 +61,10 @@ var _ = Describe("gRPC InterfacePolicyService", func() {
 			Expect(ela.InterfaceConfigurationData.TrafficPolicies).
 				To(HaveLen(1))
 
-			tp := ela.InterfaceConfigurationData.TrafficPolicies[0]
+			tp, ok := ela.InterfaceConfigurationData.
+				TrafficPolicies["0000:00:00.1"]
+
+			Expect(ok).To(BeTrue())
 
 			Expect(tp.Id).To(Equal(expectedTp.Id))
 			Expect(tp.TrafficRules).To(HaveLen(len(expectedTp.TrafficRules)))

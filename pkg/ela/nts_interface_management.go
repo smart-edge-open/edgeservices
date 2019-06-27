@@ -31,7 +31,7 @@ import (
 
 // InterfacesData describes data for interfaces
 type InterfacesData struct {
-	TrafficPolicies   []*pb.TrafficPolicy
+	TrafficPolicies   map[string]*pb.TrafficPolicy
 	NetworkInterfaces *pb.NetworkInterfaces
 }
 
@@ -43,7 +43,9 @@ const (
 
 var (
 	// InterfaceConfigurationData interface configuration data
-	InterfaceConfigurationData = InterfacesData{}
+	InterfaceConfigurationData = InterfacesData{
+		TrafficPolicies: map[string]*pb.TrafficPolicy{},
+	}
 
 	ntsConfigTemplate = ini.NtsConfig{
 		VMCommon: ini.VMCommon{
@@ -84,11 +86,9 @@ OUTER:
 			continue
 		}
 
-		for _, policy := range data.TrafficPolicies {
-			if policy.Id == netIf.Id {
-				d[netIf.Id] = interfaceData{policy, netIf}
-				continue OUTER
-			}
+		if policy, ok := data.TrafficPolicies[netIf.Id]; ok {
+			d[netIf.Id] = interfaceData{policy, netIf}
+			continue OUTER
 		}
 
 		d[netIf.Id] = interfaceData{
@@ -355,7 +355,7 @@ func startNTSandDNS(ctx context.Context) error {
 		return errors.Wrap(err, "failed to start NTS")
 	}
 
-	InterfaceConfigurationData = InterfacesData{}
+	InterfaceConfigurationData.NetworkInterfaces = nil
 
 	if err := waitForNTS(ctx); err != nil {
 		return errors.Wrap(err, "NTS did not start fully")

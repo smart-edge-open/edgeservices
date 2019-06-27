@@ -29,12 +29,13 @@ type InterfacePolicyService struct{}
 func (*InterfacePolicyService) Set(ctx context.Context,
 	tp *pb.TrafficPolicy) (*empty.Empty, error) {
 
+	log.Info("InterfacePolicyService Set: received request")
+
 	if err := VerifyTrafficPolicy(tp); err != nil {
 		return nil, err
 	}
 
-	InterfaceConfigurationData.TrafficPolicies =
-		append(InterfaceConfigurationData.TrafficPolicies, tp)
+	InterfaceConfigurationData.TrafficPolicies[tp.Id] = tp
 
 	return &empty.Empty{}, nil
 }
