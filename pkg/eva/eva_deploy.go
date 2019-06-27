@@ -269,7 +269,9 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	}
 	respCreate, err := docker.ContainerCreate(ctx,
 		&container.Config{Image: pbapp.Id},
-		&container.HostConfig{Resources: resources},
+		&container.HostConfig{
+			Resources: resources,
+			CapAdd:    []string{"NET_ADMIN"}},
 		nil, pbapp.Id)
 	if err != nil {
 		return nil, errors.Wrap(err, "ContinerCreate failed")

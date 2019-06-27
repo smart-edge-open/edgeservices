@@ -45,6 +45,8 @@ services:
       context: .
       dockerfile: "Dockerfile_edgednssvr"
     image: "edgednssvr:${VER}"
+    cap_add:
+     - NET_ADMIN
     volumes:
      - "/var/lib/appliance/edgednssvr:/var/lib/edgedns"
      - "/run:/run"
