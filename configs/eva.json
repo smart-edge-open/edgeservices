@@ -3,7 +3,7 @@
     "endpoint": ":42102",
     "endpointInternal": ":42103",
     "maxCores": 8,
-    "maxAppMem": 2147483647,
+    "maxAppMem": 4096,
     "appImageDir": "/var/lib/appliance/applications",
     "appStartTimeout": "10s",
     "appStopTimeout": "10s",

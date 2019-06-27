@@ -184,7 +184,7 @@ func TestEvaKubernetesMode(t *testing.T) {
 	}
 	defer conn.Close()
 
-	callDockerDeploy(t, conn, "app-test-1", "https://localhost/hello-world.img")
+	callDockerDeploy(t, conn, "app-test-1", "https://localhost/hello-world.tar.gz")
 	callGetStatus(t, conn, "app-test-1")
 
 	callDockerDeploy(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
@@ -224,7 +224,7 @@ func callDockerDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 	uri := pb.Application_HttpUri{
 		HttpUri: &pb.Application_HTTPSource{HttpUri: file},
 	}
-	app := pb.Application{Id: id, Cores: 2, Memory: 40960, Source: &uri}
+	app := pb.Application{Id: id, Cores: 2, Memory: 40, Source: &uri}
 
 	_, err := client.DeployContainer(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {
@@ -266,7 +266,7 @@ func callLibvirtDeploy(t *testing.T, conn *grpc.ClientConn, id string,
 	uri := pb.Application_HttpUri{
 		HttpUri: &pb.Application_HTTPSource{HttpUri: file},
 	}
-	app := pb.Application{Id: id, Cores: 1, Memory: 40961, Source: &uri}
+	app := pb.Application{Id: id, Cores: 1, Memory: 40, Source: &uri}
 
 	_, err := client.DeployVM(ctx, &app, grpc.WaitForReady(true))
 	if err != nil {

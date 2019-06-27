@@ -45,7 +45,7 @@ type Config struct {
 	Endpoint          string        `json:"endpoint"`
 	EndpointInternal  string        `json:"endpointInternal"`
 	MaxCores          int32         `json:"maxCores"`
-	MaxAppMem         int32         `json:"maxAppMem"` /* this is in KB */
+	MaxAppMem         int32         `json:"maxAppMem"` /* this is in MB */
 	AppImageDir       string        `json:"appImageDir"`
 	HeartbeatInterval util.Duration `json:"heartbeatInterval"`
 	AppStartTimeout   util.Duration `json:"appStartTimeout"`

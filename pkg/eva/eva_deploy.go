@@ -275,7 +275,7 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 
 	// Now create a container out of the image
 	resources := container.Resources{
-		Memory:    int64(pbapp.Memory) * 1024,
+		Memory:    int64(pbapp.Memory) * 1024 * 1024,
 		CPUShares: int64(pbapp.Cores),
 	}
 	respCreate, err := docker.ContainerCreate(ctx,
@@ -319,8 +319,8 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 		}
 	}()
 
-	// Round up to next 2 MiB boundary and switch unit to MiB
-	memRounded := math.Ceil(float64(pbapp.Memory)/2048) * 2
+	// Round up to next 2 MiB boundary
+	memRounded := math.Ceil(float64(pbapp.Memory)/2) * 2
 	domcfg := libvirtxml.Domain{
 		Type: "kvm", Name: pbapp.Id,
 		OS: &libvirtxml.DomainOS{
