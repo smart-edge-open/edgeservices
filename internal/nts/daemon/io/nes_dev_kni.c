@@ -105,12 +105,29 @@ nes_dev_kni_mempool_init(void) {
 }
 
 NES_STATIC struct rte_kni *
-nes_dev_kni_alloc(uint16_t port_id)
+nes_dev_kni_alloc(uint16_t port_id, const char* if_id)
 {
 	struct rte_kni_conf conf;
-
+	uint8_t mac_addr[ETHER_ADDR_LEN];
 	memset(&conf, 0, sizeof(conf));
 	snprintf(conf.name, RTE_KNI_NAMESIZE, kni_name_format, port_id);
+
+	// Use if_id as the MAC address if it is long enough and in hex format
+	if (strnlen(if_id, ETHER_ADDR_LEN*2) == ETHER_ADDR_LEN*2) {
+		if (sscanf(if_id, "%02x%02x%02x%02x%02x%02x",
+           &mac_addr[0],
+           &mac_addr[1],
+           &mac_addr[2],
+           &mac_addr[3],
+           &mac_addr[4],
+           &mac_addr[5]) == 6) {
+
+			memcpy(conf.mac_addr, mac_addr, ETHER_ADDR_LEN);
+			// Clear group address bit
+			// https://tools.ietf.org/rfc/rfc1469.txt
+			conf.mac_addr[0] &= 0xFE;
+		}
+	}
 	conf.group_id = port_id;
 	conf.mbuf_size = MBUF_DATA_SIZE;
 
@@ -417,7 +434,7 @@ nes_dev_kni_create_port(const char* if_id, char* created_if_name)
 	}
 
 	kni_dev->dev.kni.port_id = port_id;
-	kni_dev->dev.kni.kni_dev = nes_dev_kni_alloc(port_id);
+	kni_dev->dev.kni.kni_dev = nes_dev_kni_alloc(port_id, if_id);
 	kni_dev->remove = 0;
 	kni_dev->ctor = ctor_kni;
 	kni_dev->dtor = dtor_kni;

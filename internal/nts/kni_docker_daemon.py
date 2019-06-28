@@ -2,13 +2,13 @@
 # coding: utf-8
 
 # Copyright 2019 Intel Corporation. All rights reserved.
-#  
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#  
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-#  
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -229,29 +229,23 @@ def move_if(dst_ip_ns_path, if_name):
         return False
     return True
 
-def docker_create_if(nes_context, docker_cli, pod_name, ip_ns_path):
-    if_id = ip_ns_path.split('/')[-1]
-    if not if_id:
-        return False
-    created_if = add_kni_interface(nes_context, if_id)
+def docker_create_if(nes_context, docker_cli, pod_id, ip_ns_path):
+    created_if = add_kni_interface(nes_context, pod_id)
     if not created_if:
-        _LOG.error("Failed to create an interface from {}, namespace[{}]".format(pod_name, ip_ns_path))
+        _LOG.error("Failed to create an interface from {}, namespace[{}]".format(pod_id, ip_ns_path))
         return False
     if not move_if(ip_ns_path, created_if):
         _LOG.error("Failed to move {} to {} namespace".format(created_if, ip_ns_path))
         return False
-    _LOG.info("{} attached to {}, namespace[{}]".format(created_if, pod_name, ip_ns_path))
+    _LOG.info("{} attached to {}, namespace[{}]".format(created_if, pod_id, ip_ns_path))
     return True
 
-def docker_delete_if(nes_context, docker_cli, pod_name, ip_ns_path):
-    if_id = ip_ns_path.split('/')[-1]
-    if not if_id:
-        return False
-    removed_if = del_kni_interface(nes_context, if_id)
+def docker_delete_if(nes_context, docker_cli, pod_id, ip_ns_path):
+    removed_if = del_kni_interface(nes_context, pod_id)
     if not removed_if:
-        _LOG.error("Failed to remove an interface for {}, namespace[{}]".format(pod_name, ip_ns_path))
+        _LOG.error("Failed to remove an interface for {}, namespace[{}]".format(pod_id, ip_ns_path))
         return False
-    _LOG.info("{} removed from {}, namespace[{}]".format(removed_if, pod_name, ip_ns_path))
+    _LOG.info("{} removed from {}, namespace[{}]".format(removed_if, pod_id, ip_ns_path))
     return True
 
 def filter_name(pod_name, name_filter):
@@ -288,12 +282,13 @@ def docker_poll(nes_context, docker_cli, name_filter):
 
                 if event['Action'] == 'start':
                     _LOG.debug("New container started {}".format(pod_name))
-                    if not docker_create_if(nes_context, docker_cli, pod_name, ip_ns_path):
+                    del_kni_interface(nes_context, sandbox_id) # clear if already exists
+                    if not docker_create_if(nes_context, docker_cli, sandbox_id, ip_ns_path):
                         _LOG.error("Failed to attach the interface to {}".format(pod_name))
 
                 elif event['Action'] == 'kill' and int(event['Actor']['Attributes']['signal']) == signal.SIGTERM:
                     _LOG.debug("{} container stopped".format(pod_name))
-                    if not docker_delete_if(nes_context, docker_cli, pod_name, ip_ns_path):
+                    if not docker_delete_if(nes_context, docker_cli, sandbox_id, ip_ns_path):
                         _LOG.error("Failed to remove the interface from {}".format(pod_name))
 
         except Exception as e:
