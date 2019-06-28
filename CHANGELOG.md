@@ -31,7 +31,7 @@
 ## [0.3.0] - 2019-06-22
 - Fixed after protocol buffer files updates
 - Fixed system setup scripts to eliminate an error when removing qemu-img package
-- Fixed system setup scripts to eliminate an error occuring when qemu is installed from sources
+- Fixed system setup scripts to eliminate an error occurring when qemu is installed from sources
 - Fixed NTS memory allocation on one NUMA socket systems
 - Fixed EAA Agent to validate and optionally regenerate its certificates on start-up
 - Made EAA agent TLS configuration more secure
@@ -42,7 +42,42 @@
 - Fixed appliance container to include controller root CA
 - Fixed system setup and deployment scripts to remove all libvirt VMs when reinstalling deploy server
 
-## [0.3.1] - To be released
+## [0.3.1] - 2019-06-24
  - Fix vhost socket file permission issues
  - Add CA hash(required by syslog-ng)
+ - Minor corrections to userguide and filenames
+
+## [0.3.2] - 2019-06-24
+ - Added "udevadm trigger" flag
+ - Fixed filet dependency issues in tests
+
+## [0.3.3] - 2019-06-25
+ - Added default interface to VM for EVA
+ - Changed image type to qcow2 and interface type to virtio
+ - Added Fallback Interface to network device data struct
+ - Fixed linter issues
+ - Removed redundant code and modified EAA Data Validation tests to take into account latest changes of other tests
+
+## [0.3.4] - 2019-06-26
+ - Fixed error which occurred when restarting VM that is not running
+ - Added compiler flags to NTS for optimization control
+ - Removed binary files from eda_libs
+ - Changed appliance Makefile to build NTS before appliance for build and Travis tests
+ - Unbinded dpdk driver when changing interface from USERSPACE to KERNEL
+ - Fixed interface service test for kernel driver
+ - Added pulling of NTS container status during DNS start
+ - Fixed NTS to waitfor worker lcores - wait for all threads in NTS, cleanup VHOST and KNI after lcore exit
+
+## [0.3.5] - 2019-06
  - Add support for downloading image over https, block http
+ - Added a test and put testLifecycleVM() into it
+ - Added checking of actual HTTP return code for image download
+ - Added downloadTimeout into the config file
+ - Added print with information on CSR request from APP
+ - Fixed issue regarding failing of creation of websocket
+ - Added NET_ADMIN capability to containers to open the possibility of configuring KNI interfaces by them
+ - Removed packet burst generation files from NTS due to ProtexIP
+ - Fixed traffic policy to persist after BulkUpdate
+ - Added logs regarding closing of old/websocket connections
+
+## [0.3.6] - TBA
