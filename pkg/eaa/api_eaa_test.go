@@ -67,6 +67,20 @@ func servLess(a, b eaa.Service) bool {
 	return false
 }
 
+// subLess is a comparison function for Subscription structs
+func subLess(a, b eaa.Subscription) bool {
+	if a.URN.ID < b.URN.ID {
+		return true
+	}
+	if a.URN.ID == b.URN.ID {
+		if a.URN.Namespace < b.URN.Namespace {
+			return true
+		}
+	}
+
+	return false
+}
+
 // sortServiceSlices sorts a lists of Service slices and the Notifications
 // slice within all Service structs to help accommodate equality assertions
 func sortServiceSlices(slices ...[]eaa.Service) {
@@ -81,6 +95,27 @@ func sortServiceSlices(slices ...[]eaa.Service) {
 				func(i, j int) bool {
 					return notifLess(service.Notifications[i],
 						service.Notifications[j])
+				},
+			)
+		}
+	}
+}
+
+// sortSubscriptionSlices sorts a lists of Subscription slices
+// and the Notifications slice within all Subscription structs
+//to help accommodate equality assertions
+func sortSubscriptionSlices(slices ...[]eaa.Subscription) {
+	for _, subSlice := range slices {
+		sort.Slice(subSlice,
+			func(i, j int) bool {
+				return subLess(subSlice[i], subSlice[j])
+			},
+		)
+		for _, sub := range subSlice {
+			sort.Slice(sub.Notifications,
+				func(i, j int) bool {
+					return notifLess(sub.Notifications[i],
+						sub.Notifications[j])
 				},
 			)
 		}
@@ -188,6 +223,24 @@ func getServiceList(c *http.Client, list *eaa.ServiceList) {
 	Expect(respGet.Status).To(Equal("200 OK"))
 
 	By("Received service list decoding")
+	err = json.NewDecoder(respGet.Body).
+		Decode(list)
+	Expect(err).ShouldNot(HaveOccurred())
+}
+
+// getSubscriptionList sends a GET request to the appliance and retrieves
+// a list of current consumer subscriptions
+func getSubscriptionList(c *http.Client, list *eaa.SubscriptionList) {
+	By("Sending subscription list GET request")
+	respGet, err := c.Get(
+		"https://" + cfg.TLSEndpoint + "/subscriptions")
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing GET response code")
+	defer respGet.Body.Close()
+	Expect(respGet.Status).To(Equal("200 OK"))
+
+	By("Received subscription list decoding")
 	err = json.NewDecoder(respGet.Body).
 		Decode(list)
 	Expect(err).ShouldNot(HaveOccurred())
@@ -1582,6 +1635,258 @@ var _ = Describe("ApiEaa", func() {
 					Expect(receivedNotif2).To(Equal(expectedNotif2))
 				})
 			})
+		})
+	})
+
+	Describe("Complex Notification Subscription Suite", func() {
+		var (
+			consClient       *http.Client
+			consCert         tls.Certificate
+			consCertPool     *x509.CertPool
+			consClient2      *http.Client
+			consCert2        tls.Certificate
+			consCertPool2    *x509.CertPool
+			consClient3      *http.Client
+			consCert3        tls.Certificate
+			consCertPool3    *x509.CertPool
+			receivedSubList  eaa.SubscriptionList
+			receivedSubList2 eaa.SubscriptionList
+			receivedSubList3 eaa.SubscriptionList
+			expectedSubList  eaa.SubscriptionList
+			expectedSubList2 eaa.SubscriptionList
+			expectedSubList3 eaa.SubscriptionList
+		)
+
+		BeforeEach(func() {
+			consCommonName := "namespace-1:testAppID-1"
+			consCertTempl := GetCertTempl()
+			consCertTempl.Subject.CommonName = consCommonName
+			consCert, consCertPool = generateSignedClientCert(
+				&consCertTempl)
+			consCommonName2 := "namespace-1:testAppID-2"
+			consCertTempl2 := GetCertTempl()
+			consCertTempl2.Subject.CommonName = consCommonName2
+			consCert2, consCertPool2 = generateSignedClientCert(
+				&consCertTempl2)
+			consCommonName3 := "namespace-1:testAppID-3"
+			consCertTempl3 := GetCertTempl()
+			consCertTempl3.Subject.CommonName = consCommonName3
+			consCert3, consCertPool3 = generateSignedClientCert(
+				&consCertTempl3)
+		})
+
+		BeforeEach(func() {
+			consClient = createHTTPClient(consCert, consCertPool)
+			consClient2 = createHTTPClient(consCert2, consCertPool2)
+			consClient3 = createHTTPClient(consCert3, consCertPool3)
+		})
+
+		Specify("3 Consumer Complex Subscribe", func() {
+			sampleNotifications := []eaa.NotificationDescriptor{
+				{
+					Name:    "event_1",
+					Version: "1.1.0",
+				},
+				{
+					Name:    "event_2",
+					Version: "1.2.0",
+				},
+				{
+					Name:    "event_3",
+					Version: "1.3.0",
+				},
+			}
+
+			sampleNotifications2 := []eaa.NotificationDescriptor{
+				{
+					Name:    "event_1",
+					Version: "1.1.0",
+				},
+				{
+					Name:    "event_2",
+					Version: "1.2.0",
+				},
+			}
+
+			sampleNotifications3 := []eaa.NotificationDescriptor{
+				{
+					Name:    "event_2",
+					Version: "1.2.0",
+				},
+				{
+					Name:    "event_3",
+					Version: "1.3.0",
+				},
+			}
+
+			sampleNotifications4 := []eaa.NotificationDescriptor{
+				{
+					Name:    "event_4",
+					Version: "2.4.0",
+				},
+			}
+
+			sampleNotifications5 := []eaa.NotificationDescriptor{
+				{
+					Name:    "event_1",
+					Version: "1.1.0",
+				},
+				{
+					Name:    "event_2",
+					Version: "1.2.0",
+				},
+				{
+					Name:    "event_3",
+					Version: "1.3.0",
+				},
+				{
+					Name:    "event_4",
+					Version: "1.4.0",
+				},
+			}
+
+			sampleNotifications6 := []eaa.NotificationDescriptor{
+				{
+					Name:    "event_4",
+					Version: "2.4.0",
+				},
+				{
+					Name:    "event_5",
+					Version: "2.5.0",
+				},
+			}
+
+			expectedOutput := strings.NewReader(
+				"{\"subscriptions\":" +
+					"[{\"urn\":{\"id\":null,\"namespace\":\"namespace-1\"}," +
+					"\"notifications\":[{\"name\":\"event_1\"," +
+					"\"version\":\"1.1.0\",\"description\":null}," +
+					"{\"name\":\"event_2\",\"version\":\"1.2.0\"," +
+					"\"description\":null},{\"name\":\"event_3\"," +
+					"\"version\":\"1.3.0\",\"description\":null}]}]}")
+
+			expectedOutput2 := strings.NewReader(
+				"{\"subscriptions\":[" +
+					"{\"urn\":{\"id\":\"producer-1\"," +
+					"\"namespace\":\"namespace-1\"}," +
+					"\"notifications\":[{\"name\":\"event_1\"," +
+					"\"version\":\"1.1.0\",\"description\":null}," +
+					"{\"name\":\"event_2\",\"version\":\"1.2.0\"," +
+					"\"description\":null}]}," +
+					"{\"urn\":{\"id\":\"producer-2\"," +
+					"\"namespace\":\"namespace-1\"}," +
+					"\"notifications\":[{\"name\":\"event_2\"," +
+					"\"version\":\"1.2.0\",\"description\":null}," +
+					"{\"name\":\"event_3\",\"version\":\"1.3.0\"," +
+					"\"description\":null}]}," +
+					"{\"urn\":{\"id\":null," +
+					"\"namespace\":\"namespace-2\"}," +
+					"\"notifications\":[{\"name\":\"event_4\"," +
+					"\"version\":\"2.4.0\",\"description\":null}]}]}")
+
+			expectedOutput3 := strings.NewReader(
+				"{\"subscriptions\":[" +
+					"{\"urn\":{\"id\":null," +
+					"\"namespace\":\"namespace-1\"}," +
+					"\"notifications\":[{\"name\":\"event_1\"," +
+					"\"version\":\"1.1.0\",\"description\":null}," +
+					"{\"name\":\"event_2\",\"version\":\"1.2.0\"," +
+					"\"description\":null},{\"name\":\"event_3\"," +
+					"\"version\":\"1.3.0\",\"description\":null}," +
+					"{\"name\":\"event_4\",\"version\":\"1.4.0\"," +
+					"\"description\":null}]}," +
+					"{\"urn\":{\"id\":\"producer-1\"," +
+					"\"namespace\":\"namespace-1\"}," +
+					"\"notifications\":[{\"name\":\"event_1\"," +
+					"\"version\":\"1.1.0\",\"description\":null}," +
+					"{\"name\":\"event_2\",\"version\":\"1.2.0\"," +
+					"\"description\":null},{\"name\":\"event_3\"," +
+					"\"version\":\"1.3.0\",\"description\":null}]}," +
+					"{\"urn\":{\"id\":\"producer-2\"," +
+					"\"namespace\":\"namespace-1\"}," +
+					"\"notifications\":[{\"name\":\"event_1\"," +
+					"\"version\":\"1.1.0\",\"description\":null}," +
+					"{\"name\":\"event_2\",\"version\":\"1.2.0\"," +
+					"\"description\":null},{\"name\":\"event_3\"," +
+					"\"version\":\"1.3.0\",\"description\":null}]}," +
+					"{\"urn\":{\"id\":null," +
+					"\"namespace\":\"namespace-2\"}," +
+					"\"notifications\":[{\"name\":\"event_4\"," +
+					"\"version\":\"2.4.0\",\"description\":null}," +
+					"{\"name\":\"event_5\",\"version\":\"2.5.0\"," +
+					"\"description\":null}]}," +
+					"{\"urn\":{\"id\":\"producer-3\"," +
+					"\"namespace\":\"namespace-2\"}," +
+					"\"notifications\":[{\"name\":\"event_4\"," +
+					"\"version\":\"2.4.0\",\"description\":null}," +
+					"{\"name\":\"event_5\",\"version\":\"2.5.0\"," +
+					"\"description\":null}]}]}")
+
+			subscribeConsumer(consClient, sampleNotifications,
+				"namespace-1", "1 ")
+
+			subscribeConsumer(consClient2, sampleNotifications2,
+				"namespace-1/producer-1", "2 (1/3) ")
+
+			subscribeConsumer(consClient2, sampleNotifications3,
+				"namespace-1/producer-2", "2 (2/3) ")
+
+			subscribeConsumer(consClient2, sampleNotifications4,
+				"namespace-2", "2 (3/3) ")
+
+			subscribeConsumer(consClient3, sampleNotifications5,
+				"namespace-1", "3 (1/5) ")
+
+			subscribeConsumer(consClient3, sampleNotifications,
+				"namespace-1/producer-1", "3 (2/5) ")
+
+			subscribeConsumer(consClient3, sampleNotifications,
+				"namespace-1/producer-2", "3 (3/5) ")
+
+			subscribeConsumer(consClient3, sampleNotifications6,
+				"namespace-2", "3 (4/5) ")
+
+			subscribeConsumer(consClient3, sampleNotifications6,
+				"namespace-2/producer-3", "3 (5/5)")
+
+			getSubscriptionList(consClient, &receivedSubList)
+
+			By("Expected subscription list 1 decoding")
+			err := json.NewDecoder(expectedOutput).
+				Decode(&expectedSubList)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			sortSubscriptionSlices(receivedSubList.Subscriptions,
+				expectedSubList.Subscriptions)
+
+			By("Comparing response data 1")
+			Expect(receivedSubList).To(Equal(expectedSubList))
+
+			getSubscriptionList(consClient2, &receivedSubList2)
+
+			By("Expected subscription list 2 decoding")
+			err = json.NewDecoder(expectedOutput2).
+				Decode(&expectedSubList2)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			sortSubscriptionSlices(receivedSubList2.Subscriptions,
+				expectedSubList2.Subscriptions)
+
+			By("Comparing response data 2")
+			Expect(receivedSubList2).To(Equal(expectedSubList2))
+
+			getSubscriptionList(consClient3, &receivedSubList3)
+
+			By("Expected subscription list 3 decoding")
+			err = json.NewDecoder(expectedOutput3).
+				Decode(&expectedSubList3)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			sortSubscriptionSlices(receivedSubList3.Subscriptions,
+				expectedSubList3.Subscriptions)
+
+			By("Comparing response data 3")
+			Expect(receivedSubList3).To(Equal(expectedSubList3))
 		})
 	})
 })
