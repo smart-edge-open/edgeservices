@@ -29,6 +29,7 @@ const filePerm = os.FileMode(0600)
 
 // readFileWithPerm reads a file after verifying permissions
 func readFileWithPerm(path string, perm os.FileMode) ([]byte, error) {
+	const maxFileSizeToRead = 1024 * 1024
 	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to open %s", path)
@@ -48,7 +49,14 @@ func readFileWithPerm(path string, perm os.FileMode) ([]byte, error) {
 		return nil, errors.Errorf(
 			"Invalid file permissions. Got: %o Expected: %o", fPerm, perm)
 	}
-
+	fInfo, err := os.Stat(filepath.Clean(path))
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to stat a file: "+path)
+	}
+	if fInfo.Size() > maxFileSizeToRead {
+		return nil, errors.New("File " + path +
+			" seems to be to long:" + string(fInfo.Size()))
+	}
 	return ioutil.ReadAll(f)
 }
 

@@ -75,9 +75,10 @@ func RequestCredentials(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	host, port, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		log.Errf(fName+"Cannot retrieve IP from RemoteAddr: %v", err)
+		log.Errf(fName+"Cannot retrieve IP from RemoteAddr: %v [%v:%v] %v",
+			r.RemoteAddr, host, port, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

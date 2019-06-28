@@ -130,6 +130,7 @@ func TestEva(t *testing.T) {
 		callGetStatus(t, conn, "app-test-vm-1")
 		callUndeployAPI(t, conn, "app-test-vm-2")
 
+		// nolint 'freedos-1.0.7z' is a file name, should not be autocorrected
 		testLifecycleVM(t, conn, "hello-world-app",
 			"/var/www/html/freedos-1.0.7z") // file test
 	}

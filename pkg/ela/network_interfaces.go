@@ -74,6 +74,10 @@ func getNetworkPCIs() ([]NetworkDevice, error) {
 			err.Error(), out.String())
 	}
 
+	if len(records) == 0 {
+		return nil, errors.New("No entries in CSV output from lspci")
+	}
+
 	devs := make([]NetworkDevice, 0)
 
 	for _, rec := range records {
@@ -187,7 +191,7 @@ func GetNetworkDevices() ([]NetworkDevice, error) {
 		return nil, err
 	}
 
-	return devs, err
+	return devs, nil
 }
 
 // ToNetworkInterface converts a device to an interface

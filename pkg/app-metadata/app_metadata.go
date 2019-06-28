@@ -121,7 +121,12 @@ func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 		return nil, fmt.Errorf("Failed to open %s", deployedFileName)
 	}
 	dapp.IsDeployed = true
-	num, err := file.Read(bytes) // bytes is definitely big enough
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to stat %v", file.Name())
+	}
+	deployedFileBytes := make([]byte, fileInfo.Size())
+	num, err := file.Read(deployedFileBytes)
 
 	if err1 := file.Close(); err == nil {
 		err = err1
@@ -130,7 +135,7 @@ func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 		return nil, errors.Wrapf(err, "Failed to read %v", file.Name())
 	}
 
-	dapp.DeployedID = string(bytes[0 : num-1]) // cut '\n'
+	dapp.DeployedID = string(deployedFileBytes[0 : num-1]) // cut '\n'
 	log.Infof("Found the deployment ID for %v: '%v'", appID, dapp.DeployedID)
 
 	return dapp, nil

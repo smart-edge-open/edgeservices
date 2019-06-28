@@ -108,6 +108,7 @@ func waitForServices(wg *sync.WaitGroup,
 			return ret
 		case err := <-errors:
 			if err != nil {
+				// nolint 'Cancelling' spelling is correct
 				log.Errf("Cancelling services because of error"+
 					" from one of the services: %#v", err)
 				cancel()
