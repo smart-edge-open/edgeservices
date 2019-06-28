@@ -96,4 +96,7 @@
  - Fixed traffic policy to persist after BulkUpdate
  - Added logs regarding closing of old/websocket connections
 
-## [0.3.6] - TBA
+## [0.3.6] - 2019-06-28
+ - Added checking if the docker load output even contains the Stream element
+ - Added additional safety check - Stream must contain "Loaded image" string
+ - Switched memory unit to MiB as per change in the schema
