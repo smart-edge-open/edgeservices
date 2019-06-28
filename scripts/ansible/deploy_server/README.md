@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ```
+
 # Deploy server setup - automation scripts
 
 The purpose of the scripts available in this folder is to automate the process of deploy server setup, its services configuration, service containers set up and in general - automate most common manual operations operator would have to carry out manually step by step when setting up deploy server with all required services running.
