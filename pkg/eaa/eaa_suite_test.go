@@ -42,6 +42,7 @@ import (
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 
+	"github.com/gorilla/websocket"
 	"github.com/onsi/gomega/gexec"
 	"github.com/smartedgemec/appliance-ce/internal/authtest"
 	evapb "github.com/smartedgemec/appliance-ce/pkg/eva/internal_pb"
@@ -341,13 +342,28 @@ func createHTTPClient(clientTLSCert tls.Certificate,
 	// create client with certificate signed above
 	client := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: certPool,
+			TLSClientConfig: &tls.Config{
+				RootCAs:      certPool,
 				Certificates: []tls.Certificate{clientTLSCert},
 				ServerName:   EaaCommonName,
 			},
 		}}
 
 	return client
+}
+
+func createWebSocDialer(clientTLSCert tls.Certificate,
+	certPool *x509.CertPool) *websocket.Dialer {
+	// create socket with certificate signed above
+	socket := &websocket.Dialer{
+		TLSClientConfig: &tls.Config{
+			RootCAs:      certPool,
+			Certificates: []tls.Certificate{clientTLSCert},
+			ServerName:   EaaCommonName,
+		},
+	}
+
+	return socket
 }
 
 var (
