@@ -216,9 +216,11 @@ Automation scripts are located inside the cloned repository `appliance-ce`  in t
 - 02_install_tools.sh
 - 03_build_and_deploy.sh
 
-NOTE: For dual server setup, refer to the README.md files in the `./scripts/ansible/build_server` and `./scripts/ansible/deploy_server` subfolders. They contain detailed instructions on how to run all scripts and describe an expected outcome.
+> NOTE: For dual server setup, refer to the README.md files in the `./scripts/ansible/build_server` and `./scripts/ansible/deploy_server` subfolders. They contain detailed instructions on how to run all scripts and describe an expected outcome.
 
-### 7.1. Preconditions
+> NOTE: It is advised to set up and configure OpenNESS Edge Controller before setting up Edge Node, as operator is required to enter Controller IP address and Controller Root CA certificate before Edge Node is set up. Guide for setting up Controller can be found in the main folder of OpenNESS Edge Controller repository.
+
+## 7.1. Preconditions
 The following actions must be complete prior to running OpenNESS Edge Node automation setup scripts on the server:
 - CentOS 7.6 x64 Linux must be running (Minimal image)
 - Time and timezone are set correctly
@@ -228,10 +230,20 @@ The following actions must be complete prior to running OpenNESS Edge Node autom
 - Operating system software is up to date (run `yum update` before running any scripts listed below)
 - Root account is required (each script requires root permissions)
 - Server terminal console access or remote ssh access is needed (only on of them)
+- Controller IP address is known to operator
+- Controller ROOT CA certificate is available to operator
 
 >  NOTE: If SELinux is enabled, it will be disabled temporarily as the scripts are run, but also permanently set to disabled (permissive mode) after the first server reboot.
 
-## 7.2. Run automation scripts
+## 7.2. Configure Controller connectivity
+Before configuring Edge Node server from automation scripts below (see chapter 7.3), modify its configuration files, so that automation scripts will be ready to accept incoming connections from Controller:
+1. Open file: <br>
+   `./scripts/ansible/deploy_server/vars/defaults.yml` <br> and  modify Controller IP address and port, like: <br> `enrollment_endpoint: "1.2.3.4:8081"`.
+2. Copy Controller ROOT CA certificate to the following folder: <br>`/etc/pki/tls/certs/controller-root-ca.pem`.
+3. Now you are ready to to run automation scripts.
+
+
+## 7.3. Run automation scripts
 Automation scripts are located in the repository subfolder `./scripts/ansible/single_server`:
 - 01_setup_server.sh
 - 02_install_tools.sh
@@ -278,12 +290,17 @@ and inspect each component status in the `STATUS` column. Each component shall h
   Make sure the proxy is configured properly in the operating system, according to Section 6.2 of this guide (Proxy Setup). If the problem still persists, run the ` yum clean all` command as root user and run the shell script again.
   
 * Connectivity issues
-  - If a script cannot fetch packages from the internet, make sure no firewall blocks connections
-  to the external services on the internet on TCP port `21,80,443` and UDP `53` or Proxy ports
-  - Some fetched packets might get corrupted when downloading; remove the following folders:
+  - If a script cannot fetch packages from the internet and ends with error message, make sure no firewall blocks connections to the external services on the internet on TCP port `21,80,443` and UDP `53` or Proxy ports
+  - Some fetched packets might get corrupted when downloading - if it is GO language package, remove the following folder and run failing Ansible script again.
     ```
     # rm -rf /root/go
     ```
+  - Commands print error about missing `urllib3` package. Reinstall this package as follows and run failing Ansible script again.
+    ```
+    # pip uninstall -y urllib3`
+    # pip install urllib3
+    ```
+  
 * Log files
   - Each run of a script produces a log file in repository `./scripts/ansible/logs` subfolder. It contains the same output as the operator received on the console when running the automation script.
 
