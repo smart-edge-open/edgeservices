@@ -166,9 +166,9 @@ Since the minimal installation image does not contain any options for packages t
 - Network settings (IP addresses on chosen NIC) for accessing the internet
 
 ## 6.2. Proxy setup
-If the server is not using a proxy to to access the internet, skip this subsection.
+If the server is not using a proxy to access the internet, skip this subsection.
 If a proxy is used, the following steps configure the operating system and services that will be run later by automation scripts.
-Example configurations of the proxy for each service or operating system component are available for preview in subfolder ``` ./examples/proxy```.
+Example configurations of the proxy for each service or operating system component are available for preview in subfolder ``` ./scripts/ansible/examples/proxy```.
 Their structures reflect the structure in your operating system. 
 It is advised to not copy them directly to your operating system but instead, modify your own proxy configurations to contain items available in those example files.
 
@@ -178,23 +178,23 @@ It is advised to not copy them directly to your operating system but instead, mo
    Make sure that your current environment file contains variables for `http_proxy` and `HTTP_PROXY`, and, if `https proxy` is 
    also used, then also include `https_proxy` and `HTTPS_PROXY` in your config file. Additionally, include `ftp_proxy` and `FTP_PROXY` variables with correct IP and port addresses.
 
-   See example in provided file in folder: `../examples/proxy/etc/environment`
+   See example in provided file in folder: `./scripts/ansible/examples/proxy/etc/environment`
 * `/etc/yum.conf`
 
-   Add one line for http proxy to your `yum.conf` file as shown in `../examples/proxy/etc/yum.conf`
+   Add one line for http proxy to your `yum.conf` file as shown in `./scripts/ansible/examples/proxy/etc/yum.conf`
    > Tip: Make sure the port is correct and slash character (/) is present at the end of the line.
 
 #### Docker service
 * `/etc/systemd/system/docker.service.d/http-proxy.conf`
 
-   A sample configuration for docker service is inside file `../examples/proxy/etc/systemd/system/docker.service.d/http-proxy.conf`
+   A sample configuration for docker service is inside file `./scripts/ansible/examples/proxy/etc/systemd/system/docker.service.d/http-proxy.conf`
 
    If you do not have Docker configured and this file is missing in the `/etc` folder, you may copy this example file to the given path in the 
    `/etc` folder and modify it according to your needs.
 
 * `/root/.docker/config.json`
 
-   A sample configuration is inside the file `../examples/proxy/root/.docker/config.json`
+   A sample configuration is inside the file `./scripts/ansible/examples/proxy/root/.docker/config.json`
    
 > NOTE: Once proxy setup is complete, it is advised to reboot the server or at least log out and log in again, so that `/etc/environment` will be read by the login service and shell startup scripts.
 
@@ -227,7 +227,7 @@ The following actions must be complete prior to running OpenNESS Edge Node autom
 - CentOS 7.6 x64 Linux must be running (Minimal image)
 - Time and timezone are set correctly
 - Access to the internet is possible 
-- Network access proxy, if used, has been set up correctly and proxy config files from `./examples/proxy` subfolder were copied to the correct locations on the local disk
+- Network access proxy, if used, has been set up correctly and proxy config files from `./scripts/ansible/examples/proxy` subfolder were copied to the correct locations on the local disk
 - Firewall allows outgoing TCP ports `21,80,443` (or proxy ports if proxy is used) and UDP `53`
 - Operating system software is up to date (run `yum update` before running any scripts listed below)
 - Root account is required (each script requires root permissions)
@@ -293,10 +293,7 @@ and inspect each component status in the `STATUS` column. Each component shall h
   
 * Connectivity issues
   - If a script cannot fetch packages from the internet and ends with error message, make sure no firewall blocks connections to the external services on the internet on TCP port `21,80,443` and UDP `53` or Proxy ports
-  - Some fetched packets might get corrupted when downloading - if it is GO language package, remove the following folder and run failing Ansible script again.
-    ```
-    # rm -rf /root/go
-    ```
+  
   - Commands print error about missing `urllib3` package. Reinstall this package as follows and run failing Ansible script again.
     ```
     # pip uninstall -y urllib3`
