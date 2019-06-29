@@ -100,7 +100,9 @@
  - Added checking if the docker load output even contains the Stream element
  - Added additional safety check - Stream must contain "Loaded image" string
  - Switched memory unit to MiB as per change in the schema
- 
+
 ## [0.3.7] - To be released
  - Set MAC address for KNI interface based on provided ID
-
+ - Updated app dockers names
+ - Added notification type to Producer
+ - Fixed issues regarding OpenVINO, compiler errors, Travis errors etc.
