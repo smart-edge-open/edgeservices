@@ -211,7 +211,7 @@ Login as root user, and run the following command to upgrade the installed packa
 OpenNESS Edge Node provides automation scripts to minimize required user interaction and speed up the process of software set up.
 Scripts provided require only access to the internet network and, when run, install required packages, build software components, and import freshly compiled and built product packages (images). The last action ran in the last script is to bring up all required components to have a fully functional product running.
 
-Automation scripts are located inside the cloned repository `appliance-ce`  in the  ```./scripts/ansible/single_server```  folder. Their names represent the order in which they shall be run, for example:
+Automation scripts are located inside the repository/subfolder `edgenode`  in the  ```./scripts/ansible/single_server```  folder. Their names represent the order in which they shall be run, for example:
 - 01_setup_server.sh
 - 02_install_tools.sh
 - 03_build_and_deploy.sh
@@ -257,7 +257,7 @@ Scripts shall be run in the order listed above.
 ### Steps to follow:
 1. Enter the folder with scripts for single server:
 ```
-  # cd <appliance-ce_repostiory>/scripts/ansible/single_server/
+  # cd <edgenode_folder_or_repository>/scripts/ansible/single_server/
 ```
 2. Run script `01_setup_server.sh`.
 3. Reboot server if requested/informed by the script.
