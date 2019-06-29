@@ -53,6 +53,8 @@ OpenNESS User and developer Prerequisites:
 - Baidu Cloud for Cloud adapters 
 - TLS for authentication  
 
+> NOTE: In some cases the OpenNESS package might be provied to you which contains all the required OpenNESS packaged. Cloning of repository is not required in that case.
+
 ## 2.1. CentOS Linux 
 OpenNESS Edge Node runs on the CentOS 7.6 x86_64 operating system. The same operating system is used for building product components and deploying/running them on a dedicated hardware platform.
 Intel suggests installing a minimal amount of RPM Package Manager packages inside operating system, so the "Minimal" ISO of CentOS is recommended for use when preparing any of the test machine.
