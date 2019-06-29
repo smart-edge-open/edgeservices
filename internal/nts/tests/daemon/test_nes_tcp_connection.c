@@ -65,6 +65,9 @@ static void nes_connection_un_setup_test(void) {
 	getrlimit(RLIMIT_NOFILE, &rlim);
 	int *socks;
 	socks = (int*)malloc(rlim.rlim_cur * sizeof(int));
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(socks);
+
 	for (i = 0; i < rlim.rlim_cur; i++)
 		socks[i] = socket(AF_INET, SOCK_STREAM, 0);
 	CU_ASSERT_EQUAL(nes_connection_un_setup("/tmp/ut_test.socket", &conn), NES_FAIL);

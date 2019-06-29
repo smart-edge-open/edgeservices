@@ -74,7 +74,13 @@ static void test_nes_init_interfaces(void)
 
 	global_cfg_file = nes_cfgfile;
 	nes_cfgfile = malloc(sizeof (struct rte_cfgfile));
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nes_cfgfile);
+
 	nes_cfgfile->sections = malloc(sizeof (struct rte_cfgfile_section) * num_sections);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nes_cfgfile->sections);
+
 	nes_cfgfile->num_sections = num_sections;
 	strncpy(sections[0].name, "PORT0", sizeof(sections[0].name));
 	strncpy(sections[1].name, "PORT1", sizeof(sections[1].name));

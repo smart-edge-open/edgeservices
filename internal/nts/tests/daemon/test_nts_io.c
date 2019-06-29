@@ -49,6 +49,11 @@ extern nes_lookup_table_t nes_ring_lookup_table;
 int init_suite_nts_io(void) {
 	cfg_bak = nes_cfgfile;
 	nes_cfgfile = malloc(sizeof (*nes_cfgfile));
+
+	if (!nes_cfgfile) {
+		return CUE_NOMEMORY;
+	}
+
 	nes_cfgfile->num_sections = 1;
 
 	VM_common_section.entries = &VM_common_entry;

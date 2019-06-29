@@ -63,8 +63,18 @@ int init_suite_libnes_api(void)
 
 	cfg_bak = nes_cfgfile;
 	nes_cfgfile = malloc(sizeof (*nes_cfgfile));
+
+	if (!nes_cfgfile)
+		return CUE_NOMEMORY;
+
 	nes_cfgfile->sections = malloc(
 		sizeof(struct rte_cfgfile_section) * CFG_ALLOC_SECTION_BATCH);
+
+	if (!nes_cfgfile->sections) {
+		free(nes_cfgfile);
+		return CUE_NOMEMORY;
+	}
+
 	nes_cfgfile->num_sections = 2;
 
 	static struct rte_cfgfile_section section_NES_SERVER = {

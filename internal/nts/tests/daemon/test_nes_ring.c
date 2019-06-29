@@ -188,6 +188,9 @@ nes_ring_enq_burst_mp_test(void) {
 static void
 nes_ring_init_test(void) {
 	struct rte_cfgfile *old_cfg, *cfg = malloc(sizeof (*cfg) + sizeof (cfg->sections[0]) * 1);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = 1;
 	struct rte_cfgfile_entry  entries0[] = {
 		{

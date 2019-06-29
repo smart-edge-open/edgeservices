@@ -305,7 +305,7 @@ nts_packet_edit_enq(nes_sq_t *entries, struct rte_mbuf *mbuf, routing_params_t *
 		} else {
 			if (unlikely(NULL == entry->dst_ring)) {
 				NES_LOG(ERR, "Missing callback edit on routing entry %s.\n",
-					entry->ring_name);
+					(entry->ring_name != NULL) ? entry->ring_name : "NULL");
 				continue;
 			}
 			entry->dst_ring->enq(entry->dst_ring, mbuf);

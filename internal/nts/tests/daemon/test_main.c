@@ -125,6 +125,9 @@ int NES_TEST_MAIN(int argc, char * argv[])
 
 	/* Store cfg file path */
 	nes_local_cfg_file = malloc(sizeof (char) * strlen(argv[1]) + 1);
+	if (!nes_local_cfg_file)
+		return -1;
+
 	strncpy(nes_local_cfg_file, argv[1], strlen(argv[1]) + 1);
 
 	CU_initialize_registry();

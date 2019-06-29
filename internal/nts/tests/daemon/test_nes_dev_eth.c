@@ -23,7 +23,7 @@
 #include "io/nes_dev.h"
 #include "libnes_cfgfile.h"
 #include "nes_dev_eth_decl.h"
-#include "packet_burst_generator.h"
+#include "pkt_generator.h"
 #include "nts/nts_edit.h"
 #include "io/nes_io.h"
 #include "libnes_queue.h"
@@ -171,7 +171,7 @@ static void test_send_eth(void)
 	pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 
 	CU_ASSERT_EQUAL(NES_SUCCESS, device->send(device, NULL));
 

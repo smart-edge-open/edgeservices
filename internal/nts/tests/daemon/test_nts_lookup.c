@@ -18,7 +18,7 @@
 
 #include "test_nts_lookup.h"
 #include "nts/nts_lookup.h"
-#include "packet_burst_generator.h"
+#include "pkt_generator.h"
 #include "nes_common.h"
 #include "nts_lookup_decl.h"
 #include "libnes_cfgfile.h"
@@ -62,6 +62,9 @@ nts_lookup_init_test(void) {
 	MOCK_RESET(mocked_rte_malloc);
 	MOCK_RESET(mocked_rte_free);
 	struct rte_cfgfile *old_cfg, *cfg = malloc(sizeof (*cfg) + sizeof (cfg->sections[0]) * 1);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = 1;
 
 	struct rte_cfgfile_entry  entries[] = {
@@ -84,6 +87,8 @@ nts_lookup_init_test(void) {
 
 	CU_ASSERT_EQUAL(nts_lookup_init(&nts_io_lookup_tables), NES_SUCCESS);
 	nes_cfgfile = old_cfg;
+
+	free(cfg);
 }
 extern char **nts_lookup_tx_ring_names;
 extern int nts_lookup_vm_max;

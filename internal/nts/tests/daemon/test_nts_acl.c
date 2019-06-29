@@ -72,8 +72,17 @@ int init_suite_nts_acl(void) {
 
 	cfg_bak = nes_cfgfile;
 	nes_cfgfile = malloc(sizeof (*nes_cfgfile));
+
+	if (!nes_cfgfile)
+		return CUE_NOMEMORY;
+
 	nes_cfgfile->sections =
 		malloc(sizeof(struct rte_cfgfile_section) * CFG_ALLOC_ENTRIES_BATCH);
+
+	if (!nes_cfgfile->sections) {
+		free(nes_cfgfile);
+		return CUE_NOMEMORY;
+	}
 
 	strncpy(section1.name, "PORT0", sizeof(section1.name));
 

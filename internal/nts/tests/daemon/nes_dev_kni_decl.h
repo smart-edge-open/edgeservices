@@ -18,7 +18,6 @@
 #define	NES_DEV_KNI_DECL_H
 
 int nes_dev_kni_mempool_init(void);
-struct rte_kni *nes_dev_kni_alloc(uint16_t port_id);
 int create_kni_rings(nes_dev_t *self);
 int mac_authorization(struct nes_dev_s *self, struct rte_mbuf **m, int pkt_count);
 int send_kni_unauthorized(struct nes_dev_s *self, __attribute__((unused)) void *data);

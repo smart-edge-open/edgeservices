@@ -50,6 +50,10 @@ MOCK_INIT(mocked_nes_queue_enqueue);
 int init_suite_nis_io(void) {
 	cfg_bak = nes_cfgfile;
 	nes_cfgfile = malloc(sizeof (*nes_cfgfile));
+
+	if (!nes_cfgfile)
+		return CUE_NOMEMORY;
+
 	section_VM_common.entries = &entry_max;
 	nes_cfgfile->sections = &section_VM_common;
 	nes_cfgfile->sections[0] = section_VM_common;
@@ -119,6 +123,9 @@ static void nis_io_init_flows_test(void) {
 	CU_ASSERT_EQUAL(nis_io_init_traffic_rings(), NES_SUCCESS);
 	CU_ASSERT_EQUAL(nis_io_init_flows(), NES_SUCCESS);
 	nes_ring_find(&ring_bak, RINGNAME);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(ring_bak);
+
 	flow_bak = ring_bak->flow;
 	ring_bak->flow = NULL;
 	strcpy(ring_bak->ring->name, "test");
@@ -155,6 +162,9 @@ static void nis_io_main_test(void) {
 	int *data[nes_ring_burst_size_sp] = {NULL};
 
 	nes_ring_find(&ring, "NIS_DWSTR_RNIS");
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(ring);
+
 	ring->enq(ring, (void**) data);
 	nes_ring_find(&ring, RINGNAME);
 	ring->enq(ring, (void**) data);

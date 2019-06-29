@@ -28,7 +28,7 @@
 #include "nes_ring_lookup_decl.h"
 #include "test_nes_ring_lookup.h"
 #include "io/nes_mac_lookup.h"
-#include "packet_burst_generator.h"
+#include "pkt_generator.h"
 #include "libnes_cfgfile_def.h"
 
 static uint16_t rte_vhost_dequeue_burst_stub(int UNUSED(vid), uint16_t UNUSED(queue_id),
@@ -44,7 +44,7 @@ static uint16_t rte_vhost_dequeue_burst_stub(int UNUSED(vid), uint16_t UNUSED(qu
 
 	pkts[0] = rte_pktmbuf_alloc(mbuf_pool);
 	eth_hdr = rte_pktmbuf_mtod(pkts[0], struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 
 	return 1;
 }
@@ -103,8 +103,14 @@ static void nes_io_main_test(void) {
 	struct rte_cfgfile *cfg_bak = nes_cfgfile;
 
 	nes_cfgfile = malloc(sizeof (*nes_cfgfile));
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nes_cfgfile);
+
 	nes_cfgfile->sections =
 		malloc(sizeof(struct rte_cfgfile_section) * CFG_ALLOC_ENTRIES_BATCH);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nes_cfgfile->sections);
+
 	strncpy(nes_cfgfile->sections[0].name, "PORT0", sizeof(nes_cfgfile->sections[0].name));
 	nes_cfgfile->sections[0].num_entries = sizeof(entries1)/sizeof(entries1[0]);
 	nes_cfgfile->sections[0].entries = entries1;

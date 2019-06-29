@@ -30,7 +30,7 @@
 #include "libnes_queue.h"
 #include "io/nes_io.h"
 #include "nts/nts_io.h"
-#include "packet_burst_generator.h"
+#include "pkt_generator.h"
 #include "io/nes_mac_lookup.h"
 #include "nts/nts_acl_cfg.h"
 #include "libnes_cfgfile_def.h"
@@ -148,7 +148,7 @@ static void test_mac_authorized(void)
 	pkt = rte_pktmbuf_alloc(nes_dev_vhost_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 
 
 	/* AUTH entry */
@@ -160,6 +160,9 @@ static void test_mac_authorized(void)
 	int num_sections = 1; // Vm common
 
 	cfg = malloc(sizeof (*cfg));
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = num_sections;
 
 	global_cfg_file = nes_cfgfile;

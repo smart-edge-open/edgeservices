@@ -71,7 +71,7 @@ mkdir -p /mnt/huge
 mount -t hugetlbfs none /mnt/huge
 rm -rf daemon/build
 make clean && make
-./daemon/build/nes-daemon-unit-tests -c 0xe -n 4  --huge-dir /mnt/huge --file-prefix=tests-1 --socket-mem 2048,0 ${CMDLINE_CONF_PATH}
+./daemon/build/nes-daemon-unit-tests -c 0xe -n 4  --huge-dir /mnt/huge --file-prefix=tests-1 --socket-mem 2048,0 -- ${CMDLINE_CONF_PATH}
 
 rm -rf /mnt/huge/*
 umount /mnt/huge/

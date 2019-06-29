@@ -166,6 +166,9 @@ static void
 nes_dns_in_static_hosts_test(void) {
 	CU_ASSERT_EQUAL(nes_dns_in_static_hosts(NULL, 0), NES_FAIL);
 	char *host = malloc(sizeof (char) * 32);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(host);
+
 	strncpy(host, "example.com", 32);
 	CU_ASSERT_EQUAL(nes_dns_in_static_hosts(&host, 1), NES_SUCCESS);
 	strncpy(host, "example", 32);

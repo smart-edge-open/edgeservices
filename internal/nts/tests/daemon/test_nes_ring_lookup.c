@@ -91,8 +91,14 @@ static void nes_ring_lookup_init_test(void)
 {
 	cfg_bak = nes_cfgfile;
 	nes_cfgfile = malloc(sizeof (*nes_cfgfile));
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nes_cfgfile);
+
 	nes_cfgfile->sections =
 		malloc(sizeof(struct rte_cfgfile_section) * CFG_ALLOC_SECTION_BATCH);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nes_cfgfile->sections);
+
 	strncpy(nes_cfgfile->sections[0].name, "VM common", sizeof(nes_cfgfile->sections[0].name));
 	nes_cfgfile->sections[0].num_entries = 1;
 	nes_cfgfile->sections[0].entries = entries0;

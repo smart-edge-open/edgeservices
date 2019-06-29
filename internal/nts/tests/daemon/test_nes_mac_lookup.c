@@ -44,6 +44,8 @@ static void test_nes_mac_lookup_init(void)
 	int num_sections = 1; // VM common
 	cfg = malloc(sizeof (*cfg));
 
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = num_sections;
 
 	global_cfg_file = nes_cfgfile;
@@ -99,6 +101,9 @@ static void test_nes_mac_lookup_entry_add(void)
 	int num_sections = 1; // Vm common
 
 	cfg = malloc(sizeof (*cfg));
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = num_sections;
 
 	global_cfg_file = nes_cfgfile;
@@ -149,6 +154,9 @@ static void test_nes_mac_lookup_entry_del(void)
 	int num_sections = 1; // Vm common
 
 	cfg = malloc(sizeof (*cfg));
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = num_sections;
 
 	global_cfg_file = nes_cfgfile;

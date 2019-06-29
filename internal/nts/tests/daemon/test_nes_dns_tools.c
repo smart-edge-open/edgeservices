@@ -19,7 +19,7 @@
 #include <netinet/in.h>
 #include "test_nes_dns_tools.h"
 #include "dns/nes_dns_tools.h"
-#include "packet_burst_generator.h"
+#include "pkt_generator.h"
 #include "nes_common.h"
 
 
@@ -83,7 +83,7 @@ nes_dns_is_ip_test(void) {
 	struct rte_mbuf *pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 	CU_ASSERT_EQUAL(nes_dns_is_ip(pkt), NES_SUCCESS);
 	eth_hdr->ether_type = 0;
 	CU_ASSERT_EQUAL(nes_dns_is_ip(pkt), NES_FAIL);
@@ -102,7 +102,7 @@ nes_dns_is_arp_test(void) {
 	struct rte_mbuf *pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_ARP, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_ARP, 0, 0);
 	CU_ASSERT_EQUAL(nes_dns_is_arp(pkt), NES_SUCCESS);
 	eth_hdr->ether_type = 0;
 	CU_ASSERT_EQUAL(nes_dns_is_arp(pkt), NES_FAIL);
@@ -137,8 +137,8 @@ static void
 nes_dns_recompute_inner_ipv4_checksums_test(void) {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
-	static uint32_t ip_src = IPV4_ADDR(192, 168, 0, 0);
-	static uint32_t ip_dst = IPV4_ADDR(192, 168, 0, 0);
+	static uint32_t ip_src = GET_IPV4_ADDRESS(192, 168, 0, 0);
+	static uint32_t ip_dst = GET_IPV4_ADDRESS(192, 168, 0, 0);
 	struct ether_addr mac_src, mac_dst;
 	struct ether_hdr *eth_hdr;
 	struct ipv4_hdr *ip_hdr;
@@ -151,11 +151,11 @@ nes_dns_recompute_inner_ipv4_checksums_test(void) {
 	struct rte_mbuf *pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 	ip_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-	initialize_ipv4_header(ip_hdr, ip_src, ip_dst, 32);
+	init_ipv4_hdr(ip_hdr, ip_src, ip_dst, 32);
 	udp_hdr = (struct udp_hdr *)(ip_hdr + 1);
-	initialize_udp_header(udp_hdr, 0xAA, 0xAB, 10);
+	init_udp_hdr(udp_hdr, 0xAA, 0xAB, 10);
 
 	udp_hdr->dgram_cksum = 0;
 	uint16_t old_hdr_checksum = ip_hdr->hdr_checksum;
@@ -185,7 +185,7 @@ nes_dns_recompute_inner_ipv4_checksums_test(void) {
 	// TCP
 	tcp_hdr = (struct tcp_hdr*)(ip_hdr + 1);
 	ip_hdr->next_proto_id = IPPROTO_TCP;
-	initialize_tcp_header(tcp_hdr, 0xAA, 0xAB);
+	init_tcp_hdr(tcp_hdr, 0xAA, 0xAB);
 	tcp_hdr->cksum = 0xA;
 	ip_hdr->hdr_checksum = 0;
 	nes_dns_recompute_inner_ipv4_checksums(ip_hdr, ip_src, ip_src);
@@ -198,8 +198,8 @@ static void
 set_new_ipv4_addr_test(void) {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
-	static uint32_t ip_src = IPV4_ADDR(192, 168, 0, 1);
-	static uint32_t ip_dst = IPV4_ADDR(192, 168, 0, 2);
+	static uint32_t ip_src = GET_IPV4_ADDRESS(192, 168, 0, 1);
+	static uint32_t ip_dst = GET_IPV4_ADDRESS(192, 168, 0, 2);
 	struct ether_addr mac_src, mac_dst;
 	struct ether_hdr *eth_hdr;
 	struct ipv4_hdr *ip_hdr;
@@ -209,9 +209,9 @@ set_new_ipv4_addr_test(void) {
 	struct rte_mbuf *pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 	ip_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-	initialize_ipv4_header(ip_hdr, ip_src, ip_dst, 32);
+	init_ipv4_hdr(ip_hdr, ip_src, ip_dst, 32);
 
 	uint16_t old_cksum = ip_hdr->hdr_checksum;
 	uint32_t new_ip = rte_cpu_to_be_32(ip_dst);
@@ -228,8 +228,8 @@ static void
 set_new_ipv4_dst_test(void) {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
-	static uint32_t ip_src = IPV4_ADDR(192, 168, 0, 1);
-	static uint32_t ip_dst = IPV4_ADDR(192, 168, 0, 2);
+	static uint32_t ip_src = GET_IPV4_ADDRESS(192, 168, 0, 1);
+	static uint32_t ip_dst = GET_IPV4_ADDRESS(192, 168, 0, 2);
 	struct ether_addr mac_src, mac_dst;
 	struct ether_hdr *eth_hdr;
 	struct ipv4_hdr *ip_hdr;
@@ -239,9 +239,9 @@ set_new_ipv4_dst_test(void) {
 	struct rte_mbuf *pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 	ip_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-	initialize_ipv4_header(ip_hdr, ip_src, ip_dst, 32);
+	init_ipv4_hdr(ip_hdr, ip_src, ip_dst, 32);
 
 	uint16_t old_cksum = ip_hdr->hdr_checksum;
 	uint32_t new_ip = rte_cpu_to_be_32(ip_dst);
@@ -259,8 +259,8 @@ static void
 set_new_ipv4_src_test(void) {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
-	static uint32_t ip_src = IPV4_ADDR(192, 168, 0, 1);
-	static uint32_t ip_dst = IPV4_ADDR(192, 168, 0, 2);
+	static uint32_t ip_src = GET_IPV4_ADDRESS(192, 168, 0, 1);
+	static uint32_t ip_dst = GET_IPV4_ADDRESS(192, 168, 0, 2);
 	struct ether_addr mac_src, mac_dst;
 	struct ether_hdr *eth_hdr;
 	struct ipv4_hdr *ip_hdr;
@@ -270,9 +270,9 @@ set_new_ipv4_src_test(void) {
 	struct rte_mbuf *pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 	ip_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-	initialize_ipv4_header(ip_hdr, ip_src, ip_dst, 32);
+	init_ipv4_hdr(ip_hdr, ip_src, ip_dst, 32);
 
 	uint16_t old_cksum = ip_hdr->hdr_checksum;
 	uint32_t new_ip = rte_cpu_to_be_32(ip_src);

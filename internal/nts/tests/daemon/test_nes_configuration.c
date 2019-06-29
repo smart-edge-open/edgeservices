@@ -40,6 +40,9 @@ static void nes_server_configure_test(void) {
 
 	struct rte_cfgfile *cfg, *cfg_bak;
 	cfg = malloc(sizeof (*cfg) + sizeof (cfg->sections[0]) * CFG_ALLOC_SECTION_BATCH);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = 1;
 
 	cfg_bak = nes_cfgfile;

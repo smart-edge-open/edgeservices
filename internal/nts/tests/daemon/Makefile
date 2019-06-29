@@ -70,7 +70,7 @@ SRCS-y := \
 	nes_main.c \
 	test_libnes_api.c \
 	test_nes_tcp_connection.c \
-	packet_burst_generator.c \
+	pkt_generator.c \
 	test_nes_arp.c \
 	test_nes_ring.c \
 	test_nes_common.c \

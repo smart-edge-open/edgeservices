@@ -24,7 +24,7 @@
 #include "libnes_cfgfile.h"
 #include "test_nes_dns_config.h"
 #include "nes_dns_config_decl.h"
-#include "packet_burst_generator.h"
+#include "pkt_generator.h"
 #include "libnes_cfgfile_def.h"
 
 extern struct rte_cfgfile *nes_cfgfile;
@@ -82,6 +82,9 @@ nes_dns_ether_aton_test(void) {
 static void
 nes_dns_mac_from_cfg_test(void) {
 	struct rte_cfgfile *old_cfg, *cfg = malloc(sizeof (*cfg) + sizeof (cfg->sections[0]) * 1);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = 1;
 
 	struct rte_cfgfile_entry  entries0[] = {
@@ -109,11 +112,16 @@ nes_dns_mac_from_cfg_test(void) {
 	CU_ASSERT_EQUAL(memcmp(&mac, &mac_act, sizeof (mac)), 0);
 
 	nes_cfgfile = old_cfg;
+
+	free(cfg);
 }
 
 static void
 nes_dns_ip_from_cfg_test(void) {
 	struct rte_cfgfile *old_cfg, *cfg = malloc(sizeof (*cfg) + sizeof (cfg->sections[0]) * 1);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = 1;
 
 	struct rte_cfgfile_entry  entries0[] = {
@@ -149,11 +157,16 @@ nes_dns_ip_from_cfg_test(void) {
 	CU_ASSERT_EQUAL(nes_dns_ip_from_cfg("local-ip", &ip), NES_SUCCESS);
 	CU_ASSERT_EQUAL(ip, rte_cpu_to_be_32(IPv4(192, 168, 1, 0)));
 	nes_cfgfile = old_cfg;
+
+	free(cfg);
 }
 
 static void
 nes_dns_check_forward_unresolved_test(void) {
 	struct rte_cfgfile *old_cfg, *cfg = malloc(sizeof (*cfg) + sizeof (cfg->sections[0]) * 1);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = 1;
 
 	struct rte_cfgfile_entry  entries0[] = {
@@ -190,6 +203,8 @@ nes_dns_check_forward_unresolved_test(void) {
 		NES_SUCCESS);
 	CU_ASSERT_EQUAL(forward, DNS_FORWARD_OFF);
 	nes_cfgfile = old_cfg;
+
+	free(cfg);
 }
 
 static int open_stub_ret = -1;

@@ -27,7 +27,7 @@
 #include "nts/nts_edit.h"
 #include "nes_dev_port_decl.h"
 #include "nes_dev_eth_decl.h"
-#include "packet_burst_generator.h"
+#include "pkt_generator.h"
 #include "io/nes_io.h"
 #include "libnes_queue.h"
 #include "nes_ring_lookup.h"
@@ -111,8 +111,14 @@ int init_suite_nes_dev_port(void)
 	cfg_bak = nes_cfgfile;
 
 	nes_cfgfile = malloc(sizeof (*nes_cfgfile));
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nes_cfgfile);
+
 	nes_cfgfile->sections = malloc(
 		sizeof(struct rte_cfgfile_section) * CFG_ALLOC_SECTION_BATCH);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nes_cfgfile->sections);
+
 	strncpy(nes_cfgfile->sections[0].name, "PORT0", sizeof(nes_cfgfile->sections[0].name));
 	nes_cfgfile->sections[0].num_entries = sizeof(entries1)/sizeof(entries1[0]);
 	nes_cfgfile->sections[0].entries = entries1;
@@ -419,8 +425,8 @@ static void test_scatter_port(void)
 {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
-	static uint32_t ip_src = IPV4_ADDR(192, 168, 0, 1);
-	static uint32_t ip_dst = IPV4_ADDR(192, 168, 1, 1);
+	static uint32_t ip_src = GET_IPV4_ADDRESS(192, 168, 0, 1);
+	static uint32_t ip_dst = GET_IPV4_ADDRESS(192, 168, 1, 1);
 	struct ether_addr mac_src, mac_dst;
 	struct ether_hdr *eth_hdr;
 	struct ipv4_hdr *ipv4_hdr;
@@ -435,8 +441,8 @@ static void test_scatter_port(void)
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 
 	ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 1, 10);
-	initialize_ipv4_header(ipv4_hdr, ip_src, ip_dst, 200);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 1, 10);
+	init_ipv4_hdr(ipv4_hdr, ip_src, ip_dst, 200);
 	ip_len = ipv4_hdr->version_ihl & 0xf;
 
 	nes_queue_node_t *node;
@@ -453,10 +459,10 @@ static void test_scatter_port(void)
 		device->rx_cnt = 1;
 		device->rx_pkts[0] = pkt;
 
-		initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 1, 10);
+		init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 1, 10);
 		ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
 		ipv4_hdr = (struct ipv4_hdr *)((uint8_t*)ipv4_hdr + sizeof(struct vlan_hdr));
-		initialize_ipv4_header(ipv4_hdr, ip_src, ip_dst, 200);
+		init_ipv4_hdr(ipv4_hdr, ip_src, ip_dst, 200);
 		ip_len = ipv4_hdr->version_ihl & 0xf;
 		udp_hdr = (struct udp_hdr*)((uint32_t *)ipv4_hdr + ip_len);
 		udp_hdr->dst_port = rte_cpu_to_be_16(UDP_GTPU_PORT);
@@ -473,9 +479,9 @@ static void test_scatter_port(void)
 		CU_ASSERT_EQUAL(scatter_eth_dwstr_IP(device, NULL), NES_SUCCESS);
 
 		/* UDP_GTPU_PORT */
-		initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+		init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 		ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-		initialize_ipv4_header(ipv4_hdr, ip_src, ip_dst, 200);
+		init_ipv4_hdr(ipv4_hdr, ip_src, ip_dst, 200);
 		ip_len = ipv4_hdr->version_ihl & 0xf;
 		udp_hdr = (struct udp_hdr*)((uint32_t *)ipv4_hdr + ip_len);
 		udp_hdr->dst_port = rte_cpu_to_be_16(UDP_GTPU_PORT);
@@ -492,9 +498,9 @@ static void test_scatter_port(void)
 		CU_ASSERT_EQUAL(scatter_eth_dwstr_IP(device, NULL), NES_SUCCESS);
 
 		/* UDP_GTPC_PORT */
-		initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+		init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 		ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-		initialize_ipv4_header(ipv4_hdr, ip_src, ip_dst, 200);
+		init_ipv4_hdr(ipv4_hdr, ip_src, ip_dst, 200);
 		ip_len = ipv4_hdr->version_ihl & 0xf;
 		udp_hdr = (struct udp_hdr*)((uint32_t *)ipv4_hdr + ip_len);
 		udp_hdr->dst_port = rte_cpu_to_be_16(UDP_GTPC_PORT);
@@ -511,9 +517,9 @@ static void test_scatter_port(void)
 		CU_ASSERT_EQUAL(scatter_eth_dwstr_IP(device, NULL), NES_SUCCESS);
 
 		/* udp_port !=  */
-		initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+		init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 		ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-		initialize_ipv4_header(ipv4_hdr, ip_src, ip_dst, 200);
+		init_ipv4_hdr(ipv4_hdr, ip_src, ip_dst, 200);
 		ip_len = ipv4_hdr->version_ihl & 0xf;
 		udp_hdr = (struct udp_hdr*)((uint32_t *)ipv4_hdr + ip_len);
 		udp_hdr->dst_port = rte_cpu_to_be_16(80);
@@ -530,9 +536,9 @@ static void test_scatter_port(void)
 		CU_ASSERT_EQUAL(scatter_eth_dwstr_IP(device, NULL), NES_SUCCESS);
 
 		/* ipv4_hdr->next_proto_id = IP_PROTO_SCTP */
-		initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+		init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 		ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-		initialize_ipv4_header(ipv4_hdr, ip_src, ip_dst, 200);
+		init_ipv4_hdr(ipv4_hdr, ip_src, ip_dst, 200);
 		ipv4_hdr->next_proto_id = IP_PROTO_SCTP;
 		CU_ASSERT_EQUAL(scatter_eth_both_mixed(device, NULL), NES_SUCCESS);
 		CU_ASSERT_EQUAL(scatter_eth_upstr_mixed(device, NULL), NES_SUCCESS);
@@ -545,9 +551,9 @@ static void test_scatter_port(void)
 		CU_ASSERT_EQUAL(scatter_eth_dwstr_IP(device, NULL), NES_SUCCESS);
 
 		/* ipv4_hdr->next_proto_id != IP_PROTO_UDP */
-		initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+		init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 		ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-		initialize_ipv4_header(ipv4_hdr, ip_src, ip_dst, 200);
+		init_ipv4_hdr(ipv4_hdr, ip_src, ip_dst, 200);
 		ipv4_hdr->next_proto_id = IP_PROTO_ICMP;
 		CU_ASSERT_EQUAL(scatter_eth_both_mixed(device, NULL), NES_SUCCESS);
 		CU_ASSERT_EQUAL(scatter_eth_upstr_mixed(device, NULL), NES_SUCCESS);
@@ -559,7 +565,7 @@ static void test_scatter_port(void)
 		CU_ASSERT_EQUAL(scatter_eth_upstr_IP(device, NULL), NES_SUCCESS);
 		CU_ASSERT_EQUAL(scatter_eth_dwstr_IP(device, NULL), NES_SUCCESS);
 
-		initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv6, 0, 0);
+		init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv6, 0, 0);
 		CU_ASSERT_EQUAL(scatter_eth_both_mixed(device, NULL), NES_SUCCESS);
 		CU_ASSERT_EQUAL(scatter_eth_upstr_mixed(device, NULL), NES_SUCCESS);
 		CU_ASSERT_EQUAL(scatter_eth_dwstr_mixed(device, NULL), NES_SUCCESS);
@@ -571,9 +577,9 @@ static void test_scatter_port(void)
 		CU_ASSERT_EQUAL(scatter_eth_dwstr_IP(device, NULL), NES_SUCCESS);
 
 		/* fragmented  packets */
-		initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+		init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 		ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
-		initialize_ipv4_header(ipv4_hdr, ip_src, ip_dst, 200);
+		init_ipv4_hdr(ipv4_hdr, ip_src, ip_dst, 200);
 		ipv4_hdr->next_proto_id = IP_PROTO_ICMP;
 		ipv4_hdr->fragment_offset = rte_cpu_to_be_16(IPV4_HDR_OFFSET_MASK);
 		CU_ASSERT_EQUAL(scatter_eth_both_mixed(device, NULL), NES_SUCCESS);
@@ -638,7 +644,7 @@ static void test_ctor_eth_port(void)
 
 static void test_add_ring_to_ntsqueue(void)
 {
-#define PORT_RX_RINGS_CNT 13
+#define PORT_RX_RINGS_CNT 14
 	nes_ring_t *rx_rings[PORT_RX_RINGS_CNT];
 	nes_ring_t ring;
 	memset(rx_rings, 0, sizeof(rx_rings));

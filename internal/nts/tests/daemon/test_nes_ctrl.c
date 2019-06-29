@@ -81,8 +81,14 @@ int init_suite_nes_ctrl(void) {
 
 	cfg_bak = nes_cfgfile;
 	nes_cfgfile = malloc(sizeof (*nes_cfgfile));
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nes_cfgfile);
+
 	nes_cfgfile->sections = malloc(
 		sizeof(struct rte_cfgfile_section) * CFG_ALLOC_SECTION_BATCH);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(nes_cfgfile->sections);
+
 	nes_cfgfile->num_sections = 1;
 
 	section_VM_common.entries = &entry_max;
@@ -207,6 +213,9 @@ static void nes_ctrl_add_del_device_test(void) {
 static nes_api_msg_t *api_frame(uint16_t func_id, void *data, size_t length) {
 	nes_api_msg_t *api_msg = NULL;
 	api_msg = malloc(sizeof(nes_api_msg_t) + length);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(api_msg);
+
 	api_msg->message_type = eRequest;
 	api_msg->function_id = func_id;
 	if (length)
@@ -230,6 +239,8 @@ static void route_add_test(uint8_t is_mirror) {
 	uint16_t data_len = sizeof(struct add_route_data) + sizeof(char) * keys_len;
 
 	struct add_route_data* data = malloc(sizeof(nes_api_msg_t) + data_len);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(data);
 
 	data->vm_mac_addr = vm_mac_addr;
 
@@ -423,6 +434,9 @@ static void nes_ctrl_clear_routes_test(void) {
 
 	struct rte_cfgfile *cfg, *cfg_bak;
 	cfg = malloc(sizeof (*cfg) + sizeof (cfg->sections[0]) * CFG_ALLOC_SECTION_BATCH);
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = 0;
 
 	cfg_bak = nes_cfgfile;

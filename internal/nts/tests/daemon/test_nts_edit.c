@@ -18,7 +18,7 @@
 #include <stdint.h>
 
 #include "test_nts_edit.h"
-#include "packet_burst_generator.h"
+#include "pkt_generator.h"
 #include "nts/nts_edit.h"
 #include "nes_common.h"
 #include "libnes_cfgfile.h"
@@ -89,8 +89,17 @@ init_suite_nts_edit(void) {
 	cfg_bak = nes_cfgfile;
 
 	nes_cfgfile = malloc(sizeof (*nes_cfgfile));
+
+	if (!nes_cfgfile)
+		return CUE_NOMEMORY;
+
 	nes_cfgfile->sections =
 		malloc(sizeof (struct rte_cfgfile_section) * CFG_ALLOC_SECTION_BATCH);
+
+	if (!nes_cfgfile->sections) {
+		free(nes_cfgfile);
+		return CUE_NOMEMORY;
+	}
 
 	strncpy(section1.name, "PORT0", sizeof(section1.name));
 	strncpy(section2.name, "PORT1", sizeof(section2.name));
@@ -124,10 +133,10 @@ cleanup_suite_nts_edit(void) {
 static void
 nts_edit_get_outer_ipv4_hdr_test(void) {
 	struct rte_mbuf *gtpu_pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
-	uint32_t outer_src_ip = IPV4_ADDR(192, 168, 0, 2);
-	uint32_t outer_dst_ip = IPV4_ADDR(192, 168, 0, 3);
-	initialize_gtpu_packet(gtpu_pkt, outer_src_ip, outer_dst_ip, IPV4_ADDR(192, 168, 0, 0),
-		IPV4_ADDR(192, 168, 0, 1), 0, 0, 0);
+	uint32_t outer_src_ip = GET_IPV4_ADDRESS(192, 168, 0, 2);
+	uint32_t outer_dst_ip = GET_IPV4_ADDRESS(192, 168, 0, 3);
+	init_gtpu_pkt(gtpu_pkt, outer_src_ip, outer_dst_ip, GET_IPV4_ADDRESS(192, 168, 0, 0),
+		GET_IPV4_ADDRESS(192, 168, 0, 1), 0, 0, 0);
 	struct ipv4_hdr *ip_hdr = nts_edit_get_outer_ipv4_hdr(gtpu_pkt);
 	CU_ASSERT_EQUAL(ip_hdr->src_addr, rte_cpu_to_be_32(outer_src_ip));
 	CU_ASSERT_EQUAL(ip_hdr->dst_addr, rte_cpu_to_be_32(outer_dst_ip));
@@ -137,23 +146,23 @@ nts_edit_get_outer_ipv4_hdr_test(void) {
 static void
 nts_edit_get_inner_ipv4_hdr_test(void) {
 	struct rte_mbuf *gtpu_pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
-	uint32_t inner_src_ip = IPV4_ADDR(192, 168, 0, 2);
-	uint32_t inner_dst_ip = IPV4_ADDR(192, 168, 0, 3);
+	uint32_t inner_src_ip = GET_IPV4_ADDRESS(192, 168, 0, 2);
+	uint32_t inner_dst_ip = GET_IPV4_ADDRESS(192, 168, 0, 3);
 
-	initialize_gtpu_packet(gtpu_pkt, IPV4_ADDR(192, 168, 0, 0), IPV4_ADDR(192, 168, 0, 1),
+	init_gtpu_pkt(gtpu_pkt, GET_IPV4_ADDRESS(192, 168, 0, 0), GET_IPV4_ADDRESS(192, 168, 0, 1),
 		inner_src_ip, inner_dst_ip, 0, 0, 0);
 	struct ipv4_hdr *ip_hdr = nts_edit_get_inner_ipv4_hdr(gtpu_pkt);
 	CU_ASSERT_EQUAL(ip_hdr->src_addr, rte_cpu_to_be_32(inner_src_ip));
 	CU_ASSERT_EQUAL(ip_hdr->dst_addr, rte_cpu_to_be_32(inner_dst_ip));
 
-	initialize_gtpu_packet_with_ext(gtpu_pkt, IPV4_ADDR(192, 168, 0, 0),
-		IPV4_ADDR(192, 168, 0, 1), inner_src_ip, inner_dst_ip, 0, 0, 1);
+	init_gtpu_pkt_with_ext(gtpu_pkt, GET_IPV4_ADDRESS(192, 168, 0, 0),
+		GET_IPV4_ADDRESS(192, 168, 0, 1), inner_src_ip, inner_dst_ip, 0, 0, 1);
 	ip_hdr = nts_edit_get_inner_ipv4_hdr(gtpu_pkt);
 	CU_ASSERT_EQUAL(ip_hdr->src_addr, rte_cpu_to_be_32(inner_src_ip));
 	CU_ASSERT_EQUAL(ip_hdr->dst_addr, rte_cpu_to_be_32(inner_dst_ip));
 
-	initialize_gtpu_packet_with_ext(gtpu_pkt, IPV4_ADDR(192, 168, 0, 0),
-		IPV4_ADDR(192, 168, 0, 1), inner_src_ip, inner_dst_ip, 0, 0, 0);
+	init_gtpu_pkt_with_ext(gtpu_pkt, GET_IPV4_ADDRESS(192, 168, 0, 0),
+		GET_IPV4_ADDRESS(192, 168, 0, 1), inner_src_ip, inner_dst_ip, 0, 0, 0);
 	ip_hdr = nts_edit_get_inner_ipv4_hdr(gtpu_pkt);
 	CU_ASSERT_EQUAL(ip_hdr->src_addr, rte_cpu_to_be_32(inner_src_ip));
 	CU_ASSERT_EQUAL(ip_hdr->dst_addr, rte_cpu_to_be_32(inner_dst_ip));
@@ -173,12 +182,12 @@ nis_routing_data_get_stub(const nis_routing_data_key_t UNUSED(*key), nis_routing
 #define CHECK_HDR_RES do { \
 		CU_ASSERT_EQUAL(ip_hdr->src_addr, rte_cpu_to_be_32(inner_src_ip)); \
 		CU_ASSERT_EQUAL(ip_hdr->dst_addr, rte_cpu_to_be_32(inner_dst_ip)); \
-		CU_ASSERT_EQUAL(entry.dst_ip , rte_cpu_to_be_32(IPV4_ADDR(192, 168, 0, 1))); \
-		CU_ASSERT_EQUAL(entry.src_ip, rte_cpu_to_be_32(IPV4_ADDR(192, 168, 0, 0))); \
+		CU_ASSERT_EQUAL(entry.dst_ip , rte_cpu_to_be_32(GET_IPV4_ADDRESS(192, 168, 0, 1))); \
+		CU_ASSERT_EQUAL(entry.src_ip, rte_cpu_to_be_32(GET_IPV4_ADDRESS(192, 168, 0, 0))); \
 		CU_ASSERT_EQUAL(entry.dst_ip_port, rte_cpu_to_be_16(2152)); \
 		CU_ASSERT_EQUAL(entry.src_ip_port, rte_cpu_to_be_16(2152)); \
-		CU_ASSERT_EQUAL(tuple.outer_ip_dst, rte_cpu_to_be_32(IPV4_ADDR(192, 168, 0, 1))); \
-		CU_ASSERT_EQUAL(tuple.outer_ip_src, rte_cpu_to_be_32(IPV4_ADDR(192, 168, 0, 0))); \
+		CU_ASSERT_EQUAL(tuple.outer_ip_dst, rte_cpu_to_be_32(GET_IPV4_ADDRESS(192, 168, 0, 1))); \
+		CU_ASSERT_EQUAL(tuple.outer_ip_src, rte_cpu_to_be_32(GET_IPV4_ADDRESS(192, 168, 0, 0))); \
 		CU_ASSERT_EQUAL(tuple.inner_ip_src, rte_cpu_to_be_32(inner_src_ip)); \
 		CU_ASSERT_EQUAL(tuple.inner_ip_dst, rte_cpu_to_be_32(inner_dst_ip)); \
 	} while (0)
@@ -187,32 +196,32 @@ static void
 nts_edit_hdr_parse_gtp_test(void) {
 	MOCK_SET(mocked_nis_routing_data_get, nis_routing_data_get_stub);
 	struct rte_mbuf *gtpu_pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
-	uint32_t inner_src_ip = IPV4_ADDR(192, 168, 0, 2);
-	uint32_t inner_dst_ip = IPV4_ADDR(192, 168, 0, 3);
+	uint32_t inner_src_ip = GET_IPV4_ADDRESS(192, 168, 0, 2);
+	uint32_t inner_dst_ip = GET_IPV4_ADDRESS(192, 168, 0, 3);
 	nts_enc_subentry_t entry;
 	nts_acl_tuple_t tuple;
 	struct ipv4_hdr *ip_hdr;
 
-	initialize_gtpu_packet(gtpu_pkt, IPV4_ADDR(192, 168, 0, 0), IPV4_ADDR(192, 168, 0, 1),
+	init_gtpu_pkt(gtpu_pkt, GET_IPV4_ADDRESS(192, 168, 0, 0), GET_IPV4_ADDRESS(192, 168, 0, 1),
 		inner_src_ip, inner_dst_ip, 0, 0, 0);
 
 	nts_edit_hdr_parse_gtp(gtpu_pkt, &entry, &tuple, &ip_hdr, NES_UPSTREAM);
 	CHECK_HDR_RES;
 
-	initialize_gtpu_packet(gtpu_pkt, IPV4_ADDR(192, 168, 0, 0), IPV4_ADDR(192, 168, 0, 1),
+	init_gtpu_pkt(gtpu_pkt, GET_IPV4_ADDRESS(192, 168, 0, 0), GET_IPV4_ADDRESS(192, 168, 0, 1),
 		inner_src_ip, inner_dst_ip, 0, 0, 1);
 
 	nts_edit_hdr_parse_gtp(gtpu_pkt, &entry, &tuple, &ip_hdr, NES_UPSTREAM);
 	CHECK_HDR_RES;
 
-	initialize_gtpu_packet_with_ext(gtpu_pkt, IPV4_ADDR(192, 168, 0, 0),
-		IPV4_ADDR(192, 168, 0, 1), inner_src_ip, inner_dst_ip, 0, 0, 1);
+	init_gtpu_pkt_with_ext(gtpu_pkt, GET_IPV4_ADDRESS(192, 168, 0, 0),
+		GET_IPV4_ADDRESS(192, 168, 0, 1), inner_src_ip, inner_dst_ip, 0, 0, 1);
 
 	nts_edit_hdr_parse_gtp(gtpu_pkt, &entry, &tuple, &ip_hdr, NES_DOWNSTREAM);
 	CHECK_HDR_RES;
 
-	initialize_gtpu_packet_with_ext(gtpu_pkt, IPV4_ADDR(192, 168, 0, 0),
-		IPV4_ADDR(192, 168, 0, 1), inner_src_ip, inner_dst_ip, 0, 0, 0);
+	init_gtpu_pkt_with_ext(gtpu_pkt, GET_IPV4_ADDRESS(192, 168, 0, 0),
+		GET_IPV4_ADDRESS(192, 168, 0, 1), inner_src_ip, inner_dst_ip, 0, 0, 0);
 
 	nts_edit_hdr_parse_gtp(gtpu_pkt, &entry, &tuple, &ip_hdr, NES_DOWNSTREAM);
 	CHECK_HDR_RES;
@@ -228,13 +237,13 @@ static void
 nts_edit_hdr_parse_ip_test(void) {
 	MOCK_SET(mocked_nis_routing_data_get, nis_routing_data_get_stub);
 	struct rte_mbuf *ip_pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
-	uint32_t src_ip = IPV4_ADDR(192, 168, 0, 2);
-	uint32_t dst_ip = IPV4_ADDR(192, 168, 0, 3);
+	uint32_t src_ip = GET_IPV4_ADDRESS(192, 168, 0, 2);
+	uint32_t dst_ip = GET_IPV4_ADDRESS(192, 168, 0, 3);
 	nts_enc_subentry_t entry;
 	nts_acl_tuple_t tuple;
 	struct ipv4_hdr *ip_hdr;
 
-	initialize_ip_packet(ip_pkt, src_ip, dst_ip, 80, 80, 0);
+	init_ip_pkt(ip_pkt, src_ip, dst_ip, 80, 80, 0);
 
 	nts_edit_hdr_parse_ip(ip_pkt, &entry, &tuple, &ip_hdr);
 
@@ -250,7 +259,7 @@ nts_edit_hdr_parse_ip_test(void) {
 	CU_ASSERT_EQUAL(tuple.inner_ip_dst, rte_cpu_to_be_32(dst_ip));
 
 
-	initialize_ip_packet(ip_pkt, src_ip, dst_ip, 80, 80, 1);
+	init_ip_pkt(ip_pkt, src_ip, dst_ip, 80, 80, 1);
 
 	nts_edit_hdr_parse_ip(ip_pkt, &entry, &tuple, &ip_hdr);
 
@@ -271,8 +280,8 @@ nts_edit_hdr_parse_ip_test(void) {
 static void
 nts_edit_hdr_vm_parse_test(void) {
 	struct rte_mbuf *gtpu_pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
-	uint32_t inner_src_ip = IPV4_ADDR(192, 168, 0, 2);
-	uint32_t inner_dst_ip = IPV4_ADDR(192, 168, 0, 3);
+	uint32_t inner_src_ip = GET_IPV4_ADDRESS(192, 168, 0, 2);
+	uint32_t inner_dst_ip = GET_IPV4_ADDRESS(192, 168, 0, 3);
 
 	struct nis_acl_tuple_tt {
 		uint8_t proto;
@@ -288,7 +297,7 @@ nts_edit_hdr_vm_parse_test(void) {
 	struct nis_acl_tuple_tt tuple;
 	struct ipv4_hdr *ip_hdr;
 
-	initialize_gtpu_packet(gtpu_pkt, IPV4_ADDR(192, 168, 0, 0), IPV4_ADDR(192, 168, 0, 1),
+	init_gtpu_pkt(gtpu_pkt, GET_IPV4_ADDRESS(192, 168, 0, 0), GET_IPV4_ADDRESS(192, 168, 0, 1),
 		inner_src_ip, inner_dst_ip, 0, 0, 0);
 	ip_hdr = nts_edit_get_inner_ipv4_hdr(gtpu_pkt);
 	nts_edit_hdr_vm_parse(ip_hdr, (nis_acl_tuple_t*) & tuple);
@@ -394,8 +403,8 @@ static void
 nts_packet_flow_encap_gtpu_test(void) {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
-	static uint32_t ip_src = IPV4_ADDR(192, 168, 0, 1);
-	static uint32_t ip_dst = IPV4_ADDR(192, 168, 0, 2);
+	static uint32_t ip_src = GET_IPV4_ADDRESS(192, 168, 0, 1);
+	static uint32_t ip_dst = GET_IPV4_ADDRESS(192, 168, 0, 2);
 	struct ether_addr mac_src, mac_dst;
 	struct ether_hdr *eth_hdr;
 	struct ipv4_hdr *ip_hdr;
@@ -405,9 +414,9 @@ nts_packet_flow_encap_gtpu_test(void) {
 	struct rte_mbuf *pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 	ip_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
-	initialize_ipv4_header(ip_hdr, ip_src, ip_dst, 32);
+	init_ipv4_hdr(ip_hdr, ip_src, ip_dst, 32);
 
 	nts_enc_subentry_t encap_data = {
 		.dst_mac_addrs = mac_dst,
@@ -422,7 +431,7 @@ nts_packet_flow_encap_gtpu_test(void) {
 	};
 
 	gtpu_head_t *gtpu_pkt_header = nts_packet_flow_encap_gtpu(pkt, &encap_data, NULL);
-	CU_ASSERT_PTR_NOT_NULL(gtpu_pkt_header);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(gtpu_pkt_header);
 	CU_ASSERT_EQUAL(gtpu_pkt_header->gtpu_no_vlan.gtpu_hdr.teid, 0);
 	CU_ASSERT_EQUAL(memcmp(&gtpu_pkt_header->gtpu_no_vlan.outer_ether_hdr.d_addr,
 		&mac_dst, sizeof (mac_dst)), 0);
@@ -481,8 +490,8 @@ static void
 nts_packet_flow_encap_ip_test(void) {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
-	static uint32_t ip_src = IPV4_ADDR(192, 168, 0, 1);
-	static uint32_t ip_dst = IPV4_ADDR(192, 168, 0, 2);
+	static uint32_t ip_src = GET_IPV4_ADDRESS(192, 168, 0, 1);
+	static uint32_t ip_dst = GET_IPV4_ADDRESS(192, 168, 0, 2);
 	struct ether_addr mac_src, mac_dst;
 	struct ether_hdr *eth_hdr;
 	struct ipv4_hdr *ip_hdr;
@@ -493,11 +502,11 @@ nts_packet_flow_encap_ip_test(void) {
 	struct rte_mbuf *pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 	ip_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
-	pkt_len = initialize_ipv4_header(ip_hdr, ip_src, ip_dst, 32);
+	pkt_len = init_ipv4_hdr(ip_hdr, ip_src, ip_dst, 32);
 	struct udp_hdr *udp_hdr = (struct udp_hdr *)(ip_hdr + 1);
-	initialize_udp_header(udp_hdr, 8080, 8080, pkt_len);
+	init_udp_hdr(udp_hdr, 8080, 8080, pkt_len);
 
 	nts_enc_subentry_t encap_data = {
 		.dst_mac_addrs = mac_dst,
@@ -511,7 +520,7 @@ nts_packet_flow_encap_ip_test(void) {
 	};
 
 	ip_head_t *ip_pkt_header = nts_packet_flow_encap_ip(pkt, &encap_data);
-	CU_ASSERT_PTR_NOT_NULL(ip_pkt_header);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(ip_pkt_header);
 	CU_ASSERT_EQUAL(memcmp(&ip_pkt_header->ip_no_vlan.ether_hdr.d_addr,
 		&mac_dst, sizeof (mac_dst)), 0);
 	CU_ASSERT_EQUAL(memcmp(&ip_pkt_header->ip_no_vlan.ether_hdr.s_addr,
@@ -568,15 +577,15 @@ nts_flow_vm_test(void) {
 		*gtpu_pkt_1 = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 
 	struct rte_mbuf * packets[] = {gtpu_pkt_0, gtpu_pkt_1};
-	uint32_t outer_src_ip = IPV4_ADDR(192, 168, 0, 2);
-	uint32_t outer_dst_ip = IPV4_ADDR(192, 168, 0, 3);
-	initialize_gtpu_packet(gtpu_pkt_0, outer_src_ip, outer_dst_ip, IPV4_ADDR(192, 168, 0, 0),
-		IPV4_ADDR(192, 168, 0, 1), 0, 0, 0);
-	initialize_gtpu_packet(gtpu_pkt_1, outer_src_ip, outer_dst_ip, IPV4_ADDR(192, 168, 0, 0),
-		IPV4_ADDR(192, 168, 0, 1), 0, 0, 0);
+	uint32_t outer_src_ip = GET_IPV4_ADDRESS(192, 168, 0, 2);
+	uint32_t outer_dst_ip = GET_IPV4_ADDRESS(192, 168, 0, 3);
+	init_gtpu_pkt(gtpu_pkt_0, outer_src_ip, outer_dst_ip, GET_IPV4_ADDRESS(192, 168, 0, 0),
+		GET_IPV4_ADDRESS(192, 168, 0, 1), 0, 0, 0);
+	init_gtpu_pkt(gtpu_pkt_1, outer_src_ip, outer_dst_ip, GET_IPV4_ADDRESS(192, 168, 0, 0),
+		GET_IPV4_ADDRESS(192, 168, 0, 1), 0, 0, 0);
 
 
-	nes_sq_t entries;
+	static nes_sq_t entries;
 	int fake;
 	nes_sq_ctor(&entries);
 	nts_route_entry_t entries_data[] = {
@@ -604,9 +613,9 @@ nts_flow_vm_test(void) {
 static void
 nts_edit_decap_test(void) {
 	struct rte_mbuf *gtpu_pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
-	uint32_t inner_src_ip = IPV4_ADDR(192, 168, 0, 2);
-	uint32_t inner_dst_ip = IPV4_ADDR(192, 168, 0, 3);
-	initialize_gtpu_packet(gtpu_pkt, IPV4_ADDR(192, 168, 0, 0), IPV4_ADDR(192, 168, 0, 1),
+	uint32_t inner_src_ip = GET_IPV4_ADDRESS(192, 168, 0, 2);
+	uint32_t inner_dst_ip = GET_IPV4_ADDRESS(192, 168, 0, 3);
+	init_gtpu_pkt(gtpu_pkt, GET_IPV4_ADDRESS(192, 168, 0, 0), GET_IPV4_ADDRESS(192, 168, 0, 1),
 		inner_src_ip, inner_dst_ip, 0, 0, 0);
 	nts_route_entry_t fake;
 	nes_ring_t dst_ring;
@@ -627,9 +636,9 @@ nts_edit_decap_test(void) {
 static void
 nts_edit_nodecap_test(void) {
 	struct rte_mbuf *gtpu_pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
-	uint32_t inner_src_ip = IPV4_ADDR(192, 168, 0, 2);
-	uint32_t inner_dst_ip = IPV4_ADDR(192, 168, 0, 3);
-	initialize_gtpu_packet(gtpu_pkt, IPV4_ADDR(192, 168, 0, 0), IPV4_ADDR(192, 168, 0, 1),
+	uint32_t inner_src_ip = GET_IPV4_ADDRESS(192, 168, 0, 2);
+	uint32_t inner_dst_ip = GET_IPV4_ADDRESS(192, 168, 0, 3);
+	init_gtpu_pkt(gtpu_pkt, GET_IPV4_ADDRESS(192, 168, 0, 0), GET_IPV4_ADDRESS(192, 168, 0, 1),
 		inner_src_ip, inner_dst_ip, 0, 0, 0);
 	nts_route_entry_t fake;
 	nes_ring_t dst_ring;

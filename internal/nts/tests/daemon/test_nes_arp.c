@@ -20,7 +20,7 @@
 #include "test_nes_arp.h"
 #include "nes_common.h"
 #include "nes_arp.h"
-#include "packet_burst_generator.h"
+#include "pkt_generator.h"
 
 #define MBUF_CACHE_SIZE 512
 #define MBUF_OVERHEAD (sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
@@ -59,8 +59,8 @@ static void
 nes_arp_response_test(void) {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
-	static uint32_t ip_src = IPV4_ADDR(192, 168, 0, 0);
-	static uint32_t ip_dst = IPV4_ADDR(192, 168, 0, 0);
+	static uint32_t ip_src = GET_IPV4_ADDRESS(192, 168, 0, 0);
+	static uint32_t ip_dst = GET_IPV4_ADDRESS(192, 168, 0, 0);
 	struct ether_addr mac_src, mac_dst;
 	struct ether_hdr *eth_hdr;
 	struct arp_header_ipv4_s *arp_hdr;
@@ -71,7 +71,7 @@ nes_arp_response_test(void) {
 	struct rte_mbuf *pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	CU_ASSERT_PTR_NOT_NULL(pkt);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 
 	arp_hdr = (struct arp_header_ipv4_s *) (eth_hdr + 1);
 	ether_addr_copy(&mac_src, &arp_hdr->sha);

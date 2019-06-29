@@ -114,13 +114,13 @@ nes_dev_kni_alloc(uint16_t port_id, const char* if_id)
 
 	// Use if_id as the MAC address if it is long enough and in hex format
 	if (strnlen(if_id, ETHER_ADDR_LEN*2) == ETHER_ADDR_LEN*2) {
-		if (sscanf(if_id, "%02x%02x%02x%02x%02x%02x",
-           &mac_addr[0],
-           &mac_addr[1],
-           &mac_addr[2],
-           &mac_addr[3],
-           &mac_addr[4],
-           &mac_addr[5]) == 6) {
+		if (sscanf(if_id, "%hhx%hhx%hhx%hhx%hhx%hhx",
+				&mac_addr[0],
+				&mac_addr[1],
+				&mac_addr[2],
+				&mac_addr[3],
+				&mac_addr[4],
+				&mac_addr[5]) == 6) {
 
 			memcpy(conf.mac_addr, mac_addr, ETHER_ADDR_LEN);
 			// Clear group address bit

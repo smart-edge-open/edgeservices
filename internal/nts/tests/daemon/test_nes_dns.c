@@ -15,7 +15,7 @@
 *******************************************************************************/
 
 #include "test_nes_dns.h"
-#include "packet_burst_generator.h"
+#include "pkt_generator.h"
 #include "nts/nts_route.h"
 #include "dns/nes_dns.h"
 #include "ctrl/nes_ctrl.h"
@@ -89,11 +89,11 @@ cleanup_suite_nes_dns(void) {
 static void
 nes_dns_agent_decap_test(void) {
 	struct rte_mbuf *gtpu_pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
-	uint32_t inner_src_ip = IPV4_ADDR(192, 168, 0, 2);
-	uint32_t inner_dst_ip = IPV4_ADDR(192, 168, 0, 3);
-	initialize_gtpu_packet(gtpu_pkt,
-		IPV4_ADDR(192, 168, 0, 0),
-		IPV4_ADDR(192, 168, 0, 1),
+	uint32_t inner_src_ip = GET_IPV4_ADDRESS(192, 168, 0, 2);
+	uint32_t inner_dst_ip = GET_IPV4_ADDRESS(192, 168, 0, 3);
+	init_gtpu_pkt(gtpu_pkt,
+		GET_IPV4_ADDRESS(192, 168, 0, 0),
+		GET_IPV4_ADDRESS(192, 168, 0, 1),
 		inner_src_ip,
 		inner_dst_ip,
 		0,
@@ -129,8 +129,8 @@ static void
 nes_dns_agent_encap_test(void) {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
-	static uint32_t ip_src = IPV4_ADDR(192, 168, 0, 0);
-	static uint32_t ip_dst = IPV4_ADDR(192, 168, 0, 0);
+	static uint32_t ip_src = GET_IPV4_ADDRESS(192, 168, 0, 0);
+	static uint32_t ip_dst = GET_IPV4_ADDRESS(192, 168, 0, 0);
 	struct ether_addr mac_src, mac_dst;
 	struct ether_hdr *eth_hdr;
 	struct ipv4_hdr *ip_hdr;
@@ -140,9 +140,9 @@ nes_dns_agent_encap_test(void) {
 
 	struct rte_mbuf *pkt = rte_pktmbuf_alloc(pkt_pktmbuf_pool);
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	initialize_eth_header(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
+	init_eth_hdr(eth_hdr, &mac_src, &mac_dst, ETHER_TYPE_IPv4, 0, 0);
 	ip_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
-	initialize_ipv4_header(ip_hdr, ip_src, ip_dst, 32);
+	init_ipv4_hdr(ip_hdr, ip_src, ip_dst, 32);
 
 	MOCK_SET(mocked_nes_lookup_entry_find, nes_lookup_entry_find_stub);
 	routing_table = NULL;
@@ -354,6 +354,9 @@ nes_dns_agent_setup_test(void)
 {
 	MOCK_SET(mocked_rte_mempool_create, rte_mempool_create_stub);
 	struct rte_cfgfile *old_cfg, *cfg = malloc(sizeof (*cfg));
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(cfg);
+
 	cfg->num_sections = 0;
 	cfg->sections = NULL;
 	old_cfg = nes_cfgfile;
@@ -470,6 +473,8 @@ nes_dns_agent_setup_test(void)
 	CU_ASSERT_EQUAL(nes_dns_agent_setup("test1"), NES_FAIL);
 	nes_cfgfile = old_cfg;
 	nes_ctrl_acl_ctx = orig_nes_ctrl_acl_ctx;
+
+	free(cfg);
 }
 
 CU_TestInfo tests_suite_nes_dns[] = {
