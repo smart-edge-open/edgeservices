@@ -14,24 +14,31 @@
 # limitations under the License.
 #############################################################################
 
-include $(RTE_SDK)/mk/rte.vars.mk
+CC = gcc
 
-RTE_OUTPUT = ../build
+SRCS = libnes_api.c 
 
-# binary name
-LIB = libnes_api.a
+LIB = libedanes_api.a
+OBJ = libnes_api.o
 
-CFLAGS += -DLIBNES_API
-# all source are stored in SRCS-y
-SRCS-y := libnes_api.c
+INC = -I../libnes_sq 
+DIR = ../build
 
-CFLAGS += -O3
-#CFLAGS += -g
-CFLAGS += $(WERROR_FLAGS)
-CFLAGS += $(ASSERT_FLAG)
-CFLAGS += -I../libnes_api
-CFLAGS += -I../libnes_sq
-
+CFLAGS += -O3 -Wall -c
+SEC_CFLAGS = -fstack-protector-strong -fPIC -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security
 CFLAGS += $(SEC_CFLAGS)
-LDFLAGS += $(SEC_LDFLAGS)
-include $(RTE_SDK)/mk/rte.extlib.mk
+
+$(LIB): $(DIR)/$(OBJ) 
+	ar -r -o $(DIR)/$@ $^
+
+$(DIR)/%.o: %.c dirmake
+	$(CC) -c $(INC) $(CFLAGS) -o $@ $<
+
+dirmake:
+	@mkdir -p $(DIR)
+
+clean:
+	rm -f $(DIR)/$(LIB) $(DIR)/$(OBJ)
+
+
+LDLIBS += -L$(DIR) -ledanes_api

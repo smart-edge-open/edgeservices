@@ -17,8 +17,8 @@ package eda
 /*
 #cgo CFLAGS: -I${SRCDIR}/../../internal/nts/eda_libs/libnes_api
 #cgo CFLAGS: -I${SRCDIR}/../../internal/nts/eda_libs/libnes_sq
-#cgo LDFLAGS: -L${SRCDIR}/../../internal/nts/eda_libs/build -lnes_api
-#cgo LDFLAGS: -L${SRCDIR}/../../internal/nts/eda_libs/build -lnes_sq
+#cgo LDFLAGS: -L${SRCDIR}/../../internal/nts/eda_libs/build -ledanes_api
+#cgo LDFLAGS: -L${SRCDIR}/../../internal/nts/eda_libs/build -ledanes_sq
 #include <stdint.h>
 #include <stdlib.h>
 #include <libnes_api.h>

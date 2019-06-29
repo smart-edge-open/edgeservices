@@ -14,9 +14,17 @@
 # limitations under the License.
 ############################################################################
 
-include $(RTE_SDK)/mk/rte.vars.mk
+CC=gcc
+MAKE=make
 
-DIRS-y += libnes_api
-DIRS-y += libnes_sq
+LIBAPI_DIR=libnes_api
+LIBSQ_DIR=libnes_sq
+BUILD_DIR=./build
 
-include $(RTE_SDK)/mk/rte.extsubdir.mk
+build:
+	$(MAKE) -C $(LIBAPI_DIR);
+	$(MAKE) -C $(LIBSQ_DIR);
+clean: 
+	$(MAKE) -C $(LIBAPI_DIR) clean;
+	$(MAKE) -C $(LIBSQ_DIR) clean;
+	rm -rf $(BUILD_DIR)

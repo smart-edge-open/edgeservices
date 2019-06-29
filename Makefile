@@ -22,7 +22,7 @@ BUILD_DIR ?=dist
 
 VER:=1.0
 
-build: appliance edgedns nts
+build: edalibs appliance edgedns nts
 
 appliance:
 	mkdir -p "${BUILD_DIR}"
@@ -35,9 +35,14 @@ edgedns:
 nts:
 	make -C internal/nts
 
+edalibs:
+	make -C internal/nts/eda_libs
+
+
 clean:
 	rm -rf "${BUILD_DIR}"
 	make clean -C internal/nts
+	make clean -C internal/nts/eda_libs
 
 build-docker: build
 	cp build/appliance/Dockerfile "${TMP_DIR}/Dockerfile_appliance"
@@ -60,10 +65,10 @@ build-docker: build
 run-docker:
 	VER=${VER} docker-compose up --no-build
 
-lint:
+lint: edalibs
 	golangci-lint run
 
-test:
+test: edalibs
 	ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor
 
 help:
