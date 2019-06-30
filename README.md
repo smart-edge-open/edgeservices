@@ -53,7 +53,7 @@ OpenNESS User and developer Prerequisites:
 - Baidu Cloud for Cloud adapters 
 - TLS for authentication  
 
-> NOTE: In some cases the OpenNESS package might be provied to you which contains all the required OpenNESS packaged. Cloning of repository is not required in that case.
+> NOTE: In some cases the OpenNESS package might be provided to you which contains all the required OpenNESS packaged. Cloning of repository is not required in that case.
 
 ## 2.1. CentOS Linux 
 OpenNESS Edge Node runs on the CentOS 7.6 x86_64 operating system. The same operating system is used for building product components and deploying/running them on a dedicated hardware platform.
@@ -88,6 +88,14 @@ For building product binaries, images and containers only one server is required
 
 In this scenario, all actions will take place on the same machine.
 > NOTE: For a dual server setup, where one server is being used for building binaries, product images, and a second server for deploying them in a production server, refer to the README.md documents under the following repository subfolders: `./scripts/ansible/build_server` and `./scripts/ansible/deploy_server` that will guide you through a different setup on two machines.
+
+OpenNESS supports Network Edge and On-Premise edge deployment. For details of these two deployment model please refer to the OpenNESS architecture specification. 
+- Network Edge deployment is based on Kubernetes 
+- On-Premise Edge deployment is based on Docker Containers and VMs based on libvirt. 
+
+The OpenNESS Edge Node and OpenNESS controller components build would remain unchanged for both the deployments. For the Network Edge deployment this document assumes that a Kubernetes cluster is setup with Kubernetes master and Node is added to the cluster. The document does not provide the steps for setting up Kubernetes cluster. 
+
+Reference for setting up Kubernetes cluster on CentOS: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
 
 OpenNESS supports Network Edge and On-Premise edge deployment. For details of these two deployment model please refer to the OpenNESS architecture specification. 
 - Network Edge deployment is based on Kubernetes 
@@ -241,7 +249,7 @@ The following actions must be complete prior to running OpenNESS Edge Node autom
 Before configuring Edge Node server from automation scripts below (see chapter 7.3), modify its configuration files, so that automation scripts will be ready to accept incoming connections from Controller:
 1. Open file: <br>
    `./scripts/ansible/deploy_server/vars/defaults.yml` <br> and  modify Controller IP address and port, like: <br> `enrollment_endpoint: "1.2.3.4:8081"`.
-2. Copy Controller ROOT CA certificate to the following folder: <br>`/etc/pki/tls/certs/controller-root-ca.pem`.
+2. Copy Controller ROOT CA certificate from Controller using `docker cp edgecontroller_cce_1:/artifacts/certificates/ca/cert.pem` to local controller folder first and then copy it to the following folder: <br>`/etc/pki/tls/certs/controller-root-ca.pem` on the Edge node. 
 3. Now you are ready to to run automation scripts.
 
 
