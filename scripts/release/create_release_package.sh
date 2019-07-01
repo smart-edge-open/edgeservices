@@ -85,8 +85,7 @@ rm -rf "$download_dir/edgenode/build/openvino"
 # CUSTOMIZATIONS FOR EACH DOWNLOADED REPO
 #################################################
 
-#touch "$download_dir/test_script" # just an example
-
+sed -i '/RUN apk add git/a RUN tar xf cached-modules.tgz -C \/go\/' downloaded_components/edgecontroller/docker/build/Dockerfile
 
 #################################################
 # DOWNLOAD GO LANG TO LOCAL SUBFOLDER
@@ -111,7 +110,7 @@ export GOROOT=$root_dir/go
 [[ -f $go_cached_modules_path/cached-modules.tgz ]] && rm -f $go_cached_modules_path/cached-modules.tgz
 (cd $go_cached_modules_path && tar cvfz cached-modules.tgz pkg/mod/cache/download/github.com/smartedgemec )
 # Move file to log repo (common folder on disk)
-mv $go_cached_modules_path/cached-modules.tgz $root_dir/$download_dir/common/
+mv $go_cached_modules_path/cached-modules.tgz $root_dir/$download_dir/edgecontroller/
 
 #################################################
 # CREATE OUTPUT RELEASE PACKAGE (+cached go mods)

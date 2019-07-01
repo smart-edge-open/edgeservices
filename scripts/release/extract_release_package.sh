@@ -41,6 +41,6 @@ echo "...done"
 
 echo "Copying offline content to user home folder"
 [[ -d ${HOME}/go ]] || mkdir ${HOME}/go
-tar xf $extract_location/common/cached-modules.tgz -C ${HOME}/go/
+tar xf $extract_location/edgecontroller/cached-modules.tgz -C ${HOME}/go/
 echo "...done"
 echo -e "\n SUCCESS !\nAll packages extracted successfully to: $extract_location\n"
