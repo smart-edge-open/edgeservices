@@ -106,3 +106,5 @@
  - Updated app dockers names
  - Added notification type to Producer
  - Fixed issues regarding OpenVINO, compiler errors, Travis errors etc.
+ - Fix logging gRPC info and errors to syslog
+ - Update test certificates
