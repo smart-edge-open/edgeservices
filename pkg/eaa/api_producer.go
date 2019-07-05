@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
@@ -116,10 +117,9 @@ func findServiceNotifIndex(servInfo Service,
 	return -1
 }
 
-func sendNotificationToSubscribers(commonName string,
+func sendNotificationToAllSubscribers(commonName string,
 	notif NotificationFromProducer) (int, error) {
 	var subscriberList []string
-	retCode := http.StatusAccepted
 
 	if eaaCtx.serviceInfo == nil {
 		return http.StatusInternalServerError,
@@ -164,7 +164,7 @@ func sendNotificationToSubscribers(commonName string,
 	namespaceSubsInfo, ok := eaaCtx.subscriptionInfo[namespaceKey]
 	if !ok {
 		log.Infof("No subscription to notification %v", namespaceKey)
-		return retCode, nil
+		return http.StatusAccepted, nil
 	}
 
 	srvSubsList, ok := namespaceSubsInfo.serviceSubscriptions[prodURN.ID]
@@ -177,19 +177,45 @@ func sendNotificationToSubscribers(commonName string,
 	}
 
 	for _, subID := range subscriberList {
-		_, connectionFound := eaaCtx.consumerConnections[subID]
-		if connectionFound {
-			messageType := websocket.TextMessage
-			conn := eaaCtx.consumerConnections[subID].connection
-			err = conn.WriteMessage(messageType, msgPayload)
-			if err != nil {
-				retCode = http.StatusForbidden
-			}
-		} else {
-			retCode = http.StatusForbidden
-			err = errors.New("No connection found")
+		if err = sendNotificationToSubscriber(subID, msgPayload); err != nil {
+			log.Warningf("Couldn't send notification to Subscriber ID: %s : %v",
+				subID, err)
 		}
 	}
+	return http.StatusAccepted, nil
+}
 
-	return retCode, err
+func sendNotificationToSubscriber(subID string, msgPayload []byte) error {
+	possibleConnection, connectionFound := eaaCtx.consumerConnections[subID]
+	log.Infof("Looking for websocket: %s from %v", subID,
+		eaaCtx.consumerConnections)
+	if connectionFound {
+		if possibleConnection.connection == nil {
+			if err := waitForConnectionAssigned(subID); err != nil {
+				return errors.Wrap(err, "websocket isn't properly created")
+			}
+		}
+		messageType := websocket.TextMessage
+		conn := eaaCtx.consumerConnections[subID].connection
+		return conn.WriteMessage(messageType, msgPayload)
+	}
+	return errors.New("no websocket connection created " +
+		"by GET /notifications API")
+}
+
+// waitForConnectionAssigned waits a second until a proper websocket connection
+// is created for subscriber in a separate thread.
+// If connection is created then nil in eaaCtx.consumerConnections map
+// will be overwritten
+func waitForConnectionAssigned(subID string) error {
+	deadline := time.Now().Add(1 * time.Second)
+	for {
+		if eaaCtx.consumerConnections[subID].connection != nil {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return errors.New("Timeout reached")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }

@@ -119,7 +119,7 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statCode, err := sendNotificationToSubscribers(commonName, notif)
+	statCode, err := sendNotificationToAllSubscribers(commonName, notif)
 	if err != nil {
 		log.Errf("Error in Publish Notification: %s", err.Error())
 	}

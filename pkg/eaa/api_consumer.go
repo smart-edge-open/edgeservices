@@ -61,8 +61,13 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 		delete(eaaCtx.consumerConnections, commonName)
 	}
 
+	// Create nil connection obj in consumerConnections map. That means the
+	// procedure of web socket connection has started.
+	eaaCtx.consumerConnections[commonName] = ConsumerConnection{
+		connection: nil}
 	conn, err := socket.Upgrade(w, r, nil)
 	if err != nil {
+		delete(eaaCtx.consumerConnections, commonName)
 		return 0, err
 	}
 
