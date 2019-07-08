@@ -277,6 +277,8 @@ Scripts shall be run in the order listed above.
     At some point, the script will print a key on the console.
     
     This key will be needed on the controller.
+
+    >NOTE: If the script terminates at "Building images" step and says about failing docker-compose command, run the following script to resolve issue automatically: `./scripts/ansible/common/scripts/reinstall-urllib3-module.sh`. After that, run script `03_build_and_deploy.sh` again. 
 6. Wait for communication from controller side and wait for certificates exchange.
 7. After communication is established and certificates are uploaded automatically to this server, the script will bring up all product components and finish.
 

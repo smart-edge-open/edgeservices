@@ -108,6 +108,6 @@
  - Fixed issues regarding OpenVINO, compiler errors, Travis errors etc.
  - Fix logging gRPC info and errors to syslog
  - Update test certificates
+ - Added shell script for resolving urllib3 module version mismatch in Ansible scripts
  - Fixed issue with sending notification to consumers.
  - Wait for default cert key file with size greater than zero
-
