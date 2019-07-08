@@ -109,3 +109,5 @@
  - Fix logging gRPC info and errors to syslog
  - Update test certificates
  - Fixed issue with sending notification to consumers.
+ - Wait for default cert key file with size greater than zero
+

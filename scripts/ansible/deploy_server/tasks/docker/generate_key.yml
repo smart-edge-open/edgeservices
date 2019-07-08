@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+- name: Wait for default key file
+  shell: while true; do [ -s /var/lib/appliance/certs/key.pem ] && break; done
+
 - name: Generate key for controller
   shell: openssl pkey -pubout -in /var/lib/appliance/certs/key.pem -inform pem -outform der | md5sum | xxd -r -p | openssl enc -a | tr -d '=' | tr '/+' '_-'
   register: cmd
