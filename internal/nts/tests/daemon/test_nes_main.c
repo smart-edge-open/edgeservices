@@ -149,10 +149,11 @@ static void test_nes_handle_signals(void)
 	nes_handle_signals(signal);
 }
 
-CU_TestInfo tests_suite_nes_main[] =
-{
-	{ "test_nes_mempool_init", test_nes_mempool_init},
-	{ "test_nes_init_interfaces", test_nes_init_interfaces},
-	{ "test_nes_handle_signals", test_nes_handle_signals},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_main_suite_to_registry(void) {
+	CU_pSuite nes_main_suite = CU_add_suite("nes_main", init_suite_nes_main, cleanup_suite_nes_main);
+
+	CU_add_test(nes_main_suite, "test_nes_mempool_init", test_nes_mempool_init);
+	CU_add_test(nes_main_suite, "test_nes_init_interfaces", test_nes_init_interfaces);
+	CU_add_test(nes_main_suite, "test_nes_handle_signals", test_nes_handle_signals);
+}
+

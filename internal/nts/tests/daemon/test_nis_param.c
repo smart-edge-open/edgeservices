@@ -79,11 +79,13 @@ static void nis_param_rab_del_test(void) {
 	nis_param_ctx_dtor(&lookup_ctx);
 }
 
-CU_TestInfo tests_suite_nis_param[] = {
-	{ "nis_param_init", nis_param_init_test},
-	{ "nis_param_ctx_dtor", nis_param_ctx_dtor_test},
-	{ "nis_param_rab_set", nis_param_rab_set_test},
-	{ "nis_param_rab_get", nis_param_rab_get_test},
-	{ "nis_param_rab_del", nis_param_rab_del_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nis_param_suite_to_registry(void) {
+	CU_pSuite nis_param_suite = CU_add_suite("nis_param", init_suite_nis_param, cleanup_suite_nis_param);
+
+	CU_add_test(nis_param_suite, "nis_param_init", nis_param_init_test);
+	CU_add_test(nis_param_suite, "nis_param_ctx_dtor", nis_param_ctx_dtor_test);
+	CU_add_test(nis_param_suite, "nis_param_rab_set", nis_param_rab_set_test);
+	CU_add_test(nis_param_suite, "nis_param_rab_get", nis_param_rab_get_test);
+	CU_add_test(nis_param_suite, "nis_param_rab_del", nis_param_rab_del_test);
+}
+

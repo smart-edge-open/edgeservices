@@ -20,9 +20,8 @@
 #include <CUnit/CUnit.h>
 
 int init_suite_nts_edit(void);
-
 int cleanup_suite_nts_edit(void);
 
-extern CU_TestInfo tests_suite_nts_edit[];
+void add_nts_edit_suite_to_registry(void);
 
 #endif	/* TEST_NTS_EDIT_H */

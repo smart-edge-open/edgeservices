@@ -100,7 +100,9 @@ nes_arp_response_test(void) {
 	rte_pktmbuf_free(pkt);
 }
 
-CU_TestInfo tests_suite_nes_arp[] = {
-	{ "nes_arp_response_test", nes_arp_response_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_arp_suite_to_registry(void) {
+	CU_pSuite nes_arp_suite = CU_add_suite("nes_arp", init_suite_nes_arp, cleanup_suite_nes_arp);
+
+	CU_add_test(nes_arp_suite, "nes_arp_response_test", nes_arp_response_test);
+}
+

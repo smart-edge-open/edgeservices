@@ -720,21 +720,23 @@ nts_route_entry_edit_get_test(void) {
 	CU_ASSERT_EQUAL(nts_route_entry_edit_get(&entry), NTS_EDIT_DECAP_ONLY);
 }
 
-CU_TestInfo tests_suite_nts_edit[] = {
-	{ "nts_edit_init_test", nts_edit_init_test},
-	{ "nts_edit_get_outer_ipv4_hdr_test", nts_edit_get_outer_ipv4_hdr_test},
-	{ "nts_edit_get_inner_ipv4_hdr_test", nts_edit_get_inner_ipv4_hdr_test},
-	{ "nts_edit_hdr_parse_gtp_test", nts_edit_hdr_parse_gtp_test},
-	{ "nts_edit_hdr_parse_ip_test", nts_edit_hdr_parse_ip_test},
-	{ "nts_edit_hdr_vm_parse_test", nts_edit_hdr_vm_parse_test},
-	{ "nts_packet_edit_enq_test", nts_packet_edit_enq_test},
-	{ "nts_packet_flow_encap_gtpu_test", nts_packet_flow_encap_gtpu_test},
-	{ "nts_packet_flow_encap_ip_test", nts_packet_flow_encap_ip_test},
-	{ "nts_flow_vm_test", nts_flow_vm_test},
-	{ "nts_edit_decap_test", nts_edit_decap_test},
-	{ "nts_edit_nodecap_test", nts_edit_nodecap_test},
-	{ "nts_edit_ring_flow_set_test", nts_edit_ring_flow_set_test},
-	{ "nts_route_entry_edit_set_test", nts_route_entry_edit_set_test},
-	{ "nts_route_entry_edit_get_test", nts_route_entry_edit_get_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nts_edit_suite_to_registry(void) {
+	CU_pSuite nts_edit_suite = CU_add_suite("nts_edit", init_suite_nts_edit, cleanup_suite_nts_edit);
+
+	CU_add_test(nts_edit_suite, "nts_edit_init_test", nts_edit_init_test);
+	CU_add_test(nts_edit_suite, "nts_edit_get_outer_ipv4_hdr_test", nts_edit_get_outer_ipv4_hdr_test);
+	CU_add_test(nts_edit_suite, "nts_edit_get_inner_ipv4_hdr_test", nts_edit_get_inner_ipv4_hdr_test);
+	CU_add_test(nts_edit_suite, "nts_edit_hdr_parse_gtp_test", nts_edit_hdr_parse_gtp_test);
+	CU_add_test(nts_edit_suite, "nts_edit_hdr_parse_ip_test", nts_edit_hdr_parse_ip_test);
+	CU_add_test(nts_edit_suite, "nts_edit_hdr_vm_parse_test", nts_edit_hdr_vm_parse_test);
+	CU_add_test(nts_edit_suite, "nts_packet_edit_enq_test", nts_packet_edit_enq_test);
+	CU_add_test(nts_edit_suite, "nts_packet_flow_encap_gtpu_test", nts_packet_flow_encap_gtpu_test);
+	CU_add_test(nts_edit_suite, "nts_packet_flow_encap_ip_test", nts_packet_flow_encap_ip_test);
+	CU_add_test(nts_edit_suite, "nts_flow_vm_test", nts_flow_vm_test);
+	CU_add_test(nts_edit_suite, "nts_edit_decap_test", nts_edit_decap_test);
+	CU_add_test(nts_edit_suite, "nts_edit_nodecap_test", nts_edit_nodecap_test);
+	CU_add_test(nts_edit_suite, "nts_edit_ring_flow_set_test", nts_edit_ring_flow_set_test);
+	CU_add_test(nts_edit_suite, "nts_route_entry_edit_set_test", nts_route_entry_edit_set_test);
+	CU_add_test(nts_edit_suite, "nts_route_entry_edit_get_test", nts_route_entry_edit_get_test);
+}
+

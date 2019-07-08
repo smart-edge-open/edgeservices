@@ -21,6 +21,7 @@
 
 int init_suite_libnes_api(void);
 int cleanup_suite_libnes_api(void);
-extern CU_TestInfo tests_suite_libnes_api[];
 
-#endif
+void add_nes_libnes_api_suite_to_registry(void);
+
+#endif /* TEST_LIBNES_API_H_ */

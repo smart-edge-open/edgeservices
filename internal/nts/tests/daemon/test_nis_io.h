@@ -19,9 +19,9 @@
 
 #include <CUnit/CUnit.h>
 
-extern CU_TestInfo tests_suite_nis_io[];
-
 int init_suite_nis_io(void);
 int cleanup_suite_nis_io(void);
 
-#endif
+void add_nis_io_suite_to_registry(void);
+
+#endif /* TEST_NIS_IO_H_ */

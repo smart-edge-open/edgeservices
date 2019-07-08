@@ -37,7 +37,9 @@ conv_ptr_to_const_test(void) {
 	CU_ASSERT_PTR_NOT_NULL(conv_ptr_to_const(&a));
 }
 
-CU_TestInfo tests_suite_nes_common[] = {
-	{ "conv_ptr_to_const_test", conv_ptr_to_const_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_common_suite_to_registry(void) {
+	CU_pSuite nes_common_suite = CU_add_suite("nes_common", init_suite_nes_common, cleanup_suite_nes_common);
+
+	CU_add_test(nes_common_suite, "conv_ptr_to_const_test", conv_ptr_to_const_test);
+}
+

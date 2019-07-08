@@ -160,7 +160,9 @@ static void nes_io_main_test(void) {
 	nes_cfgfile = cfg_bak;
 }
 
-CU_TestInfo tests_suite_nes_io[] = {
-	{ "nes_io_main", nes_io_main_test },
-	CU_TEST_INFO_NULL,
-};
+void add_nes_io_suite_to_registry(void) {
+	CU_pSuite nes_io_suite = CU_add_suite("nes_io", init_suite_nes_io, cleanup_suite_nes_io);
+
+	CU_add_test(nes_io_suite, "nes_io_main", nes_io_main_test);
+}
+

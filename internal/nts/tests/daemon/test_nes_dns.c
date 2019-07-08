@@ -161,15 +161,14 @@ extern uint8_t forward_unresolved_queries;
 extern int tap_dev_fd;
 uint32_t static_dns_entries_cnt;
 
-static int
-enq_stub(struct nes_ring_s __attribute__((unused)) * ring, void __attribute__((unused)) * el) {
-	return 1;
-}
+// static int
+// enq_stub(struct nes_ring_s __attribute__((unused)) * ring, void __attribute__((unused)) * el) {
+// 	return 1;
+// }
 
-static void
-rte_pktmbuf_free_stub(struct rte_mbuf __attribute__((unused)) * m) {
-
-}
+// static void
+// rte_pktmbuf_free_stub(struct rte_mbuf __attribute__((unused)) * m) {
+// }
 
 static int *nts_acl_cfg_lookup_prepare_stub_ret = NULL;
 static int nts_acl_cfg_lookup_prepare_stub_ret_id = 0;
@@ -477,10 +476,12 @@ nes_dns_agent_setup_test(void)
 	free(cfg);
 }
 
-CU_TestInfo tests_suite_nes_dns[] = {
-	{"nes_dns_agent_decap_test", nes_dns_agent_decap_test},
-	{"nes_dns_agent_encap_test", nes_dns_agent_encap_test},
-	{"nes_dns_agent_add_routings_test", nes_dns_agent_add_routings_test},
-	{"nes_dns_agent_setup_test", nes_dns_agent_setup_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_dns_suite_to_registry(void) {
+	CU_pSuite nes_dns_suite = CU_add_suite("nes_dns", init_suite_nes_dns, cleanup_suite_nes_dns);
+
+	CU_add_test(nes_dns_suite, "nes_dns_agent_decap_test", nes_dns_agent_decap_test);
+	CU_add_test(nes_dns_suite, "nes_dns_agent_encap_test", nes_dns_agent_encap_test);
+	CU_add_test(nes_dns_suite, "nes_dns_agent_add_routings_test", nes_dns_agent_add_routings_test);
+	CU_add_test(nes_dns_suite, "nes_dns_agent_setup_test", nes_dns_agent_setup_test);
+}
+

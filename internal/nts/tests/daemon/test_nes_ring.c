@@ -214,19 +214,21 @@ nes_ring_init_test(void) {
 	free(cfg);
 }
 
-CU_TestInfo tests_suite_nes_ring[] = {
-	{ "nes_ring_params_table_get_test", nes_ring_params_table_get_test},
-	{ "nes_ring_name_test", nes_ring_name_test},
-	{ "nes_ring_norings_test", nes_ring_norings_test},
-	{ "nes_ring_set_flow_test", nes_ring_set_flow_test},
-	{ "nes_ring_ctor_test", nes_ring_ctor_test},
-	{ "nes_ring_dtor_test", nes_ring_dtor_test},
-	{ "nes_ring_enq_sp_test", nes_ring_enq_sp_test},
-	{ "nes_ring_enq_burst_sp_test", nes_ring_enq_burst_sp_test},
-	{ "nes_ring_enq_mp_test", nes_ring_enq_mp_test},
-	{ "nes_ring_enq_burst_mp_test", nes_ring_enq_burst_mp_test},
-	{ "nes_ring_deq_sp_test", nes_ring_deq_sp_test},
-	{ "nes_ring_deq_burst_sc_test", nes_ring_deq_burst_sc_test},
-	{ "nes_ring_init_test", nes_ring_init_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_ring_suite_to_registry(void) {
+	CU_pSuite nes_ring_suite = CU_add_suite("nes_ring", init_suite_nes_ring, cleanup_suite_nes_ring);
+
+	CU_add_test(nes_ring_suite, "nes_ring_params_table_get_test", nes_ring_params_table_get_test);
+	CU_add_test(nes_ring_suite, "nes_ring_name_test", nes_ring_name_test);
+	CU_add_test(nes_ring_suite, "nes_ring_norings_test", nes_ring_norings_test);
+	CU_add_test(nes_ring_suite, "nes_ring_set_flow_test", nes_ring_set_flow_test);
+	CU_add_test(nes_ring_suite, "nes_ring_ctor_test", nes_ring_ctor_test);
+	CU_add_test(nes_ring_suite, "nes_ring_dtor_test", nes_ring_dtor_test);
+	CU_add_test(nes_ring_suite, "nes_ring_enq_sp_test", nes_ring_enq_sp_test);
+	CU_add_test(nes_ring_suite, "nes_ring_enq_burst_sp_test", nes_ring_enq_burst_sp_test);
+	CU_add_test(nes_ring_suite, "nes_ring_enq_mp_test", nes_ring_enq_mp_test);
+	CU_add_test(nes_ring_suite, "nes_ring_enq_burst_mp_test", nes_ring_enq_burst_mp_test);
+	CU_add_test(nes_ring_suite, "nes_ring_deq_sp_test", nes_ring_deq_sp_test);
+	CU_add_test(nes_ring_suite, "nes_ring_deq_burst_sc_test", nes_ring_deq_burst_sc_test);
+	CU_add_test(nes_ring_suite, "nes_ring_init_test", nes_ring_init_test);
+}
+

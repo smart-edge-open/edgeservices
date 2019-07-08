@@ -180,9 +180,11 @@ static void nts_acl_flush_test(void)
 	nts_acl_lookup_dtor(&lookup_ctx);
 }
 
-CU_TestInfo tests_suite_nts_acl[] = {
-	{ "nts_acl_lookup_init", nts_acl_lookup_init_test},
-	{ "nts_acl_lookup_add_impl", nts_acl_lookup_add_impl_test},
-	{ "nts_acl_flush", nts_acl_flush_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nts_acl_suite_to_registry(void) {
+	CU_pSuite nts_acl_suite = CU_add_suite("nts_acl", init_suite_nts_acl, cleanup_suite_nts_acl);
+
+	CU_add_test(nts_acl_suite, "nts_acl_lookup_init", nts_acl_lookup_init_test);
+	CU_add_test(nts_acl_suite, "nts_acl_lookup_add_impl", nts_acl_lookup_add_impl_test);
+	CU_add_test(nts_acl_suite, "nts_acl_flush", nts_acl_flush_test);
+}
+

@@ -20,9 +20,8 @@
 #include <CUnit/CUnit.h>
 
 int init_suite_nes_dns_tools(void);
-
 int cleanup_suite_nes_dns_tools(void);
 
-extern CU_TestInfo tests_suite_nes_dns_tools[];
+void add_nes_dns_tools_suite_to_registry(void);
 
-#endif
+#endif /* TEST_NES_DNS_TOOLS_H */

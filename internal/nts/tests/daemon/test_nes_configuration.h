@@ -20,8 +20,9 @@
 #include <CUnit/CUnit.h>
 #include "ctrl/nes_configuration.h"
 
-extern CU_TestInfo tests_suite_nes_configuration[];
-
 int init_suite_nes_configuration(void);
 int cleanup_suite_nes_configuration(void);
-#endif
+
+void add_nes_configuration_suite_to_registry(void);
+
+#endif /* TEST_NES_CONFIGURATION_H_ */

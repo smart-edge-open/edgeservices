@@ -78,10 +78,14 @@ static void nes_connection_un_setup_test(void) {
 	close(conn.listen_sock);
 }
 
-CU_TestInfo tests_suite_nes_tcp_connection[] = {
-#ifdef EXT_CTRL_SOCKET
-	{ "nes_connection_setup", nes_connection_setup_test},
-#endif
-	{ "nes_connection_un_setup", nes_connection_un_setup_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_tcp_connection_suite_to_registry(void) {
+	CU_pSuite nes_tcp_connection_suite =
+			  CU_add_suite("nes_tcp_connection", init_suite_nes_tcp_connection, cleanup_suite_nes_tcp_connection);
+
+	CU_add_test(nes_tcp_connection_suite, "nes_connection_un_setup", nes_connection_un_setup_test);
+
+	#ifdef EXT_CTRL_SOCKET
+	CU_add_test(nes_tcp_connection_suite, "nes_connection_setup", nes_connection_setup_test);
+	#endif
+}
+

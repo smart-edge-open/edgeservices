@@ -151,13 +151,6 @@ int NES_MAIN(int argc, char** argv)
 		return NES_FAIL;
 	}
 
-	typedef enum {
-		LCORE_IO = 1,
-		LCORE_NTS,
-		LCORE_NIS,
-		LCORE_CTRL,
-		LCORE_DNS
-	} lcores;
 	const int lcores_count = 5;
 
 	int eal_args, i;

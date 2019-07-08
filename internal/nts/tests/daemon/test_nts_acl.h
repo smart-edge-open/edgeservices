@@ -19,9 +19,9 @@
 
 #include <CUnit/CUnit.h>
 
-extern CU_TestInfo tests_suite_nts_acl[];
-
 int init_suite_nts_acl(void);
 int cleanup_suite_nts_acl(void);
 
-#endif
+void add_nts_acl_suite_to_registry(void);
+
+#endif /* TEST_NTS_ACL_H_ */

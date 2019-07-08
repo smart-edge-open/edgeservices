@@ -91,11 +91,13 @@ static void nis_routing_data_del_test(void) {
 		nis_routing_data_dtor();
 }
 
-CU_TestInfo tests_suite_nis_routing_data[] = {
-	{ "nis_routing_data_get", nis_routing_data_get_test},
-	{ "nis_routing_data_init", nis_routing_data_init_test},
-	{ "nis_routing_data_dtor", nis_routing_data_dtor_test},
-	{ "nis_routing_data_add", nis_routing_data_add_test},
-	{ "nis_routing_data_del", nis_routing_data_del_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nis_routing_data_suite_to_registry(void) {
+	CU_pSuite nis_routing_data_suite = CU_add_suite("nis_routing_data", init_suite_nis_routing_data, cleanup_suite_nis_routing_data);
+
+	CU_add_test(nis_routing_data_suite, "nis_routing_data_get", nis_routing_data_get_test);
+	CU_add_test(nis_routing_data_suite, "nis_routing_data_init", nis_routing_data_init_test);
+	CU_add_test(nis_routing_data_suite, "nis_routing_data_dtor", nis_routing_data_dtor_test);
+	CU_add_test(nis_routing_data_suite, "nis_routing_data_add", nis_routing_data_add_test);
+	CU_add_test(nis_routing_data_suite, "nis_routing_data_del", nis_routing_data_del_test);
+}
+

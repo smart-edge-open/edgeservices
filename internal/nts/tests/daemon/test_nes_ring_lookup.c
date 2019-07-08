@@ -127,11 +127,12 @@ static void nes_ring_lookup_entry_get_test(void) {
 	CU_ASSERT_PTR_NOT_NULL(ring);
 }
 
+void add_nes_ring_lookup_suite_to_registry(void) {
+	CU_pSuite nes_ring_lookup_suite = CU_add_suite("nes_ring_lookup", init_suite_nes_ring_lookup, cleanup_suite_nes_ring_lookup);
 
-CU_TestInfo tests_suite_nes_ring_lookup[] = {
-	{ "nes_ring_name_align_test", nes_ring_name_align_test},
-	{ "nes_ring_lookup_init_test", nes_ring_lookup_init_test},
-	{ "nes_ring_find_test", nes_ring_find_test},
-	{ "nes_ring_lookup_entry_get_test", nes_ring_lookup_entry_get_test},
-	CU_TEST_INFO_NULL,
-};
+	CU_add_test(nes_ring_lookup_suite, "nes_ring_name_align_test", nes_ring_name_align_test);
+	CU_add_test(nes_ring_lookup_suite, "nes_ring_lookup_init_test", nes_ring_lookup_init_test);
+	CU_add_test(nes_ring_lookup_suite, "nes_ring_find_test", nes_ring_find_test);
+	CU_add_test(nes_ring_lookup_suite, "nes_ring_lookup_entry_get_test", nes_ring_lookup_entry_get_test);
+}
+

@@ -25,6 +25,14 @@
 extern "C" {
 #endif
 
+typedef enum {
+	LCORE_IO = 1,
+	LCORE_NTS,
+	LCORE_NIS,
+	LCORE_CTRL,
+	LCORE_DNS
+} lcores;
+
 enum NES_DAEMONIZE_ON
 {
 	NES_DAEM_ON = 2,

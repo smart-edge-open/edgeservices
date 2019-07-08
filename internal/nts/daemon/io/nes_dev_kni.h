@@ -29,6 +29,8 @@ int nes_dev_kni_init(void);
 
 void nes_dev_kni_stop(void);
 
+NES_STATIC struct rte_kni * nes_dev_kni_alloc(uint16_t port_id, const char* if_id);
+
 int nes_dev_kni_create_port(const char* if_id, char* created_if_name);
 
 int nes_dev_kni_delete_port(const char* if_id, char* deleted_if_name);

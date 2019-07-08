@@ -57,8 +57,7 @@ cleanup_suite_nts_lookup(void) {
 }
 extern struct rte_cfgfile *nes_cfgfile;
 extern nts_lookup_tables_t nts_io_lookup_tables;
-static void
-nts_lookup_init_test(void) {
+static void nts_lookup_init_test(void) {
 	MOCK_RESET(mocked_rte_malloc);
 	MOCK_RESET(mocked_rte_free);
 	struct rte_cfgfile *old_cfg, *cfg = malloc(sizeof (*cfg) + sizeof (cfg->sections[0]) * 1);
@@ -93,8 +92,7 @@ nts_lookup_init_test(void) {
 extern char **nts_lookup_tx_ring_names;
 extern int nts_lookup_vm_max;
 
-static void
-nts_lookup_tx_vm_ring_name_get_test(void) {
+static void nts_lookup_tx_vm_ring_name_get_test(void) {
 	CU_ASSERT_PTR_NULL(nts_lookup_tx_vm_ring_name_get(-1));
 	nts_lookup_vm_max = 0;
 	CU_ASSERT_PTR_NULL(nts_lookup_tx_vm_ring_name_get(1));
@@ -109,14 +107,12 @@ nts_lookup_tx_vm_ring_name_get_test(void) {
 	nts_lookup_tx_ring_names = old_names;
 }
 
-static void
-nts_ip_ntoa_test(void) {
+static void nts_ip_ntoa_test(void) {
 	uint32_t ip = rte_cpu_to_be_32(IPv4(192, 168, 0, 1));
 	CU_ASSERT_STRING_EQUAL(nts_ip_ntoa(ip), "192.168.0.1");
 }
 
-static void
-nts_lookup_init_tx_vm_rings_names_test(void) {
+static void nts_lookup_init_tx_vm_rings_names_test(void) {
 	MOCK_SET(mocked_rte_malloc, rte_malloc_stub);
 	MOCK_SET(mocked_rte_free, rte_free_stub);
 
@@ -140,10 +136,13 @@ nts_lookup_init_tx_vm_rings_names_test(void) {
 	free(ptr_1);
 	rte_malloc_stub_ret_id = 0;
 }
-CU_TestInfo tests_suite_nts_lookup[] = {
-	{"nts_lookup_tx_vm_ring_name_get_test", nts_lookup_tx_vm_ring_name_get_test},
-	{"nts_ip_ntoa_test", nts_ip_ntoa_test},
-	{"nts_lookup_init_tx_vm_rings_names_test", nts_lookup_init_tx_vm_rings_names_test},
-	{"nts_lookup_init_test", nts_lookup_init_test},
-	CU_TEST_INFO_NULL,
-};
+
+void add_nts_lookup_suite_to_registry(void) {
+	CU_pSuite nts_lookup_suite = CU_add_suite("nts_lookup", init_suite_nts_lookup, cleanup_suite_nts_lookup);
+
+	CU_add_test(nts_lookup_suite, "nts_lookup_tx_vm_ring_name_get_test", nts_lookup_tx_vm_ring_name_get_test);
+	CU_add_test(nts_lookup_suite, "nts_ip_ntoa_test", nts_ip_ntoa_test);
+	CU_add_test(nts_lookup_suite, "nts_lookup_init_tx_vm_rings_names_test", nts_lookup_init_tx_vm_rings_names_test);
+	CU_add_test(nts_lookup_suite, "nts_lookup_init_test", nts_lookup_init_test);
+}
+

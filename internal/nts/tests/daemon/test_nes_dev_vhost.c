@@ -91,7 +91,7 @@ static void test_create_vm_rings(void)
 
 static int rte_vhost_enable_guest_notification_stub_ret = 0;
 
-static int
+int
 rte_vhost_enable_guest_notification_stub(int __attribute__((unused)) vdev,
 	uint16_t __attribute__((unused)) queue_id, int __attribute__((unused)) enable) {
 	return rte_vhost_enable_guest_notification_stub_ret;
@@ -99,7 +99,7 @@ rte_vhost_enable_guest_notification_stub(int __attribute__((unused)) vdev,
 
 pthread_t destroy_thread;
 
-static void *destroy_thread_start(void *arg) {
+void *destroy_thread_start(void *arg) {
 	(void)arg;
 	for (NES_FOREVER_LOOP) {
 		nes_dev_t *device;
@@ -194,11 +194,12 @@ static void test_send_vhost_unauthorized(void)
 	CU_ASSERT_EQUAL(NES_SUCCESS,  send_vhost_unauthorized(NULL, NULL));
 }
 
-CU_TestInfo tests_suite_nes_dev_vhost[] =
-{
-	{ "test_nes_dev_vhost_mempool_init", test_nes_dev_vhost_mempool_init},
-	{ "test_create_vm_rings", test_create_vm_rings},
-	{ "test_mac_authorized", test_mac_authorized},
-	{ "test_send_vhost_unauthorized", test_send_vhost_unauthorized},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_dev_vhost_suite_to_registry(void) {
+	CU_pSuite nes_dev_vhost_suite = CU_add_suite("nes_dev_vhost", init_suite_nes_dev_vhost, cleanup_suite_nes_dev_vhost);
+
+	CU_add_test(nes_dev_vhost_suite, "test_nes_dev_vhost_mempool_init", test_nes_dev_vhost_mempool_init);
+	CU_add_test(nes_dev_vhost_suite, "test_create_vm_rings", test_create_vm_rings);
+	CU_add_test(nes_dev_vhost_suite, "test_mac_authorized", test_mac_authorized);
+	CU_add_test(nes_dev_vhost_suite, "test_send_vhost_unauthorized", test_send_vhost_unauthorized);
+}
+

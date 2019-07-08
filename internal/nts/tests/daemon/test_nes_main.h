@@ -21,6 +21,7 @@
 
 int init_suite_nes_main(void);
 int cleanup_suite_nes_main(void);
-extern CU_TestInfo tests_suite_nes_main[];
+
+void add_nes_main_suite_to_registry(void);
 
 #endif

@@ -85,7 +85,7 @@ static struct rte_cfgfile_entry  entries3[] = {
 };
 
 static nes_ring_t *
-nts_get_dst_ring_stub(struct rte_mbuf *m, uint8_t is_gtp)  {
+nts_get_dst_ring_stub(struct rte_mbuf __attribute__((unused)) *m, uint8_t __attribute__((unused)) is_gtp)  {
 	return NULL;
 }
 
@@ -177,7 +177,7 @@ static int change_entry_in_cfg(const char *section, const char *entry, char *new
 	return NES_FAIL;
 }
 
-static void test_nes_dev_port_new_device(void)
+void test_nes_dev_port_new_device(void)
 {
 	char buf[256];
 	struct ether_addr mac_addr;
@@ -319,7 +319,7 @@ static struct nes_rings_bak_s dwstr_rings_tab[] = {
 	{ "NTS_DWSTR_GTPU", NULL },
 };
 
-static void test_get_port_rings(void)
+void test_get_port_rings(void)
 {
 	nes_ring_t *ring_bak;
 	nes_dev_t device;
@@ -421,7 +421,7 @@ static void test_get_port_rings(void)
 
 static struct rte_mbuf *pkt;
 
-static void test_scatter_port(void)
+void test_scatter_port(void)
 {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
@@ -602,7 +602,7 @@ static int enq_fake(struct nes_ring_s *self, void **buffer, int count) {
 }
 
 #define NTS_LBP_ANY 12
-static void test_scatter_eth_lbp(void)
+void test_scatter_eth_lbp(void)
 {
 	nes_ring_t *ring;
 	nes_queue_node_t *node;
@@ -631,7 +631,7 @@ static void test_scatter_eth_lbp(void)
 	}
 }
 
-static void test_ctor_eth_port(void)
+void test_ctor_eth_port(void)
 {
 	nes_dev_t dev;
 	nes_dev_id_t data;
@@ -642,7 +642,7 @@ static void test_ctor_eth_port(void)
 	CU_ASSERT_EQUAL(nes_dev_add_device(&dev), NES_FAIL);
 }
 
-static void test_add_ring_to_ntsqueue(void)
+void test_add_ring_to_ntsqueue(void)
 {
 #define PORT_RX_RINGS_CNT 14
 	nes_ring_t *rx_rings[PORT_RX_RINGS_CNT];
@@ -653,7 +653,7 @@ static void test_add_ring_to_ntsqueue(void)
 	CU_ASSERT_EQUAL(add_ring_to_ntsqueue(NULL, (nes_ring_t **)&rx_rings), NES_SUCCESS);
 }
 
-static void test_dtor_port(void)
+void test_dtor_port(void)
 {
 	nes_queue_node_t *node;
 	nes_dev_t *device = NULL;
@@ -670,14 +670,15 @@ static void test_dtor_port(void)
 	}
 }
 
-CU_TestInfo tests_suite_nes_dev_port[] =
-{
-	{ "nes_dev_port_new_device", test_nes_dev_port_new_device},
-	{ "get_port_rings", test_get_port_rings},
-	{ "scatter_port", test_scatter_port},
-	{ "scatter_eth_lbp", test_scatter_eth_lbp},
-	{ "ctor_eth_port", test_ctor_eth_port},
-	{ "add_ring_to_ntsqueue", test_add_ring_to_ntsqueue},
-	{ "dtor_port", test_dtor_port},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_dev_port_suite_to_registry(void) {
+	// CU_pSuite nes_dev_port_suite = CU_add_suite("nes_dev_port", init_suite_nes_dev_port, cleanup_suite_nes_dev_port);
+
+	// CU_add_test(nes_dev_port_suite, "nes_dev_port_new_device", test_nes_dev_port_new_device);
+	// CU_add_test(nes_dev_port_suite, "get_port_rings", test_get_port_rings);
+	// CU_add_test(nes_dev_port_suite, "scatter_port", test_scatter_port);
+	// CU_add_test(nes_dev_port_suite, "scatter_eth_lbp", test_scatter_eth_lbp);
+	// CU_add_test(nes_dev_port_suite, "ctor_eth_port", test_ctor_eth_port);
+	// CU_add_test(nes_dev_port_suite, "add_ring_to_ntsqueue", test_add_ring_to_ntsqueue);
+	// CU_add_test(nes_dev_port_suite, "dtor_port", test_dtor_port);
+}
+

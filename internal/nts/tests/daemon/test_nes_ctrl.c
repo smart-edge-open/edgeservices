@@ -148,7 +148,7 @@ static int nes_connection_un_setup_fake_fail(const char *socket_path, tcp_connec
 	return NES_FAIL;
 }
 
-static void nes_ctrl_init_test(void) {
+void nes_ctrl_init_test(void) {
 	nes_cfgfile->num_sections = 1;  //only VM_common section
 
 	MOCK_SET(mocked_nts_acl_lookup_init, nts_acl_lookup_init_fake_fail);
@@ -197,11 +197,11 @@ static void nes_ctrl_init_test(void) {
 #endif
 }
 
-static void nes_ctrl_ctor_list_test(void) {
+void nes_ctrl_ctor_list_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_ctor_dev_list(), NES_SUCCESS);
 }
 
-static void nes_ctrl_add_del_device_test(void) {
+void nes_ctrl_add_del_device_test(void) {
 	nes_dev_t dev1, dev2;//, dev3;
 	CU_ASSERT_EQUAL(nes_ctrl_add_device(&dev1, "VM"), NES_SUCCESS);
 	CU_ASSERT_EQUAL(nes_ctrl_add_device(&dev2, "ETH"), NES_SUCCESS);
@@ -277,7 +277,7 @@ static void route_del_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_del_device(&dev2), NES_SUCCESS);
 }
 
-static void nes_ctrl_route_add_del_test(void) {
+void nes_ctrl_route_add_del_test(void) {
 	route_add_test(0);
 	route_add_test(0);
 	route_del_test();
@@ -285,7 +285,7 @@ static void nes_ctrl_route_add_del_test(void) {
 	route_del_test();
 }
 
-static void nes_ctrl_show_list_test(void) {
+void nes_ctrl_show_list_test(void) {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
 	nes_dev_t dev1, dev2;
@@ -300,7 +300,7 @@ static void nes_ctrl_show_list_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_del_device(&dev2), NES_SUCCESS);
 }
 
-static void nes_ctrl_show_dev_all_test(void) {
+void nes_ctrl_show_dev_all_test(void) {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
 	nes_dev_t dev1, dev2;
@@ -315,7 +315,7 @@ static void nes_ctrl_show_dev_all_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_del_device(&dev2), NES_SUCCESS);
 }
 
-static void nes_handle_msg_test(void) {
+void nes_handle_msg_test(void) {
 	nes_api_msg_t msg;
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
@@ -329,7 +329,7 @@ static void nes_handle_msg_test(void) {
 	free(api_msg);
 }
 
-static void nes_ctrl_stats_dev_test(void) {
+void nes_ctrl_stats_dev_test(void) {
 	uint16_t id = 0;
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
@@ -355,7 +355,7 @@ static void nes_ctrl_stats_dev_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_del_device(&dev2), NES_SUCCESS);
 }
 
-static void nes_ctrl_show_stats_test(void) {
+void nes_ctrl_show_stats_test(void) {
 	nes_dev_t dev1, dev2;
 	nes_dev_stats_t stats;
 	CU_ASSERT_EQUAL(nes_ctrl_add_device(&dev1, "VM"), NES_SUCCESS);
@@ -376,7 +376,7 @@ static void nes_ctrl_show_stats_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_del_device(&dev2), NES_SUCCESS);
 }
 
-static void nes_ctrl_route_show_test(void) {
+void nes_ctrl_route_show_test(void) {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
 	nes_dev_t dev1, dev2;
@@ -400,7 +400,7 @@ static void nes_ctrl_route_show_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_del_device(&dev2), NES_SUCCESS);
 }
 
-static void nes_ctrl_get_mac_addr_test(void) {
+void nes_ctrl_get_mac_addr_test(void) {
 	uint16_t id = 0;
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
@@ -426,7 +426,7 @@ static void nes_ctrl_get_mac_addr_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_del_device(&dev2), NES_SUCCESS);
 }
 
-static void nes_ctrl_clear_routes_test(void) {
+void nes_ctrl_clear_routes_test(void) {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
 	nes_dev_t dev1;
@@ -453,7 +453,7 @@ static void nes_ctrl_clear_routes_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_del_device(&dev1), NES_SUCCESS);
 }
 
-static void nes_ctrl_clear_stats_test(void) {
+void nes_ctrl_clear_stats_test(void) {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
 	nes_dev_t dev1, dev2;
@@ -503,7 +503,7 @@ static int nis_param_rab_del_fake_success(nes_acl_ctx_t *ctx, nis_param_pkt_flow
 	return NES_SUCCESS;
 }
 
-static void nes_ctrl_flow_add_test(void) {
+void nes_ctrl_flow_add_test(void) {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
 
@@ -521,7 +521,7 @@ static void nes_ctrl_flow_add_test(void) {
 	free(api_msg);
 }
 
-static void nes_ctrl_flow_show_test(void) {
+void nes_ctrl_flow_show_test(void) {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
 
@@ -537,7 +537,7 @@ static void nes_ctrl_flow_show_test(void) {
 	free(api_msg);
 }
 
-static void nes_ctrl_flow_del_test(void) {
+void nes_ctrl_flow_del_test(void) {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
 
@@ -553,7 +553,7 @@ static void nes_ctrl_flow_del_test(void) {
 	free(api_msg);
 }
 
-static void nes_ctrl_routing_data_add_test(void) {
+void nes_ctrl_routing_data_add_test(void) {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
 	nis_routing_data_key_t routing_key;
@@ -572,7 +572,7 @@ static void nes_ctrl_routing_data_add_test(void) {
 	free(api_msg);
 }
 
-static void nes_ctrl_routing_data_del_test(void) {
+void nes_ctrl_routing_data_del_test(void) {
 	nis_routing_data_key_t routing_key;
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
@@ -596,7 +596,7 @@ static void nes_ctrl_routing_data_del_test(void) {
 	free(api_msg);
 }
 
-static void nes_ctrl_routing_data_show_test(void) {
+void nes_ctrl_routing_data_show_test(void) {
 	nis_routing_data_key_t routing_key;
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
@@ -641,7 +641,7 @@ nes_lookup_entry_find_fake_fail(nes_lookup_table_t *lookup_table, const void *ke
 	return NES_FAIL;
 }
 
-static void nes_ctrl_encap_show_test(void) {
+void nes_ctrl_encap_show_test(void) {
 	uint32_t ip = 0;
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
@@ -705,7 +705,7 @@ static void nes_cfgfile_close_fake(void)
 #define MAX_RESPONSE_LENGTH     512
 #define DEFAULT_RESPONSE_TOUT   100000
 
-static void nes_ctrl_main_test(void)
+void nes_ctrl_main_test(void)
 {
 	nes_remote_t *remote_NEV;
 	void *res;
@@ -850,19 +850,19 @@ static nes_ring_t ring1;
 static nes_ring_t ring2;
 static nes_ring_t ring3;
 
-static void nes_ctrl_add_ring_test(void) {
+void nes_ctrl_add_ring_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_add_ring(&ring1, "test1"), NES_SUCCESS);
 	CU_ASSERT_EQUAL(nes_ctrl_add_ring(&ring2, "test2"), NES_SUCCESS);
 	CU_ASSERT_EQUAL(nes_ctrl_add_ring(&ring3, "test3"), NES_SUCCESS);
 }
 
-static void nes_ctrl_del_ring_test(void) {
+void nes_ctrl_del_ring_test(void) {
 	CU_ASSERT_EQUAL(nes_ctrl_del_ring(&ring2), NES_SUCCESS);
 	CU_ASSERT_EQUAL(nes_ctrl_del_ring(&ring1), NES_SUCCESS);
 	CU_ASSERT_EQUAL(nes_ctrl_del_ring(&ring3), NES_SUCCESS);
 }
 
-static void nes_ctrl_stats_ring_test(void) {
+void nes_ctrl_stats_ring_test(void) {
 	uint16_t id = 0;
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
@@ -879,7 +879,7 @@ static void nes_ctrl_stats_ring_test(void) {
 	rte_free(api_response);
 }
 
-static void nes_ctrl_show_ring_all_test(void)
+void nes_ctrl_show_ring_all_test(void)
 {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
@@ -890,7 +890,7 @@ static void nes_ctrl_show_ring_all_test(void)
 	rte_free(api_response);
 }
 
-static void nes_ctrl_add_kni_test(void)
+void nes_ctrl_add_kni_test(void)
 {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
@@ -902,7 +902,7 @@ static void nes_ctrl_add_kni_test(void)
 	rte_free(api_response);
 }
 
-static void nes_ctrl_del_kni_test(void)
+void nes_ctrl_del_kni_test(void)
 {
 	nes_api_msg_t *api_msg = NULL;
 	nes_api_msg_t *api_response = NULL;
@@ -914,33 +914,64 @@ static void nes_ctrl_del_kni_test(void)
 	rte_free(api_response);
 }
 
-CU_TestInfo tests_suite_nes_ctrl[] = {
-	{ "nes_ctrl_main", nes_ctrl_main_test},
-	{ "nes_ctrl_init", nes_ctrl_init_test},                         //100%
-	{ "nes_ctrl_ctor_list", nes_ctrl_ctor_list_test},               //90% rte_malloc
-	{ "nes_ctrl_add_del_device", nes_ctrl_add_del_device_test },    //del 100%, add 90% end
-	{ "nes_ctrl_show_list", nes_ctrl_show_list_test },              //100%
-	{ "nes_ctrl_route_add_del", nes_ctrl_route_add_del_test },
-	{ "nes_handle_msg", nes_handle_msg_test },                      //
-	{ "nes_ctrl_show_dev_all", nes_ctrl_show_dev_all_test },        //100%
-	{ "nes_ctrl_stats_dev", nes_ctrl_stats_dev_test },              //100%
-	{ "nes_ctrl_show_stats", nes_ctrl_show_stats_test },
-	{ "nes_ctrl_route_show", nes_ctrl_route_show_test },
-	{ "nes_ctrl_get_mac_addr", nes_ctrl_get_mac_addr_test },
-	{ "nes_ctrl_clear_routes", nes_ctrl_clear_routes_test },        //100%
-	{ "nes_ctrl_clear_stats", nes_ctrl_clear_stats_test },          //100%
-	{ "nes_ctrl_flow_add", nes_ctrl_flow_add_test },                //100%
-	{ "nes_ctrl_flow_show", nes_ctrl_flow_show_test },              //100%
-	{ "nes_ctrl_flow_del", nes_ctrl_flow_del_test },                //100%
-	{ "nes_ctrl_routing_data_add", nes_ctrl_routing_data_add_test },
-	{ "nes_ctrl_routing_data_del", nes_ctrl_routing_data_del_test },
-	{ "nes_ctrl_routing_data_show", nes_ctrl_routing_data_show_test },
-	{ "nes_ctrl_encap_show", nes_ctrl_encap_show_test },            //rte_zmalloc
-	{ "nes_ctrl_add_ring", nes_ctrl_add_ring_test },
-	{ "nes_ctrl_del_ring", nes_ctrl_del_ring_test },
-	{ "nes_ctrl_stats_ring", nes_ctrl_stats_ring_test },
-	{ "nes_ctrl_show_ring_all", nes_ctrl_show_ring_all_test },
-	{ "nes_ctrl_add_kni", nes_ctrl_add_kni_test },
-	{ "nes_ctrl_del_kni", nes_ctrl_del_kni_test },
-	CU_TEST_INFO_NULL,
-};
+void add_nes_ctrl_suite_to_registry(void) {
+	// CU_pSuite nes_ctrl_suite = CU_add_suite("nes_ctrl", init_suite_nes_ctrl, cleanup_suite_nes_ctrl);
+
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_main", nes_ctrl_main_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_init", nes_ctrl_init_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_ctor_list", nes_ctrl_ctor_list_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_add_del_device", nes_ctrl_add_del_device_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_show_list", nes_ctrl_show_list_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_route_add_del", nes_ctrl_route_add_del_test);
+	// CU_add_test(nes_ctrl_suite, "nes_handle_msg", nes_handle_msg_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_show_dev_all", nes_ctrl_show_dev_all_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_stats_dev", nes_ctrl_stats_dev_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_show_stats", nes_ctrl_show_stats_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_route_show", nes_ctrl_route_show_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_get_mac_addr", nes_ctrl_get_mac_addr_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_clear_routes", nes_ctrl_clear_routes_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_clear_stats", nes_ctrl_clear_stats_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_flow_add", nes_ctrl_flow_add_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_flow_show", nes_ctrl_flow_show_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_flow_del", nes_ctrl_flow_del_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_routing_data_add", nes_ctrl_routing_data_add_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_routing_data_del", nes_ctrl_routing_data_del_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_routing_data_show", nes_ctrl_routing_data_show_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_encap_show", nes_ctrl_encap_show_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_add_ring", nes_ctrl_add_ring_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_del_ring", nes_ctrl_del_ring_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_stats_ring", nes_ctrl_stats_ring_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_show_ring_all", nes_ctrl_show_ring_all_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_add_kni", nes_ctrl_add_kni_test);
+	// CU_add_test(nes_ctrl_suite, "nes_ctrl_del_kni", nes_ctrl_del_kni_test);
+}
+
+// TEST COMPLETION
+// void nes_ctrl_main_test(void);
+// void nes_ctrl_init_test(void);                  //100%
+// void nes_ctrl_ctor_list_test(void);             //90% rte_malloc
+// void nes_ctrl_add_del_device_test(void);        //del 100%, add 90% end
+// void nes_ctrl_show_list_test(void);             //100%
+// void nes_ctrl_route_add_del_test(void);
+// void nes_handle_msg_test(void);                 //
+// void nes_ctrl_show_dev_all_test(void);          //100%
+// void nes_ctrl_stats_dev_test(void);             //100%
+// void nes_ctrl_show_stats_test(void);
+// void nes_ctrl_route_show_test(void);
+// void nes_ctrl_get_mac_addr_test(void);
+// void nes_ctrl_clear_routes_test(void);          //100%
+// void nes_ctrl_clear_stats_test(void);           //100%
+// void nes_ctrl_flow_add_test(void);              //100%
+// void nes_ctrl_flow_show_test(void);             //100%
+// void nes_ctrl_flow_del_test(void);              //100%
+// void nes_ctrl_routing_data_add_test(void);
+// void nes_ctrl_routing_data_del_test(void);
+// void nes_ctrl_routing_data_show_test(void);
+// void nes_ctrl_encap_show_test(void);            //rte_zmalloc
+// void nes_ctrl_add_ring_test(void);
+// void nes_ctrl_del_ring_test(void);
+// void nes_ctrl_stats_ring_test(void);
+// void nes_ctrl_show_ring_all_test(void);
+// void nes_ctrl_add_kni_test(void);
+// void nes_ctrl_del_kni_test(void);
+

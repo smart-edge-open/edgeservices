@@ -20,9 +20,8 @@
 #include <CUnit/CUnit.h>
 
 int init_suite_nes_dns_config(void);
-
 int cleanup_suite_nes_dns_config(void);
 
-extern CU_TestInfo tests_suite_nes_dns_config[];
+void add_nes_dns_config_suite_to_registry(void);
 
-#endif
+#endif /* TEST_NES_DNS_CONFIG_H */

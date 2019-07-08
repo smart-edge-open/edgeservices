@@ -126,12 +126,15 @@ static void nis_acl_lookup_dtor_test(void) {
 	CU_ASSERT_EQUAL(nis_acl_lookup_init(&lookup_ctx), NES_SUCCESS);
 	nis_acl_lookup_dtor(&lookup_ctx);
 }
-CU_TestInfo tests_suite_nis_acl[] = {
-	{ "nis_acl_rule_prepare", nis_acl_rule_prepare_test},
-	{ "nis_acl_lookup_init", nis_acl_lookup_init_test},
-	{ "nis_acl_lookup_add", nis_acl_lookup_add_test},
-	{ "nis_acl_lookup_find", nis_acl_lookup_find_test},
-	{ "nis_acl_lookup_del", nis_acl_lookup_del_test},
-	{ "nis_acl_lookup_dtor", nis_acl_lookup_dtor_test},
-	CU_TEST_INFO_NULL,
-};
+
+void add_nis_acl_suite_to_registry(void) {
+	CU_pSuite nis_acl_suite = CU_add_suite("nis_acl", init_suite_nis_acl, cleanup_suite_nis_acl);
+
+	CU_add_test(nis_acl_suite, "nis_acl_rule_prepare", nis_acl_rule_prepare_test);
+	CU_add_test(nis_acl_suite, "nis_acl_lookup_init", nis_acl_lookup_init_test);
+	CU_add_test(nis_acl_suite, "nis_acl_lookup_add", nis_acl_lookup_add_test);
+	CU_add_test(nis_acl_suite, "nis_acl_lookup_find", nis_acl_lookup_find_test);
+	CU_add_test(nis_acl_suite, "nis_acl_lookup_del", nis_acl_lookup_del_test);
+	CU_add_test(nis_acl_suite, "nis_acl_lookup_dtor", nis_acl_lookup_dtor_test);
+}
+

@@ -19,9 +19,9 @@
 
 #include <CUnit/CUnit.h>
 
-extern CU_TestInfo tests_suite_nis_routing_data[];
-
 int init_suite_nis_routing_data(void);
 int cleanup_suite_nis_routing_data(void);
 
-#endif
+void add_nis_routing_data_suite_to_registry(void);
+
+#endif /* TEST_NIS_ROUTING_DATA_H_ */

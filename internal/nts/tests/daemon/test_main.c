@@ -64,59 +64,7 @@
 char *nes_local_cfg_file;
 volatile int nes_thread_terminate = 0;
 
-CU_SuiteInfo nes_suites[] = {
-	{"nes_main", init_suite_nes_main, cleanup_suite_nes_main,
-		tests_suite_nes_main},
-	{ "nis_io", init_suite_nis_io, cleanup_suite_nis_io,
-		tests_suite_nis_io},
-	{ "nis_acl", init_suite_nis_acl, cleanup_suite_nis_acl,
-		tests_suite_nis_acl},
-	{ "nts_acl", init_suite_nts_acl, cleanup_suite_nts_acl,
-		tests_suite_nts_acl},
-	{ "nts_lookup", init_suite_nts_lookup, cleanup_suite_nts_lookup,
-		tests_suite_nts_lookup},
-	{ "nes_dev_vhost", init_suite_nes_dev_vhost, cleanup_suite_nes_dev_vhost,
-		tests_suite_nes_dev_vhost},
-	{ "nes_libnes_api", init_suite_libnes_api, cleanup_suite_libnes_api,
-		tests_suite_libnes_api},
-	{ "nes_tcp_connection", init_suite_nes_tcp_connection, cleanup_suite_nes_tcp_connection,
-		tests_suite_nes_tcp_connection},
-	{ "nes_arp", init_suite_nes_arp, cleanup_suite_nes_arp,
-		tests_suite_nes_arp},
-	{ "nes_common", init_suite_nes_common, cleanup_suite_nes_common,
-		tests_suite_nes_common},
-	{ "nes_ring", init_suite_nes_ring, cleanup_suite_nes_ring,
-		tests_suite_nes_ring},
-	{ "nes_configuration", init_suite_nes_configuration, cleanup_suite_nes_configuration,
-		tests_suite_nes_configuration},
-	{ "nes_dns_tools", init_suite_nes_dns_tools, cleanup_suite_nes_dns_tools,
-		tests_suite_nes_dns_tools},
-	{ "nes_dns_hosts", init_suite_nes_dns_hosts, cleanup_suite_nes_dns_hosts,
-		tests_suite_nes_dns_hosts},
-	{ "nes_dns_config", init_suite_nes_dns_config, cleanup_suite_nes_dns_config,
-		tests_suite_nes_dns_config},
-	{ "nes_dns", init_suite_nes_dns, cleanup_suite_nes_dns,
-		tests_suite_nes_dns},
-	{ "nts_edit", init_suite_nts_edit, cleanup_suite_nts_edit,
-		tests_suite_nts_edit},
-	{ "nes_mac_lookup", init_suite_nes_mac_lookup, cleanup_suite_nes_mac_lookup,
-		tests_suite_nes_mac_lookup},
-	{ "nis_routing_data", init_suite_nis_routing_data, cleanup_suite_nis_routing_data,
-		tests_suite_nis_routing_data},
-	{ "nis_param", init_suite_nis_param, cleanup_suite_nis_param,
-		tests_suite_nis_param},
-	{ "nes_io", init_suite_nes_io, cleanup_suite_nes_io,
-		tests_suite_nes_io},
-	{ "nes_ring_lookup", init_suite_nes_ring_lookup, cleanup_suite_nes_ring_lookup,
-		tests_suite_nes_ring_lookup},
-	CU_SUITE_INFO_NULL,
-};
-
-static int nes_test_suites(void)
-{
-	CU_register_suites(nes_suites);
-	return 0;
-}
+void add_suites_to_registry(void);
 
 int NES_TEST_MAIN(int argc, char * argv[])
 {
@@ -136,10 +84,40 @@ int NES_TEST_MAIN(int argc, char * argv[])
 
 	CU_basic_set_mode(CU_BRM_VERBOSE);
 	assert(!CU_is_test_running());
-	nes_test_suites();
+
+	add_suites_to_registry();
 
 	CU_basic_run_tests();
 	CU_cleanup_registry();
 
 	return CU_get_error();
+}
+
+void add_suites_to_registry(void){
+	add_nes_main_suite_to_registry();
+	add_nis_io_suite_to_registry();
+	add_nis_acl_suite_to_registry();
+	add_nts_acl_suite_to_registry();
+	add_nts_lookup_suite_to_registry();
+	add_nes_dev_vhost_suite_to_registry();
+	add_nes_libnes_api_suite_to_registry();
+	add_nes_tcp_connection_suite_to_registry();
+	add_nes_arp_suite_to_registry();
+	add_nes_common_suite_to_registry();
+	add_nes_ring_suite_to_registry();
+	add_nes_configuration_suite_to_registry();
+	add_nes_dns_tools_suite_to_registry();
+	add_nes_dns_hosts_suite_to_registry();
+	add_nes_dns_config_suite_to_registry();
+	add_nes_dns_suite_to_registry();
+	add_nts_edit_suite_to_registry();
+	add_nes_mac_lookup_suite_to_registry();
+	add_nis_routing_data_suite_to_registry();
+	add_nis_param_suite_to_registry();
+	add_nes_io_suite_to_registry();
+	add_nes_ring_lookup_suite_to_registry();
+	add_nes_dev_eth_suite_to_registry();
+	add_nes_dev_port_suite_to_registry();
+	add_nes_ctrl_suite_to_registry();
+	add_nts_io_suite_to_registry();
 }

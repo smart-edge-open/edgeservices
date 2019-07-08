@@ -83,7 +83,7 @@ int cleanup_suite_nes_dev_eth(void)
 	return CUE_SUCCESS;
 }
 
-static void test_nes_dev_eth_pci_addr_get(void)
+void test_nes_dev_eth_pci_addr_get(void)
 {
 	struct rte_pci_addr pci_add;
 
@@ -101,7 +101,7 @@ static void test_nes_dev_eth_pci_addr_get(void)
 
 }
 
-static void test_nes_dev_eth_mac_addr_get(void)
+void test_nes_dev_eth_mac_addr_get(void)
 {
 	struct ether_addr eth_add;
 	int port_id = device->dev.eth.port_id;
@@ -117,7 +117,7 @@ static void test_nes_dev_eth_mac_addr_get(void)
 
 }
 
-static void test_check_eth_port_link_status(void)
+void test_check_eth_port_link_status(void)
 {
 	int portid = VALID_PORT;
 
@@ -134,7 +134,7 @@ static void test_check_eth_port_link_status(void)
 	check_eth_port_link_status(portid);
 }
 
-static void test_init_eth_port(void)
+void test_init_eth_port(void)
 {
 	int port_num = INVALID_PORT;
 	int queue_num = VALID_QUEUE;
@@ -158,7 +158,7 @@ static void test_init_eth_port(void)
 
 }
 
-static void test_send_eth(void)
+void test_send_eth(void)
 {
 	static uint8_t mac_src_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 1};
 	static uint8_t mac_dst_data[] = {0x00, 0xAA, 0x55, 0xFF, 0xCC, 2};
@@ -185,18 +185,19 @@ static void test_send_eth(void)
 	CU_ASSERT_EQUAL(NES_SUCCESS, device->send(device, NULL));
 }
 
-static void test_recv_eth(void)
+void test_recv_eth(void)
 {
 	CU_ASSERT_EQUAL(NES_SUCCESS, device->recv(device, NULL));
 }
 
-CU_TestInfo tests_suite_nes_dev_eth[] =
-{
-	{ "test_nes_dev_eth_mac_addr_get", test_nes_dev_eth_mac_addr_get},
-	{ "test_nes_dev_eth_pci_addr_get", test_nes_dev_eth_pci_addr_get},
-	{ "test_check_eth_port_link_status", test_check_eth_port_link_status},
-	{ "test_init_eth_port", test_init_eth_port},
-	{"test_send_eth", test_send_eth},
-	{"test_recv_eth", test_recv_eth},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_dev_eth_suite_to_registry(void) {
+	// CU_pSuite nes_dev_eth_suite = CU_add_suite("nes_dev_eth", init_suite_nes_dev_eth, cleanup_suite_nes_dev_eth);
+
+	// CU_add_test(nes_dev_eth_suite, "test_nes_dev_eth_mac_addr_get", test_nes_dev_eth_mac_addr_get);
+	// CU_add_test(nes_dev_eth_suite, "test_nes_dev_eth_pci_addr_get", test_nes_dev_eth_pci_addr_get);
+	// CU_add_test(nes_dev_eth_suite, "test_check_eth_port_link_status", test_check_eth_port_link_status);
+	// CU_add_test(nes_dev_eth_suite, "test_init_eth_port", test_init_eth_port);
+	// CU_add_test(nes_dev_eth_suite, "test_send_eth", test_send_eth);
+	// CU_add_test(nes_dev_eth_suite, "test_recv_eth", test_recv_eth);
+}
+

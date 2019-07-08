@@ -22,8 +22,9 @@
 #include <sys/un.h>
 #include "ctrl/nes_tcp_connection.h"
 
-extern CU_TestInfo tests_suite_nes_tcp_connection[];
-
 int init_suite_nes_tcp_connection(void);
 int cleanup_suite_nes_tcp_connection(void);
-#endif
+
+void add_nes_tcp_connection_suite_to_registry(void);
+
+#endif /* TEST_NES_TCP_CONNECTION_H_ */

@@ -186,10 +186,12 @@ static void nis_io_main_test(void) {
 	nes_thread_terminate = 0;
 }
 
-CU_TestInfo tests_suite_nis_io[] = {
-	{ "nis_io_main", nis_io_main_test},
-	{ "nis_io_init_traffic_rings", nis_io_init_traffic_rings_test},
-	{ "nis_io_init_flows", nis_io_init_flows_test},
-	{ "nis_io_init", nis_io_init_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nis_io_suite_to_registry(void) {
+	CU_pSuite nis_io_suite = CU_add_suite("nis_io", init_suite_nis_io, cleanup_suite_nis_io);
+
+	CU_add_test(nis_io_suite, "nis_io_main", nis_io_main_test);
+	CU_add_test(nis_io_suite, "nis_io_init_traffic_rings", nis_io_init_traffic_rings_test);
+	CU_add_test(nis_io_suite, "nis_io_init_flows", nis_io_init_flows_test);
+	CU_add_test(nis_io_suite, "nis_io_init", nis_io_init_test);
+}
+

@@ -21,6 +21,7 @@
 
 int init_suite_nes_mac_lookup(void);
 int cleanup_suite_nes_mac_lookup(void);
-extern CU_TestInfo tests_suite_nes_mac_lookup[];
 
-#endif
+void add_nes_mac_lookup_suite_to_registry(void);
+
+#endif /* TEST_NES_MAC_LOOKUP_H_ */

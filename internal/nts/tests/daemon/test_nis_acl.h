@@ -19,9 +19,9 @@
 
 #include <CUnit/CUnit.h>
 
-extern CU_TestInfo tests_suite_nis_acl[];
-
 int init_suite_nis_acl(void);
 int cleanup_suite_nis_acl(void);
 
-#endif
+void add_nis_acl_suite_to_registry(void);
+
+#endif /* TEST_NIS_ACL_H_ */

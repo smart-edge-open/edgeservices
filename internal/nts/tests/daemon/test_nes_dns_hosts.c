@@ -220,9 +220,11 @@ nes_dns_ipv4_host_test(void) {
 	CU_ASSERT_PTR_NOT_NULL(nes_dns_ipv4_host(line_good2, sizeof(line_good2)));
 }
 
-CU_TestInfo tests_suite_nes_dns_hosts[] = {
-	{ "nes_dns_load_static_hosts_test", nes_dns_load_static_hosts_test},
-	{ "nes_dns_in_static_hosts_test", nes_dns_in_static_hosts_test},
-	{ "nes_dns_ipv4_host_test", nes_dns_ipv4_host_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_dns_hosts_suite_to_registry(void) {
+	CU_pSuite nes_dns_hosts_suite = CU_add_suite("nes_dns_hosts", init_suite_nes_dns_hosts, cleanup_suite_nes_dns_hosts);
+
+	CU_add_test(nes_dns_hosts_suite, "nes_dns_load_static_hosts_test", nes_dns_load_static_hosts_test);
+	CU_add_test(nes_dns_hosts_suite, "nes_dns_in_static_hosts_test", nes_dns_in_static_hosts_test);
+	CU_add_test(nes_dns_hosts_suite, "nes_dns_ipv4_host_test", nes_dns_ipv4_host_test);
+}
+

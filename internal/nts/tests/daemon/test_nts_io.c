@@ -72,7 +72,7 @@ int cleanup_suite_nts_io(void) {
 	return CUE_SUCCESS;
 }
 
-static void nts_io_init_test(void) {
+void nts_io_init_test(void) {
 	nes_ring_t *entry;
 	if (NES_SUCCESS == nes_ring_find(&entry, "NTS_UPSTR_GTPU")) {
 		nes_ring_del("NTS_UPSTR_GTPU");
@@ -82,7 +82,7 @@ static void nts_io_init_test(void) {
 	}
 }
 
-static void nts_io_main_test(void) {
+void nts_io_main_test(void) {
 	nes_thread_terminate = 1;
 	nes_ring_t *entry;
 	if (NES_SUCCESS == nes_ring_find(&entry, "NTS_UPSTR_GTPU")) {
@@ -92,8 +92,10 @@ static void nts_io_main_test(void) {
 	}
 }
 
-CU_TestInfo tests_suite_nts_io[] = {
-	{ "nts_io_init", nts_io_init_test },
-	{ "nts_io_main", nts_io_main_test },
-	CU_TEST_INFO_NULL,
-};
+void add_nts_io_suite_to_registry(void) {
+	// CU_pSuite nts_io_suite = CU_add_suite("nts_io", init_suite_nts_io, cleanup_suite_nts_io);
+
+	// CU_add_test(nts_io_suite, "nts_io_init", nts_io_init_test);
+	// CU_add_test(nts_io_suite, "nts_io_main", nts_io_main_test);
+}
+

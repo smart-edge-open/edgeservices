@@ -93,7 +93,9 @@ static void nes_server_configure_test(void) {
 	nes_cfgfile = cfg_bak;
 }
 
-CU_TestInfo tests_suite_nes_configuration[] = {
-	{ "nes_server_configure", nes_server_configure_test},
-	CU_TEST_INFO_NULL,
-};
+void add_nes_configuration_suite_to_registry(void) {
+	CU_pSuite nes_configuration_suite = CU_add_suite("nes_configuration", init_suite_nes_configuration, cleanup_suite_nes_configuration);
+
+	CU_add_test(nes_configuration_suite, "nes_server_configure", nes_server_configure_test);
+}
+

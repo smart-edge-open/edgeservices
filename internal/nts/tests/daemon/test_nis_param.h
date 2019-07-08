@@ -19,9 +19,9 @@
 
 #include <CUnit/CUnit.h>
 
-extern CU_TestInfo tests_suite_nis_param[];
-
 int init_suite_nis_param(void);
 int cleanup_suite_nis_param(void);
 
-#endif
+void add_nis_param_suite_to_registry(void);
+
+#endif /* TEST_NIS_PARAM_H_ */
