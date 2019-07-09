@@ -59,10 +59,12 @@ var AppTrafficPolicies map[string]*AppTrafficPolicy
 // RemoveRules removes rules
 func RemoveRules(appID string, conn NtsConnectionInt) error {
 
-	log.Info("Removing Traffic Rules for App ID: " + appID)
+	log.Infof("Removing existing traffic policy for application ID " + appID)
 
 	if _, present := AppTrafficPolicies[appID]; !present {
-		log.Info("Traffic Policy does not exist for AppID: " + appID)
+		log.Infof("Traffic policy for application ID %v "+
+			"not found in EDA memory.",
+			appID)
 		return nil
 	}
 
@@ -71,7 +73,7 @@ func RemoveRules(appID string, conn NtsConnectionInt) error {
 		return status.Errorf(codes.Internal, "Not connected to NTS")
 	}
 	// With every loop iteration a traffic rule at index 0 is removed
-	// from NTS route table, then it is removed from IDA slice holding all
+	// from NTS route table, then it is removed from EDA slice holding all
 	// traffic rules per app ID by being replaced by the traffic rule
 	// stored at its last position.
 	// If the attempt to remove a traffic rule from NTS ends with an error,
@@ -80,14 +82,14 @@ func RemoveRules(appID string, conn NtsConnectionInt) error {
 	// traffic rules left in AppTrafficPolicies[appID].NtsTrafficRules
 	for range AppTrafficPolicies[appID].NtsTrafficRules {
 
-		log.Infof("Removing Traffic Rule %v",
+		log.Debugf("Removing traffic rule %v",
 			AppTrafficPolicies[appID].NtsTrafficRules[0].LookupKeys)
 		// Remove traffic rule at index 0 from NTS
 		err := conn.RouteRemove(AppTrafficPolicies[appID].
 			NtsTrafficRules[0].LookupKeys)
 		if err != nil {
-			log.Errf("Failed at removing Traffic Rule %s for AppID %v."+
-				" See logs to verify that the rule exists on NTS."+
+			log.Errf("Failed to remove traffic rule %s for AppID %v."+
+				" Check logs to verify that the rule exists on NTS."+
 				" Error: %v", AppTrafficPolicies[appID].NtsTrafficRules[0].
 				LookupKeys, appID, err)
 		}
@@ -112,6 +114,9 @@ func RemoveRules(appID string, conn NtsConnectionInt) error {
 	// delete the map entry for appID from AppTrafficPolicies
 	delete(AppTrafficPolicies, appID)
 
+	log.Debugf("Successfully removed traffic rules for application ID %v "+
+		"from NTS and EDA memory", appID)
+
 	return nil
 }
 
@@ -122,7 +127,7 @@ func DisconnectNTS(conn NtsConnectionInt) {
 	if err != nil {
 		log.Errf("Error while disconnecting from NTS: %v", err)
 	}
-	log.Info("Connection to NTS closed")
+	log.Debugf("Connection to NTS closed")
 }
 
 // ValidateTrafficRules validates traffic rules
@@ -131,13 +136,15 @@ func ValidateTrafficRules(tp *pb.TrafficPolicy) (*[]TrafficRuleParsed, error) {
 	var netMacAddr net.HardwareAddr
 	var tempAppTrafficRules []TrafficRuleParsed
 
+	log.Infof("Validating traffic rules for App ID " + tp.Id)
+
 	for _, rule := range tp.TrafficRules {
-		log.Info("Validating Traffic Rule: " + rule.Description)
+		log.Debugf("Validating traffic rule: " + rule.Description)
 		trString, err := ini.TrafficRuleProtoToString(rule)
 		if err != nil {
-			log.Errf("Error while parsing Traffic Rule to string: %v", err)
+			log.Errf("Error while parsing traffic rule to string: %v", err)
 			return nil, status.Errorf(codes.Internal,
-				"Error while parsing Traffic Rule to string %v", err)
+				"Error while parsing traffic rule to string %v", err)
 		}
 
 		if nil == rule.Target || nil == rule.Target.Mac {
@@ -164,6 +171,8 @@ func ValidateTrafficRules(tp *pb.TrafficPolicy) (*[]TrafficRuleParsed, error) {
 		tempAppTrafficRules = append(tempAppTrafficRules, trafficRuleParsed)
 
 	}
+	log.Debugf("Successfully validated traffic rules for application ID %v",
+		tp.Id)
 	return &tempAppTrafficRules, nil
 }
 
@@ -181,36 +190,40 @@ func AddRequest(conn NtsConnectionInt, tp *pb.TrafficPolicy) error {
 	appTrafficPolicy := AppTrafficPolicy{Policy: *tp}
 	AppTrafficPolicies[tp.Id] = &appTrafficPolicy
 
+	log.Infof("Adding traffic rules for application ID " + tp.Id)
+
 	for _, rule := range *parsedTrafficRules {
 
 		err = conn.RouteAdd(rule.Mac, rule.LookupKeys)
 		if err != nil {
-			log.Errf("Failed to add Traffic Rule: %s to mac addr"+
+			log.Errf("Failed to add traffic rule: %s for mac addr:"+
 				" %s. Error: %v.", rule.LookupKeys,
 				rule.Mac.String(), err)
 			err = RemoveRules(tp.Id, conn)
 			if err != nil {
 				return status.Errorf(codes.Unknown,
 					"Failed to clean traffic rules on error "+
-						"from RouteAdd(). Error: %v", err)
+						"in RouteAdd(). Error: %v", err)
 			}
 
-			return status.Errorf(codes.Unknown,
-				"Traffic Rule %s can't be set for mac "+
-					"address %s", rule.LookupKeys,
-				rule.Mac.String())
+			return status.Errorf(codes.Unknown, "Failed to add "+
+				"traffic rule: %s for mac addr: "+
+				"%s.", rule.LookupKeys, rule.Mac.String())
 		}
 		tr := TrafficRuleParsed{
 			Mac:        rule.Mac,
 			LookupKeys: rule.LookupKeys,
 		}
 
-		log.Info("Traffic Rule " + tr.LookupKeys +
-			" added for mac address: " + tr.Mac.String())
+		log.Debugf("Sucessfully added traffic rule: %v for "+
+			"mac address: %v", tr.LookupKeys, tr.Mac.String())
 
 		appTrafficPolicy.NtsTrafficRules =
 			append(appTrafficPolicy.NtsTrafficRules, tr)
 	}
+
+	log.Debugf("Successfully added all traffic rules for application "+
+		"ID %v to NTS", tp.Id)
 
 	return nil
 }
@@ -219,26 +232,27 @@ func (s *edaTrafficPolicyServerImpl) Set(ctx context.Context,
 	tp *pb.TrafficPolicy) (*empty.Empty, error) {
 
 	if tp.Id == "" {
-		log.Errf("Traffic Policy ID is empty")
-		return &empty.Empty{}, errors.New("Traffic Policy ID is empty")
+		log.Errf("Traffic policy ID is empty")
+		return &empty.Empty{}, errors.New("Application traffic " +
+			"policy ID is empty")
 	}
 
-	log.Info("Received SET request for Application Traffic " +
-		"Policy ID: " + tp.Id)
+	log.Info("Received new SET request for application traffic " +
+		"policy ID " + tp.Id)
 
 	conn, err := NewConnFn()
 	if err != nil {
 		log.Errf("Connection to NTS failed %v", err)
 		return &empty.Empty{}, err
 	}
-	log.Info("EDA connected to NTS")
+	log.Debug("EDA started connection with NTS")
 	defer DisconnectNTS(conn)
 
 	err = RemoveRules(tp.Id, conn)
 	if err != nil {
 		st, _ := status.FromError(err)
 		return &empty.Empty{}, status.Errorf(st.Code(),
-			"Attempt to remove Traffic Rules for Traffic Policy ID "+
+			"Attempt to remove traffic rules for traffic policy ID "+
 				"%s finished with error: %v", tp.Id, err)
 	}
 
