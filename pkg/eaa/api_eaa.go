@@ -34,6 +34,9 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errf("Error in Service Deregistration: %s", err.Error())
 	}
+
+	log.Debugf("Successfully processed DeregisterApplication from %s",
+		commonName)
 }
 
 // GetNotifications implements https API
@@ -52,6 +55,9 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	log.Debugf("Successfully processed GetNotifications from %s",
+		r.TLS.PeerCertificates[0].Subject.CommonName)
 }
 
 // GetServices implements https API
@@ -75,6 +81,9 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	log.Debugf("Successfully processed GetServices from %s",
+		r.TLS.PeerCertificates[0].Subject.CommonName)
 }
 
 // GetSubscriptions implements https API
@@ -103,6 +112,8 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 			err.Error())
 		return
 	}
+
+	log.Debugf("Successfully processed GetSubscriptions from %s", commonName)
 }
 
 // PushNotificationToSubscribers implements https API
@@ -125,6 +136,8 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(statCode)
+	log.Debugf("Successfully processed PushNotificationToSubscribers from %s",
+		commonName)
 }
 
 // RegisterApplication implements https API
@@ -149,6 +162,8 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	log.Debugf("Successfully processed RegisterApplication from %s",
+		commonName)
 }
 
 // SubscribeNamespaceNotifications implements https API
@@ -182,6 +197,8 @@ func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(statCode)
+	log.Debugf("Successfully processed SubscribeNamespaceNotifications from %s",
+		commonName)
 }
 
 // SubscribeServiceNotifications implements https API
@@ -213,6 +230,8 @@ func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(statCode)
+	log.Debugf("Successfully processed SubscribeServiceNotifications from %s",
+		commonName)
 }
 
 // UnsubscribeAllNotifications implements https API
@@ -226,6 +245,8 @@ func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(statCode)
+	log.Debugf("Successfully processed UnsubscribeAllNotifications from %s",
+		commonName)
 }
 
 // UnsubscribeNamespaceNotifications implements https API
@@ -259,6 +280,8 @@ func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(statCode)
+	log.Debugf("Successfully processed UnsubscribeNamespaceNotifications from"+
+		"%s", commonName)
 }
 
 // UnsubscribeServiceNotifications implements https API
@@ -291,4 +314,6 @@ func UnsubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(statCode)
+	log.Debugf("Successfully processed UnsubscribeServiceNotifications from %s",
+		commonName)
 }
