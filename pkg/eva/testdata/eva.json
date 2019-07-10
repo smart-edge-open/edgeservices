@@ -1,7 +1,7 @@
 {
     "heartbeatInterval": "60s",
-    "endpoint": "localhost:42102",
-    "endpointInternal": "localhost:42103",
+    "endpoint": "localhost:52102",
+    "endpointInternal": "localhost:52103",
     "maxCores": 8,
     "maxAppMem": 2147483647,
     "appImageDir": "/var/lib/appliance/applications",

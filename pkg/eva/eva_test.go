@@ -111,7 +111,8 @@ func TestEva(t *testing.T) {
 		callDockerDeploy(t, conn, "app-test-1",
 			"https://localhost/hello-world.tar.gz")
 		callGetStatus(t, conn, "app-test-1")
-		callDockerDeploy(t, conn, "app-test-2", "/var/www/html/busybox.tar.gz")
+		callDockerDeploy(t, conn, "app-test-2",
+			"/var/www/html/busybox.tar.gz")
 		callUndeployAPI(t, conn, "app-test-1")
 		callGetStatus(t, conn, "app-test-1")
 		callUndeployAPI(t, conn, "app-test-2")

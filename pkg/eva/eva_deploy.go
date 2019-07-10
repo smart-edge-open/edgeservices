@@ -153,7 +153,8 @@ func (s *DeploySrv) deployCommon(ctx context.Context,
 	/* Now download the image. */
 	switch uri := source.(type) {
 	case *pb.Application_HttpUri:
-		return downloadImage(uri.HttpUri.HttpUri, dapp.ImageFilePath(),
+		dapp.URL = uri.HttpUri.HttpUri
+		return downloadImage(dapp.URL, dapp.ImageFilePath(),
 			s.cfg.DownloadTimeout.Duration)
 	default:
 		return status.Errorf(codes.Unimplemented, "unknown app source")

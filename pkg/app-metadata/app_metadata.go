@@ -52,6 +52,7 @@ const (
 // AppData represents metadata.json file
 type AppData struct {
 	Type AppType
+	URL  string
 	App  *pb.Application
 }
 
