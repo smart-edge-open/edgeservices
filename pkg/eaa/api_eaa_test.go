@@ -948,6 +948,118 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedNotif).To(Equal(expectedNotif))
 			})
 
+			Specify("Namespace Notification not registered by Producer"+
+				"(1 Consumer)", func() {
+				sampleService := eaa.Service{
+					Description: "The Example Producer #1",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
+					},
+				}
+
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "Event #2",
+						Version: "1.2.3",
+					},
+				}
+
+				sampleEvent := eaa.NotificationFromProducer{
+					Name:    "Event #2",
+					Version: "1.2.3",
+					Payload: json.RawMessage(`{"msg":"PING"}`),
+				}
+
+				expectedOutput := strings.NewReader(
+					"{\"producer\":" +
+						"{\"id\":\"producer-1\"," +
+						"\"namespace\":\"namespace-1\"}," +
+						"\"name\":\"Event #2\",\"version\":\"1.2.3\"," +
+						"\"payload\":{\"msg\":\"PING\"}}")
+
+				registerProducer(prodClient, sampleService, "")
+				// Subscribe notification that is not registered by Producer
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1", "")
+
+				conn := connectConsumer(consSocket, &consHeader, "")
+				defer conn.Close()
+
+				produceEvent(prodClient, sampleEvent, "")
+
+				By("Expected notification struct decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedNotif)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				getMsgFromConn(conn, &receivedNotif, "")
+
+				By("Comparing web socket response data")
+				Expect(receivedNotif).To(Equal(expectedNotif))
+			})
+
+			Specify("Producer Notification (not registered) (1 consumer)",
+				func() {
+					sampleService := eaa.Service{
+						Description: "The Example Producer #1",
+						EndpointURI: "https://1.2.3.4",
+						Notifications: []eaa.NotificationDescriptor{
+							{
+								Name:    "Event #1",
+								Version: "1.0.0",
+								Description: "Description for " +
+									"Event #1 by Producer #1",
+							},
+						},
+					}
+
+					sampleNotifications := []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #2",
+							Version: "1.2.3",
+						},
+					}
+
+					sampleEvent := eaa.NotificationFromProducer{
+						Name:    "Event #2",
+						Version: "1.2.3",
+						Payload: json.RawMessage(`{"msg":"PING"}`),
+					}
+
+					expectedOutput := strings.NewReader(
+						"{\"producer\":" +
+							"{\"id\":\"producer-1\"," +
+							"\"namespace\":\"namespace-1\"}," +
+							"\"name\":\"Event #2\",\"version\":\"1.2.3\"," +
+							"\"payload\":{\"msg\":\"PING\"}}")
+
+					registerProducer(prodClient, sampleService, "")
+					// Subscribe notification that is not registered by Producer
+					subscribeConsumer(consClient, sampleNotifications,
+						"namespace-1/producer-1", "")
+
+					conn := connectConsumer(consSocket, &consHeader, "")
+					defer conn.Close()
+
+					produceEvent(prodClient, sampleEvent, "")
+
+					By("Expected notification struct decoding")
+					err := json.NewDecoder(expectedOutput).
+						Decode(&expectedNotif)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					getMsgFromConn(conn, &receivedNotif, "")
+
+					By("Comparing web socket response data")
+					Expect(receivedNotif).To(Equal(expectedNotif))
+				})
+
 			Specify("Namespace Notification after canceling subscription"+
 				" (1 Consumer)", func() {
 				sampleService := eaa.Service{

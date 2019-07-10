@@ -103,20 +103,6 @@ func getUniqueSubsList(nsList []string, servList []string) []string {
 	return fullList
 }
 
-func findServiceNotifIndex(servInfo Service,
-	notif NotificationFromProducer) int {
-	for idx, servNotif := range servInfo.Notifications {
-		nameComp := strings.Compare(notif.Name, servNotif.Name)
-		verComp := strings.Compare(notif.Version, servNotif.Version)
-
-		if nameComp == 0 && verComp == 0 {
-			return idx
-		}
-	}
-
-	return -1
-}
-
 func sendNotificationToAllSubscribers(commonName string,
 	notif NotificationFromProducer) (int, error) {
 	var subscriberList []string
@@ -142,23 +128,16 @@ func sendNotificationToAllSubscribers(commonName string,
 			errors.Wrap(err, "Failed to marshal norification JSON")
 	}
 
-	serviceInfo, serviceFound := eaaCtx.serviceInfo[commonName]
+	_, serviceFound := eaaCtx.serviceInfo[commonName]
 	if !serviceFound {
 		return http.StatusInternalServerError,
-			errors.New("Unable to find service information")
+			errors.New("Producer is not registered")
 	}
-
-	servNotifIdx := findServiceNotifIndex(serviceInfo, notif)
-	if servNotifIdx == -1 {
-		return http.StatusInternalServerError,
-			errors.New("Unable to find notification information")
-	}
-	servNotif := serviceInfo.Notifications[servNotifIdx]
 
 	namespaceKey := UniqueNotif{
 		namespace:    prodURN.Namespace,
-		notifName:    servNotif.Name,
-		notifVersion: servNotif.Version,
+		notifName:    notif.Name,
+		notifVersion: notif.Version,
 	}
 
 	namespaceSubsInfo, ok := eaaCtx.subscriptionInfo[namespaceKey]
