@@ -67,6 +67,7 @@ func getNetworkPCIs() ([]NetworkDevice, error) {
 
 	csvReader := csv.NewReader(strings.NewReader(out.String()))
 	csvReader.Comma = ' '
+	csvReader.FieldsPerRecord = -1
 
 	records, err := csvReader.ReadAll()
 	if err != nil {

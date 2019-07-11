@@ -111,3 +111,4 @@
  - Added shell script for resolving urllib3 module version mismatch in Ansible scripts
  - Fixed issue with sending notification to consumers.
  - Wait for default cert key file with size greater than zero
+ - ELA - accept variable column count in lspci output
