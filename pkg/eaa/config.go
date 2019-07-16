@@ -19,16 +19,16 @@ import "github.com/smartedgemec/appliance-ce/pkg/util"
 // CertsInfo describes paths for certs used in configuration
 type CertsInfo struct {
 	CaRootKeyPath  string `json:"CaRootKeyPath"`
-	CaRootPath     string `json:"caRootPath"`
-	ServerCertPath string `json:"serverCertPath"`
-	ServerKeyPath  string `json:"serverKeyPath"`
+	CaRootPath     string `json:"CaRootPath"`
+	ServerCertPath string `json:"ServerCertPath"`
+	ServerKeyPath  string `json:"ServerKeyPath"`
 }
 
 // Config describes EAA JSON config file
 type Config struct {
-	TLSEndpoint       string        `json:"tlsEndpoint"`
-	OpenEndpoint      string        `json:"openEndpoint"`
-	InternalEndpoint  string        `json:"internalEndpoint"`
-	HeartbeatInterval util.Duration `json:"heartbeatInterval"`
-	Certs             CertsInfo     `json:"certs"`
+	TLSEndpoint       string        `json:"TlsEndpoint"`
+	OpenEndpoint      string        `json:"OpenEndpoint"`
+	InternalEndpoint  string        `json:"InternalEndpoint"`
+	HeartbeatInterval util.Duration `json:"HeartbeatInterval"`
+	Certs             CertsInfo     `json:"Certs"`
 }

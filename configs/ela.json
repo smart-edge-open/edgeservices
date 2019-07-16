@@ -1,8 +1,8 @@
 {
-    "endpoint": ":42101",
-    "heartbeatInterval": "60s",
-    "edaEndpoint": ":50051",
-    "ntsConfigPath": "/var/lib/appliance/nts/nts.cfg",
-    "certsDirectory": "certs",
-    "dnsIP": "53.53.53.53"
+    "Endpoint": ":42101",
+    "HeartbeatInterval": "60s",
+    "EdaEndpoint": ":50051",
+    "NtsConfigPath": "/var/lib/appliance/nts/nts.cfg",
+    "CertsDirectory": "certs",
+    "DnsIP": "53.53.53.53"
 }

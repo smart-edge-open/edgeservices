@@ -1,15 +1,15 @@
 {
-    "heartbeatInterval": "60s",
-    "endpoint": "localhost:52102",
-    "endpointInternal": "localhost:52103",
-    "maxCores": 8,
-    "maxAppMem": 2147483647,
-    "appImageDir": "/var/lib/appliance/applications",
-    "appStartTimeout": "10s",
-    "appStopTimeout": "10s",
-    "appRestartTimeout": "20s",
-    "certsDirectory": "testdata/certs",
-    "kubernetesMode": false,
-    "vhostSocket": "/var/lib/appliance/nts/qemu/usvhost-1",
-    "downloadTimeout": "10m"
+    "HeartbeatInterval": "60s",
+    "Endpoint": "localhost:52102",
+    "EndpointInternal": "localhost:52103",
+    "MaxCores": 8,
+    "MaxAppMem": 2147483647,
+    "AppImageDir": "/var/lib/appliance/applications",
+    "AppStartTimeout": "10s",
+    "AppStopTimeout": "10s",
+    "AppRestartTimeout": "20s",
+    "CertsDirectory": "testdata/certs",
+    "KubernetesMode": false,
+    "VhostSocket": "/var/lib/appliance/nts/qemu/usvhost-1",
+    "DownloadTimeout": "10m"
 }

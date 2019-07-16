@@ -34,7 +34,7 @@ var _ = Describe("LoadJSONonfig", func() {
 				Expect(LoadJSONConfig("nonexistent-file", nil)).NotTo(BeNil())
 				Expect(LoadJSONConfig("conf", nil)).NotTo(BeNil())
 				conf := struct {
-					Val int `json:"val"`
+					Val int `json:"Val"`
 				}{}
 				Expect(LoadJSONConfig("testdata/conf.json", &conf)).To(BeNil())
 				Expect(conf.Val).To(Equal(0))

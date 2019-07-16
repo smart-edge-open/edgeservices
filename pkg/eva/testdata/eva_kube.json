@@ -8,8 +8,8 @@
     "AppStartTimeout": "10s",
     "AppStopTimeout": "10s",
     "AppRestartTimeout": "20s",
-    "certsDirectory": "testdata/certs",
-    "kubernetesMode": true,
-    "vhostSocket": "/var/lib/appliance/nts/qemu/usvhost-1",
-    "downloadTimeout": "10m"
+    "CertsDirectory": "testdata/certs",
+    "KubernetesMode": true,
+    "VhostSocket": "/var/lib/appliance/nts/qemu/usvhost-1",
+    "DownloadTimeout": "10m"
 }

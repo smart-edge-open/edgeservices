@@ -51,17 +51,17 @@ var log = logger.DefaultLogger.WithField("main", nil)
 var cfg mainConfig
 
 type enrollConfig struct {
-	Endpoint    string        `json:"endpoint"`
-	ConnTimeout util.Duration `json:"connectionTimeout"`
-	CertsDir    string        `json:"certsDirectory"`
+	Endpoint    string        `json:"Endpoint"`
+	ConnTimeout util.Duration `json:"ConnectionTimeout"`
+	CertsDir    string        `json:"CertsDirectory"`
 }
 
 type mainConfig struct {
-	UseSyslog  bool              `json:"useSyslog"`
-	SyslogAddr string            `json:"syslogAddr"`
-	LogLevel   string            `json:"logLevel"`
-	Services   map[string]string `json:"services"`
-	Enroll     enrollConfig      `json:"enrollment"`
+	UseSyslog  bool              `json:"UseSyslog"`
+	SyslogAddr string            `json:"SyslogAddr"`
+	LogLevel   string            `json:"LogLevel"`
+	Services   map[string]string `json:"Services"`
+	Enroll     enrollConfig      `json:"Enrollment"`
 }
 
 func init() {

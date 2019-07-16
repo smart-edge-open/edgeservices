@@ -35,12 +35,12 @@ import (
 
 // Configuration describes JSON configuration
 type Configuration struct {
-	Endpoint          string        `json:"endpoint"`
-	HeartbeatInterval util.Duration `json:"heartbeatInterval"`
-	EDAEndpoint       string        `json:"edaEndpoint"`
-	NtsConfigPath     string        `json:"ntsConfigPath"`
-	CertsDir          string        `json:"certsDirectory"`
-	DNSIP             string        `json:"dnsIP"`
+	Endpoint          string        `json:"Endpoint"`
+	HeartbeatInterval util.Duration `json:"HeartbeatInterval"`
+	EDAEndpoint       string        `json:"EdaEndpoint"`
+	NtsConfigPath     string        `json:"NtsConfigPath"`
+	CertsDir          string        `json:"CertsDirectory"`
+	DNSIP             string        `json:"DnsIP"`
 }
 
 var (

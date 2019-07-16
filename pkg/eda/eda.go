@@ -27,8 +27,8 @@ import (
 
 // Configuration JSON file
 type Configuration struct {
-	Endpoint          string        `json:"endpoint"`
-	HeartbeatInterval util.Duration `json:"heartbeatInterval"`
+	Endpoint          string        `json:"Endpoint"`
+	HeartbeatInterval util.Duration `json:"HeartbeatInterval"`
 }
 
 var (

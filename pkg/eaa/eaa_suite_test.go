@@ -69,11 +69,11 @@ func TestEaa(t *testing.T) {
 var appliance *gexec.Session
 
 type EAATestSuiteConfig struct {
-	Dir                 string `json:"dir"`
-	TLSEndpoint         string `json:"tlsEndpoint"`
-	OpenEndpoint        string `json:"openEndpoint"`
-	InternalEndpoint    string `json:"internalEndpoint"`
-	ApplianceTimeoutSec int    `json:"timeout"`
+	Dir                 string `json:"Dir"`
+	TLSEndpoint         string `json:"TlsEndpoint"`
+	OpenEndpoint        string `json:"OpenEndpoint"`
+	InternalEndpoint    string `json:"InternalEndpoint"`
+	ApplianceTimeoutSec int    `json:"Timeout"`
 }
 
 // test suite config with default values
@@ -216,14 +216,14 @@ func generateConfigs() {
 
 	// custom config for EAA
 	eaaCfg := []byte(`{
-		"tlsEndpoint": "` + cfg.TLSEndpoint + `",
-		"openEndpoint": "` + cfg.OpenEndpoint + `",
-		"internalEndpoint": "` + cfg.InternalEndpoint + `",
-		"certs": {
+		"TlsEndpoint": "` + cfg.TLSEndpoint + `",
+		"OpenEndpoint": "` + cfg.OpenEndpoint + `",
+		"InternalEndpoint": "` + cfg.InternalEndpoint + `",
+		"Certs": {
 			"CaRootKeyPath": "` + tempConfCaRootKeyPath + `",
-			"caRootPath": "` + tempConfCaRootPath + `",
-			"serverCertPath": "` + tempConfServerCertPath + `",
-			"serverKeyPath": "` + tempConfServerKeyPath + `"
+			"CaRootPath": "` + tempConfCaRootPath + `",
+			"ServerCertPath": "` + tempConfServerCertPath + `",
+			"ServerKeyPath": "` + tempConfServerKeyPath + `"
 		}
 	}`)
 

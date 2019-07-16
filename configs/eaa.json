@@ -1,12 +1,12 @@
 {
-    "tlsEndpoint": ":443",
-    "openEndpoint": ":80",
-    "internalEndpoint": ":42103",
-    "heartbeatInterval": "60s",
-    "certs": {
-        "caRootKeyPath": "certs/eaa/rootCA.key",
-        "caRootPath": "certs/eaa/rootCA.pem",
-        "serverCertPath": "certs/eaa/server.crt",
-        "serverKeyPath": "certs/eaa/server.key"
+    "TlsEndpoint": ":443",
+    "OpenEndpoint": ":80",
+    "InternalEndpoint": ":42103",
+    "HeartbeatInterval": "60s",
+    "Certs": {
+        "CaRootKeyPath": "certs/eaa/rootCA.key",
+        "CaRootPath": "certs/eaa/rootCA.pem",
+        "ServerCertPath": "certs/eaa/server.crt",
+        "ServerKeyPath": "certs/eaa/server.key"
     }
 }
