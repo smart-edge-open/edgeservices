@@ -262,7 +262,7 @@ func generateEAACert(rcaCert *x509.Certificate,
 }
 
 // SignCSR signs a "PEM-encoded" signing request.
-func SignCSR(csrPEM string) (*x509.Certificate, error) {
+func SignCSR(csrPEM string, eaaCtx *eaaContext) (*x509.Certificate, error) {
 
 	block, _ := pem.Decode([]byte(csrPEM))
 

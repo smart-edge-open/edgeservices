@@ -54,7 +54,8 @@ func (sI *SubscriberIds) RemoveSubscriber(commonName string) bool {
 
 // initNamespaceNotification initializes structs for given
 // NamespaceNotif struct to allow for subscription
-func initNamespaceNotification(key UniqueNotif, notif NotificationDescriptor) {
+func initNamespaceNotification(key UniqueNotif, notif NotificationDescriptor,
+	eaaCtx *eaaContext) {
 	if _, ok := eaaCtx.subscriptionInfo[key]; !ok {
 		conSub := &ConsumerSubscription{
 			namespaceSubscriptions: SubscriberIds{},
@@ -68,8 +69,8 @@ func initNamespaceNotification(key UniqueNotif, notif NotificationDescriptor) {
 // initServiceNotification initializes structs for given
 // NamespaceNotif struct + serviceID, to allow for subscription
 func initServiceNotification(key UniqueNotif, serviceID string,
-	notif NotificationDescriptor) {
-	initNamespaceNotification(key, notif)
+	notif NotificationDescriptor, eaaCtx *eaaContext) {
+	initNamespaceNotification(key, notif, eaaCtx)
 
 	if _, ok := eaaCtx.subscriptionInfo[key].
 		serviceSubscriptions[serviceID]; !ok {
@@ -81,7 +82,7 @@ func initServiceNotification(key UniqueNotif, serviceID string,
 // addNamespaceSubscriptionToList adds a namespace subscription
 // to a list of subscriptions
 func (sL *SubscriptionList) addNamespaceSubscriptionToList(
-	nameNotif UniqueNotif) {
+	nameNotif UniqueNotif, eaaCtx *eaaContext) {
 	found := false
 
 	for i, s := range sL.Subscriptions {
@@ -110,7 +111,7 @@ func (sL *SubscriptionList) addNamespaceSubscriptionToList(
 // addServiceSubscriptionToList adds a service subscription
 // to a list of subscriptions
 func (sL *SubscriptionList) addServiceSubscriptionToList(
-	nameNotif UniqueNotif, srvID string) {
+	nameNotif UniqueNotif, srvID string, eaaCtx *eaaContext) {
 	found := false
 
 	for i, s := range sL.Subscriptions {

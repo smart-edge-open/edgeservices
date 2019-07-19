@@ -31,6 +31,8 @@ var socket = websocket.Upgrader{
 // createWsConn creates a websocket connection for a consumer
 // to receive data from subscribed producers
 func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+
 	// Get the consumer app ID from the Common Name in the certificate
 	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
 
@@ -79,7 +81,9 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 
 // getConsumerSubscriptions returns a list of subscriptions belonging
 // to the consumer
-func getConsumerSubscriptions(commonName string) (*SubscriptionList, error) {
+func getConsumerSubscriptions(commonName string,
+	eaaCtx *eaaContext) (*SubscriptionList, error) {
+
 	if eaaCtx.subscriptionInfo == nil {
 		return nil, errors.New("EAA context not initialized")
 	}
@@ -88,14 +92,14 @@ func getConsumerSubscriptions(commonName string) (*SubscriptionList, error) {
 	for nameNotif, conSub := range eaaCtx.subscriptionInfo {
 		// if consumer is in namespace subscription, add it to the list
 		if index := getNamespaceSubscriptionIndex(nameNotif,
-			commonName); index != -1 {
-			subs.addNamespaceSubscriptionToList(nameNotif)
+			commonName, eaaCtx); index != -1 {
+			subs.addNamespaceSubscriptionToList(nameNotif, eaaCtx)
 		}
 		for srvID := range conSub.serviceSubscriptions {
 			// if consumer is in service subscription, add it to the list
 			if index := getServiceSubscriptionIndex(nameNotif, srvID,
-				commonName); index != -1 {
-				subs.addServiceSubscriptionToList(nameNotif, srvID)
+				commonName, eaaCtx); index != -1 {
+				subs.addServiceSubscriptionToList(nameNotif, srvID, eaaCtx)
 			}
 		}
 

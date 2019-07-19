@@ -23,11 +23,13 @@ import (
 
 // DeregisterApplication implements https API
 func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	clientCert := r.TLS.PeerCertificates[0]
 	commonName := clientCert.Subject.CommonName
-	statCode, err := removeService(commonName)
+	statCode, err := removeService(commonName, eaaCtx)
 
 	w.WriteHeader(statCode)
 
@@ -41,6 +43,8 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 
 // GetNotifications implements https API
 func GetNotifications(w http.ResponseWriter, r *http.Request) {
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+
 	if eaaCtx.serviceInfo == nil {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -63,6 +67,8 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 // GetServices implements https API
 func GetServices(w http.ResponseWriter, r *http.Request) {
 	var servList ServiceList
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 
@@ -88,6 +94,7 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 
 // GetSubscriptions implements https API
 func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 
@@ -99,7 +106,7 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 
 	commonName = r.TLS.PeerCertificates[0].Subject.CommonName
 
-	if subs, err = getConsumerSubscriptions(commonName); err != nil {
+	if subs, err = getConsumerSubscriptions(commonName, eaaCtx); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errf("Consumer Subscription List Getter: %s",
 			err.Error())
@@ -118,6 +125,7 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 
 // PushNotificationToSubscribers implements https API
 func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	var notif NotificationFromProducer
 
@@ -130,7 +138,7 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statCode, err := sendNotificationToAllSubscribers(commonName, notif)
+	statCode, err := sendNotificationToAllSubscribers(commonName, notif, eaaCtx)
 	if err != nil {
 		log.Errf("Error in Publish Notification: %s", err.Error())
 	}
@@ -143,6 +151,7 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 // RegisterApplication implements https API
 func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 	var serv Service
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	clientCert := r.TLS.PeerCertificates[0]
@@ -155,7 +164,7 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = addService(commonName, serv); err != nil {
+	if err = addService(commonName, serv, eaaCtx); err != nil {
 		log.Errf("Register Application: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -169,7 +178,7 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 // SubscribeNamespaceNotifications implements https API
 func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
 	var (
 		sub        []NotificationDescriptor
 		commonName string
@@ -189,7 +198,7 @@ func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	statCode, err = addSubscriptionToNamespace(commonName,
-		vars["urn.namespace"], sub)
+		vars["urn.namespace"], sub, eaaCtx)
 
 	if err != nil {
 		log.Errf("Namespace Notification Registration: %s",
@@ -204,7 +213,7 @@ func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 // SubscribeServiceNotifications implements https API
 func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
 	var (
 		sub        []NotificationDescriptor
 		commonName string
@@ -223,7 +232,7 @@ func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	statCode, err = addSubscriptionToService(commonName,
-		vars["urn.namespace"], vars["urn.id"], sub)
+		vars["urn.namespace"], vars["urn.id"], sub, eaaCtx)
 
 	if err != nil {
 		log.Errf("Service Notification Registration: %s", err.Error())
@@ -237,9 +246,9 @@ func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 // UnsubscribeAllNotifications implements https API
 func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
 	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
-	statCode, err := removeAllSubscriptions(commonName)
+	statCode, err := removeAllSubscriptions(commonName, eaaCtx)
 	if err != nil {
 		log.Errf("Error in UnsubscribeAllNotifications: %s", err.Error())
 	}
@@ -252,7 +261,7 @@ func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {
 // UnsubscribeNamespaceNotifications implements https API
 func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
 	var (
 		sub        []NotificationDescriptor
 		commonName string
@@ -272,7 +281,7 @@ func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	statCode, err = removeSubscriptionToNamespace(commonName,
-		vars["urn.namespace"], sub)
+		vars["urn.namespace"], sub, eaaCtx)
 
 	if err != nil {
 		log.Errf("Namespace Notification Unregistration: %s",
@@ -287,7 +296,7 @@ func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 // UnsubscribeServiceNotifications implements https API
 func UnsubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
 	var (
 		sub        []NotificationDescriptor
 		commonName string
@@ -306,7 +315,7 @@ func UnsubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	statCode, err = removeSubscriptionToService(commonName,
-		vars["urn.namespace"], vars["urn.id"], sub)
+		vars["urn.namespace"], vars["urn.id"], sub, eaaCtx)
 
 	if err != nil {
 		log.Errf("Service Notification Unregistration: %s",

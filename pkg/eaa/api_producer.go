@@ -43,7 +43,7 @@ func validServiceNotifications(
 
 }
 
-func addService(commonName string, serv Service) error {
+func addService(commonName string, serv Service, eaaCtx *eaaContext) error {
 	if eaaCtx.serviceInfo == nil {
 		return errors.New(
 			"EAA context is not initialized. Call Init() function first")
@@ -67,7 +67,7 @@ func addService(commonName string, serv Service) error {
 	return nil
 }
 
-func removeService(commonName string) (int, error) {
+func removeService(commonName string, eaaCtx *eaaContext) (int, error) {
 	if eaaCtx.serviceInfo == nil {
 		return http.StatusInternalServerError,
 			errors.New(
@@ -104,7 +104,7 @@ func getUniqueSubsList(nsList []string, servList []string) []string {
 }
 
 func sendNotificationToAllSubscribers(commonName string,
-	notif NotificationFromProducer) (int, error) {
+	notif NotificationFromProducer, eaaCtx *eaaContext) (int, error) {
 	var subscriberList []string
 
 	if eaaCtx.serviceInfo == nil {
@@ -156,7 +156,8 @@ func sendNotificationToAllSubscribers(commonName string,
 	}
 
 	for _, subID := range subscriberList {
-		if err = sendNotificationToSubscriber(subID, msgPayload); err != nil {
+		if err = sendNotificationToSubscriber(subID, msgPayload,
+			eaaCtx); err != nil {
 			log.Warningf("Couldn't send notification to Subscriber ID: %s : %v",
 				subID, err)
 		}
@@ -164,13 +165,14 @@ func sendNotificationToAllSubscribers(commonName string,
 	return http.StatusAccepted, nil
 }
 
-func sendNotificationToSubscriber(subID string, msgPayload []byte) error {
+func sendNotificationToSubscriber(subID string, msgPayload []byte,
+	eaaCtx *eaaContext) error {
 	possibleConnection, connectionFound := eaaCtx.consumerConnections[subID]
 	log.Infof("Looking for websocket: %s from %v", subID,
 		eaaCtx.consumerConnections)
 	if connectionFound {
 		if possibleConnection.connection == nil {
-			if err := waitForConnectionAssigned(subID); err != nil {
+			if err := waitForConnectionAssigned(subID, eaaCtx); err != nil {
 				return errors.Wrap(err, "websocket isn't properly created")
 			}
 		}
@@ -186,7 +188,7 @@ func sendNotificationToSubscriber(subID string, msgPayload []byte) error {
 // is created for subscriber in a separate thread.
 // If connection is created then nil in eaaCtx.consumerConnections map
 // will be overwritten
-func waitForConnectionAssigned(subID string) error {
+func waitForConnectionAssigned(subID string, eaaCtx *eaaContext) error {
 	deadline := time.Now().Add(1 * time.Second)
 	for {
 		if eaaCtx.consumerConnections[subID].connection != nil {

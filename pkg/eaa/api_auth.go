@@ -27,6 +27,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+type contextKey string
+
 func validateAppIP(ipAddress string, validationEndpoint string) (bool, error) {
 
 	// Dial to EVA to get Edge Application ID and use it for validation
@@ -64,6 +66,9 @@ func RequestCredentials(w http.ResponseWriter, r *http.Request) {
 		identity    AuthIdentity
 		credentials AuthCredentials
 	)
+
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+
 	const fName = "/Auth RequestCredentials "
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -83,7 +88,7 @@ func RequestCredentials(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isIPValid, err := validateAppIP(host, cfg.InternalEndpoint)
+	isIPValid, err := validateAppIP(host, eaaCtx.cfg.InternalEndpoint)
 	if err != nil {
 		log.Errf(fName+"IP address validation failed: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -96,7 +101,7 @@ func RequestCredentials(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cert, err := SignCSR(identity.Csr)
+	cert, err := SignCSR(identity.Csr, eaaCtx)
 	if err != nil {
 		log.Errf(fName+"failed: %v", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)

@@ -15,6 +15,7 @@
 package eaa
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -33,7 +34,7 @@ type Route struct {
 type Routes []Route
 
 // NewEaaRouter initializes EAA router
-func NewEaaRouter() *mux.Router {
+func NewEaaRouter(eaaCtx *eaaContext) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range eaaRoutes {
 		router.
@@ -42,12 +43,20 @@ func NewEaaRouter() *mux.Router {
 			Name(route.Name).
 			Handler(route.HandlerFunc)
 	}
-
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(
+				r.Context(),
+				contextKey("appliance-ctx"),
+				eaaCtx)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	})
 	return router
 }
 
 // NewAuthRouter initializes EAA Auth router
-func NewAuthRouter() *mux.Router {
+func NewAuthRouter(eaaCtx *eaaContext) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range authRoutes {
 		router.
@@ -56,7 +65,15 @@ func NewAuthRouter() *mux.Router {
 			Name(route.Name).
 			Handler(route.HandlerFunc)
 	}
-
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(
+				r.Context(),
+				contextKey("appliance-ctx"),
+				eaaCtx)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	})
 	return router
 }
 

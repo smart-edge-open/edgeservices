@@ -38,6 +38,7 @@ type eaaContext struct {
 	consumerConnections consumerConns
 	subscriptionInfo    NotificationSubscriptions
 	certsEaaCa          Certs
+	cfg                 Config
 }
 
 // Certs stores certs and keys for root ca and eaa
@@ -47,24 +48,8 @@ type Certs struct {
 }
 
 var (
-	cfg    Config
-	eaaCtx eaaContext
-
 	log = logger.DefaultLogger.WithField("eaa", nil)
 )
-
-// Init initialize EAA context structures
-func Init() error {
-	if eaaCtx.serviceInfo != nil || eaaCtx.subscriptionInfo != nil {
-		return errors.New("EAA is already initialized")
-	}
-
-	eaaCtx.serviceInfo = services{}
-	eaaCtx.consumerConnections = consumerConns{}
-	eaaCtx.subscriptionInfo = NotificationSubscriptions{}
-
-	return nil
-}
 
 // CreateAndSetCACertPool creates and set CA cert pool
 func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
@@ -86,32 +71,31 @@ func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
 
 // RunServer starts Edge Application Agent server listening
 // on port read from config file
-func RunServer(parentCtx context.Context) error {
+func RunServer(parentCtx context.Context, eaaCtx *eaaContext) error {
 	var err error
 
-	if err = Init(); err != nil {
-		log.Errf("init error: %#v", err)
-		return errors.New("Running EAA module failure: " + err.Error())
-	}
+	eaaCtx.serviceInfo = services{}
+	eaaCtx.consumerConnections = consumerConns{}
+	eaaCtx.subscriptionInfo = NotificationSubscriptions{}
 
-	if eaaCtx.certsEaaCa.rca, err = InitRootCA(cfg.Certs); err != nil {
+	if eaaCtx.certsEaaCa.rca, err = InitRootCA(eaaCtx.cfg.Certs); err != nil {
 		log.Errf("CA cert creation error: %#v", err)
 		return err
 	}
 
-	if eaaCtx.certsEaaCa.eaa, err = InitEaaCert(cfg.Certs); err != nil {
+	if eaaCtx.certsEaaCa.eaa, err = InitEaaCert(eaaCtx.cfg.Certs); err != nil {
 		log.Errf("EAA cert creation error: %#v", err)
 		return err
 	}
 
-	certPool, err := CreateAndSetCACertPool(cfg.Certs.CaRootPath)
+	certPool, err := CreateAndSetCACertPool(eaaCtx.cfg.Certs.CaRootPath)
 	if err != nil {
 		log.Errf("Cert Pool error: %#v", err)
 	}
 
-	router := NewEaaRouter()
+	router := NewEaaRouter(eaaCtx)
 	server := &http.Server{
-		Addr: cfg.TLSEndpoint,
+		Addr: eaaCtx.cfg.TLSEndpoint,
 		TLSConfig: &tls.Config{
 			ClientAuth:   tls.RequireAndVerifyClientCert,
 			ClientCAs:    certPool,
@@ -121,7 +105,11 @@ func RunServer(parentCtx context.Context) error {
 		Handler: router,
 	}
 
-	lis, err := net.Listen("tcp", cfg.TLSEndpoint)
+	authRouter := NewAuthRouter(eaaCtx)
+	serverAuth := &http.Server{Addr: eaaCtx.cfg.OpenEndpoint,
+		Handler: authRouter}
+
+	lis, err := net.Listen("tcp", eaaCtx.cfg.TLSEndpoint)
 	if err != nil {
 
 		log.Errf("net.Listen error: %+v", err)
@@ -133,46 +121,57 @@ func RunServer(parentCtx context.Context) error {
 		return err
 	}
 
-	go func() {
+	stopServerCh := make(chan bool, 2)
+
+	go func(stopServerCh chan bool) {
 		<-parentCtx.Done()
 		log.Info("Executing graceful stop")
 		if err = server.Close(); err != nil {
-			log.Errf("Could not close server: %#v", err)
+			log.Errf("Could not close EAA server: %#v", err)
 		}
-	}()
+		if err = serverAuth.Close(); err != nil {
+			log.Errf("Could not close Auth server: %#v", err)
+		}
+		log.Info("EAA server stopped")
+		log.Info("Auth server stopped")
+		stopServerCh <- true
+	}(stopServerCh)
 
 	defer log.Info("Stopped EAA serving")
 
-	go func() {
-		log.Infof("Serving Auth on: %s", cfg.OpenEndpoint)
-		authRouter := NewAuthRouter()
-		if err = http.ListenAndServe(
-			cfg.OpenEndpoint, authRouter); err != nil {
-			log.Info("Auth server failure: " + err.Error())
+	go func(stopServerCh chan bool) {
+		log.Infof("Serving Auth on: %s", eaaCtx.cfg.OpenEndpoint)
+		if err = serverAuth.ListenAndServe(); err != nil {
+			log.Info("Auth server error: " + err.Error())
 		}
-		log.Info("Stopped Auth serving")
-	}()
+		log.Errf("Stopped Auth serving")
+		stopServerCh <- true
+	}(stopServerCh)
 
-	log.Infof("Serving EAA on: %s", cfg.TLSEndpoint)
-	util.Heartbeat(parentCtx, cfg.HeartbeatInterval, func() {
+	log.Infof("Serving EAA on: %s", eaaCtx.cfg.TLSEndpoint)
+	util.Heartbeat(parentCtx, eaaCtx.cfg.HeartbeatInterval, func() {
 		// TODO: implementation of modules checking
 		log.Info("Heartbeat")
 	})
-	if err = server.ServeTLS(lis, cfg.Certs.ServerCertPath,
-		cfg.Certs.ServerKeyPath); err != http.ErrServerClosed {
+	if err = server.ServeTLS(lis, eaaCtx.cfg.Certs.ServerCertPath,
+		eaaCtx.cfg.Certs.ServerKeyPath); err != http.ErrServerClosed {
 		log.Errf("server.Serve error: %#v", err)
 		return err
 	}
-
+	<-stopServerCh
+	<-stopServerCh
 	return nil
 }
 
 // Run start EAA
 func Run(parentCtx context.Context, cfgPath string) error {
-	err := config.LoadJSONConfig(cfgPath, &cfg)
+	var eaaCtx eaaContext
+
+	err := config.LoadJSONConfig(cfgPath, &eaaCtx.cfg)
 	if err != nil {
 		log.Errf("Failed to load config: %#v", err)
 		return err
 	}
-	return RunServer(parentCtx)
+
+	return RunServer(parentCtx, &eaaCtx)
 }
