@@ -25,7 +25,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"flag"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -38,13 +37,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 
 	"github.com/gorilla/websocket"
-	"github.com/onsi/gomega/gexec"
 	"github.com/smartedgemec/appliance-ce/internal/authtest"
+	"github.com/smartedgemec/appliance-ce/pkg/eaa"
 	evapb "github.com/smartedgemec/appliance-ce/pkg/eva/internal_pb"
 
 	"github.com/smartedgemec/log"
@@ -65,8 +66,6 @@ func TestEaa(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Eaa Suite")
 }
-
-var appliance *gexec.Session
 
 type EAATestSuiteConfig struct {
 	Dir                 string `json:"Dir"`
@@ -231,13 +230,28 @@ func generateConfigs() {
 	Expect(err).ToNot(HaveOccurred(), "Error when creating eaa.json")
 }
 
-func runAppliance() error {
+var (
+	srvCtx             context.Context
+	srvCancel          context.CancelFunc
+	applianceIsRunning bool
+)
+
+func runEaa(stopIndication chan bool) error {
+
 	By("Starting appliance")
-	var err error
-	cmd := exec.Command(tempdir + "/appliance")
-	cmd.Dir = tempdir
-	appliance, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred(), "Unable to start appliance")
+
+	srvCtx, srvCancel = context.WithCancel(context.Background())
+	_ = srvCancel
+	eaaRunFail := make(chan bool)
+	go func() {
+		err := eaa.Run(srvCtx, tempdir+"/configs/eaa.json")
+		if err != nil {
+			log.Errf("Run() exited with error: %#v", err)
+			applianceIsRunning = false
+			eaaRunFail <- true
+		}
+		stopIndication <- true
+	}()
 
 	// Wait until appliance is ready before running any tests specs
 	c1 := make(chan bool, 1)
@@ -258,20 +272,22 @@ func runAppliance() error {
 		By("Appliance ready")
 	case <-time.After(time.Duration(cfg.ApplianceTimeoutSec) * time.Second):
 		return errors.New("starting appliance - timeout")
+	case <-eaaRunFail:
+		return errors.New("starting appliance - run fail")
+
 	}
 	return nil
 }
 
-func stopAppliance() int {
-	if appliance != nil {
-		By("Stopping appliance")
-		appliance.Terminate()
-		appliance.Wait((time.Duration(cfg.ApplianceTimeoutSec) * time.Second))
-		exitCode := appliance.ExitCode()
-		appliance = nil
-		return exitCode
+func stopEaa(stopIndication chan bool) int {
+	By("Stopping appliance")
+	srvCancel()
+	<-stopIndication
+	if applianceIsRunning == true {
+		return 0
 	}
-	return 0
+
+	return 1
 }
 
 func GenerateTLSCert(cTempl, cParent *x509.Certificate, pub,
@@ -407,5 +423,4 @@ var _ = AfterSuite(func() {
 
 	defer os.RemoveAll(tempdir) // cleanup temporary build directory
 
-	stopAppliance()
 })

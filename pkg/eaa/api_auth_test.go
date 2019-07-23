@@ -71,9 +71,10 @@ var _ = Describe("ApiAuth", func() {
 		identity   eaa.AuthIdentity
 		err        error
 	)
-
+	startStopCh := make(chan bool)
 	BeforeEach(func() {
-		err = runAppliance()
+
+		err = runEaa(startStopCh)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		clientPriv, err = ecdsa.GenerateKey(
@@ -84,7 +85,7 @@ var _ = Describe("ApiAuth", func() {
 	})
 
 	AfterEach(func() {
-		stopAppliance()
+		stopEaa(startStopCh)
 	})
 
 	Describe("/Auth Post", func() {
@@ -314,11 +315,10 @@ var _ = Describe("CertsValidation", func() {
 				start := time.Now().Add(-1 * time.Minute)
 				stop := time.Now().Add(1 * time.Minute)
 				replaceRCACert(isCA, start, stop)
-
-				err := runAppliance() //should fail
+				startStopCh := make(chan bool)
+				err := runEaa(startStopCh) //should fail
 				Expect(err).Should(HaveOccurred())
-
-				exitCode := stopAppliance()
+				exitCode := stopEaa(startStopCh)
 				Expect(exitCode).NotTo(Equal(0))
 
 				removeCerts()
@@ -335,11 +335,11 @@ var _ = Describe("CertsValidation", func() {
 				start := time.Now().Add(1 * time.Minute)
 				stop := time.Now().Add(1 * time.Minute)
 				replaceRCACert(isCA, start, stop)
-
-				err := runAppliance() //should fail
+				startStopCh := make(chan bool)
+				err := runEaa(startStopCh) //should fail
 				Expect(err).Should(HaveOccurred())
 
-				exitCode := stopAppliance()
+				exitCode := stopEaa(startStopCh)
 				Expect(exitCode).NotTo(Equal(0))
 
 				removeCerts()
@@ -356,11 +356,11 @@ var _ = Describe("CertsValidation", func() {
 				start := time.Now().Add(-1 * time.Minute)
 				stop := time.Now().Add(-1 * time.Minute)
 				replaceRCACert(isCA, start, stop)
-
-				err := runAppliance() //should fail
+				startStopCh := make(chan bool)
+				err := runEaa(startStopCh) //should fail
 				Expect(err).Should(HaveOccurred())
 
-				exitCode := stopAppliance()
+				exitCode := stopEaa(startStopCh)
 				Expect(exitCode).NotTo(Equal(0))
 
 				removeCerts()
@@ -379,11 +379,11 @@ var _ = Describe("CertsValidation", func() {
 				start := time.Now().Add(1 * time.Minute)
 				stop := time.Now().Add(2 * time.Minute)
 				replaceEAACert(start, stop)
-
-				err := runAppliance()
+				startStopCh := make(chan bool)
+				err := runEaa(startStopCh)
 				Expect(err).Should(HaveOccurred())
 
-				exitCode := stopAppliance()
+				exitCode := stopEaa(startStopCh)
 				Expect(exitCode).NotTo(Equal(0))
 
 				removeCerts()
@@ -398,11 +398,11 @@ var _ = Describe("CertsValidation", func() {
 				start := time.Now().Add(-2 * time.Minute)
 				stop := time.Now().Add(-1 * time.Minute)
 				replaceEAACert(start, stop)
-
-				err := runAppliance() //should fail
+				startStopCh := make(chan bool)
+				err := runEaa(startStopCh) //should fail
 				Expect(err).Should(HaveOccurred())
 
-				exitCode := stopAppliance()
+				exitCode := stopEaa(startStopCh)
 				Expect(exitCode).NotTo(Equal(0))
 
 				removeCerts()

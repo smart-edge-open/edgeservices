@@ -342,13 +342,14 @@ func GetValidTLSClient(prvKey *ecdsa.PrivateKey) *http.Client {
 }
 
 var _ = Describe("ApiEaa", func() {
+	startStopCh := make(chan bool)
 	BeforeEach(func() {
-		err := runAppliance()
+		err := runEaa(startStopCh)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		stopAppliance()
+		stopEaa(startStopCh)
 	})
 
 	Describe("GET", func() {
@@ -3308,14 +3309,14 @@ var _ = Describe("ApiEaa", func() {
 
 var _ = Describe("Eaa Data Validation", func() {
 	Describe("Register producer", func() {
-
+		startStopCh := make(chan bool)
 		BeforeEach(func() {
-			err := runAppliance()
+			err := runEaa(startStopCh)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		AfterEach(func() {
-			stopAppliance()
+			stopEaa(startStopCh)
 		})
 
 		Context("Providing a new producer data", func() {
