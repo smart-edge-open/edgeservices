@@ -142,10 +142,6 @@ func VerifyTrafficTarget(tt *pb.TrafficTarget) error {
 		return errors.New("TrafficTarget.Ip: modifier is not supported")
 	}
 
-	if tt.Mac != nil {
-		return errors.New("TrafficTarget.Mac: modifier should not be set")
-	}
-
 	return nil
 }
 
