@@ -354,7 +354,7 @@ func testLifecycleVM(t *testing.T, conn *grpc.ClientConn, id string,
 
 	callLibvirtDeploy(t, conn, id, image)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 	defer cancel()
 	alsClient := pb.NewApplicationLifecycleServiceClient(conn)
 
