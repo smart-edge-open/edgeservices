@@ -65,7 +65,7 @@ services:
     image: "nts:${VER}"
     privileged: true
     volumes:
-     - "/dev/huge_1GB:/hugepages"
+     - "/dev/hugepages:/hugepages"
      - "/var/lib/appliance/nts:/var/lib/appliance/nts"
      - "/var/run/docker/netns:/var/run/docker/netns"
      - "/var/run:/var/run"

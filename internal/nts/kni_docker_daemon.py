@@ -270,15 +270,16 @@ def docker_poll(nes_context, docker_cli, name_filter):
                         continue
                     sandbox_id = event['Actor']['Attributes']['io.kubernetes.sandbox.id']
                     pod_name = event['Actor']['Attributes']['io.kubernetes.pod.name']
+                    if not filter_name(pod_name, "app"):
+                        continue
                 else:
                     sandbox_id = event['Actor']['ID']
                     pod_name = event['Actor']['Attributes']['name']
+                    if not filter_name(pod_name, name_filter) and not check_if_uuid(pod_name):
+                        continue
 
                 sandbox = docker_cli.containers.get(sandbox_id)
                 ip_ns_path = sandbox.attrs['NetworkSettings']['SandboxKey']
-
-                if not filter_name(pod_name, name_filter) and not check_if_uuid(pod_name):
-                    continue
 
                 if event['Action'] == 'start':
                     _LOG.debug("New container started {}".format(pod_name))

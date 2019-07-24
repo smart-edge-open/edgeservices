@@ -21,22 +21,32 @@ import (
 	"github.com/docker/docker/client"
 	libvirt "github.com/libvirt/libvirt-go"
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
+	"github.com/pkg/errors"
 	apppb "github.com/smartedgemec/appliance-ce/pkg/eva/internal_pb"
+	pb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
+	"google.golang.org/grpc"
 )
 
 // IPApplicationLookupServiceServerImpl describes
 // IP Application Lookup Service Server Implementation
-type IPApplicationLookupServiceServerImpl struct{}
+type IPApplicationLookupServiceServerImpl struct {
+	cfg *Config
+}
 
-// GetApplicationByIP retreives application ID of instance owning
+// GetApplicationByIP retrieves application ID of instance owning
 // IP address received in request
-func (*IPApplicationLookupServiceServerImpl) GetApplicationByIP(
+func (s *IPApplicationLookupServiceServerImpl) GetApplicationByIP(
 	ctx context.Context,
 	ipAppLookupInfo *apppb.IPApplicationLookupInfo) (
 	*apppb.IPApplicationLookupResult, error) {
 
-	log.Info("IPApplicationLookupService GetApplicationByIP: Request for: " +
+	log.Debug("IPApplicationLookupService GetApplicationByIP: Request for: " +
 		ipAppLookupInfo.GetIpAddress())
+
+	if s.cfg.KubernetesMode {
+		return getK8sContainerByIP(ctx, ipAppLookupInfo,
+			s.cfg.ControllerEndpoint)
+	}
 
 	var result apppb.IPApplicationLookupResult
 	name, err := lookupContainersByIP(ctx, ipAppLookupInfo.GetIpAddress())
@@ -53,6 +63,35 @@ func (*IPApplicationLookupServiceServerImpl) GetApplicationByIP(
 
 	result.AppID = name
 	return &result, err
+}
+
+func getK8sContainerByIP(ctx context.Context,
+	ipAppLookupInfo *apppb.IPApplicationLookupInfo, endpoint string) (
+	*apppb.IPApplicationLookupResult, error) {
+
+	conn, dialErr := grpc.DialContext(ctx, endpoint)
+	if dialErr != nil {
+		return nil, errors.Wrapf(dialErr,
+			"Failed to create a connection to %s", endpoint)
+	}
+
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			log.Errf("Failed to close connection: %v", closeErr)
+		}
+	}()
+
+	client := pb.NewControllerVirtualizationAgentClient(conn)
+	containerInfo, err := client.GetContainerByIP(ctx,
+		&pb.ContainerIP{Ip: ipAppLookupInfo.GetIpAddress()},
+		grpc.WaitForReady(true))
+
+	if err != nil {
+		return nil, errors.Wrap(dialErr,
+			"ControllerVirtualizationAgent/GetContainerByIP failed")
+	}
+
+	return &apppb.IPApplicationLookupResult{AppID: containerInfo.Id}, nil
 }
 
 func getDomMAC(d *libvirt.Domain) (string, error) {

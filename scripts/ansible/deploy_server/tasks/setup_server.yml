@@ -23,6 +23,5 @@
       msg: "Base path set to: {{ base_path }}"
 
   - include_tasks: ../../common/tasks/sets/setup_server.yml
-  - include_tasks: ../../common/tasks/os/add_hugetlbfs_to_fstab.yml  
   - include_tasks: ../../common/tasks/other/script_success.yml
   - include_tasks: ../../common/tasks/os/reboot_server_msg.yml

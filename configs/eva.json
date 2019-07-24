@@ -11,5 +11,6 @@
     "CertsDirectory": "certs",
     "KubernetesMode": false,
     "VhostSocket": "/var/lib/appliance/nts/qemu/usvhost-1",
-    "DownloadTimeout": "10m"
+    "DownloadTimeout": "10m",
+    "ControllerEndpoint": "1.2.3.4:8081"
 }

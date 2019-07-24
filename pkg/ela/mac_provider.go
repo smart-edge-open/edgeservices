@@ -111,14 +111,22 @@ func getNetNamespaceForContainer(ctx context.Context,
 			continue
 		}
 
-		name := c.Names[0][1:]
-		if name == appName {
-			cj, inspectErr := cli.ContainerInspect(ctx, c.ID)
-			if inspectErr != nil {
-				return "", errors.New("Failed to inspect the container: " +
-					inspectErr.Error())
-			}
+		cj, inspectErr := cli.ContainerInspect(ctx, c.ID)
+		if inspectErr != nil {
+			log.Debugf("Failed to inspect the container: " + inspectErr.Error())
+			continue
+		}
 
+		if c.Names[0][1:] == appName {
+			return cj.NetworkSettings.SandboxKey, nil
+		}
+
+		if cj.Config == nil {
+			continue
+		}
+
+		// Extracting SandboxKey for K8s pods
+		if appID, ok := cj.Config.Labels["app-id"]; ok && appID == appName {
 			return cj.NetworkSettings.SandboxKey, nil
 		}
 	}

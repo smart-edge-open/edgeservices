@@ -42,19 +42,20 @@ var (
 
 // Config describes a global eva JSON config
 type Config struct {
-	Endpoint          string        `json:"Endpoint"`
-	EndpointInternal  string        `json:"EndpointInternal"`
-	MaxCores          int32         `json:"MaxCores"`
-	MaxAppMem         int32         `json:"MaxAppMem"` /* this is in MB */
-	AppImageDir       string        `json:"AppImageDir"`
-	HeartbeatInterval util.Duration `json:"HeartbeatInterval"`
-	AppStartTimeout   util.Duration `json:"AppStartTimeout"`
-	AppStopTimeout    util.Duration `json:"AppStopTimeout"`
-	AppRestartTimeout util.Duration `json:"AppRestartTimeout"`
-	CertsDir          string        `json:"CertsDirectory"`
-	KubernetesMode    bool          `json:"KubernetesMode"`
-	VhostSocket       string        `json:"VhostSocket"`
-	DownloadTimeout   util.Duration `json:"DownloadTimeout"`
+	Endpoint           string        `json:"Endpoint"`
+	EndpointInternal   string        `json:"EndpointInternal"`
+	MaxCores           int32         `json:"MaxCores"`
+	MaxAppMem          int32         `json:"MaxAppMem"` /* this is in MB */
+	AppImageDir        string        `json:"AppImageDir"`
+	HeartbeatInterval  util.Duration `json:"HeartbeatInterval"`
+	AppStartTimeout    util.Duration `json:"AppStartTimeout"`
+	AppStopTimeout     util.Duration `json:"AppStopTimeout"`
+	AppRestartTimeout  util.Duration `json:"AppRestartTimeout"`
+	CertsDir           string        `json:"CertsDirectory"`
+	KubernetesMode     bool          `json:"KubernetesMode"`
+	VhostSocket        string        `json:"VhostSocket"`
+	DownloadTimeout    util.Duration `json:"DownloadTimeout"`
+	ControllerEndpoint string        `json:"ControllerEndpoint"`
 }
 
 // Wait for cancellation event and then stop the server from other goroutine
@@ -115,7 +116,7 @@ func runEva(ctx context.Context, cfg *Config) error {
 	}
 
 	serverApp := grpc.NewServer()
-	ipAppLookupService := IPApplicationLookupServiceServerImpl{}
+	ipAppLookupService := IPApplicationLookupServiceServerImpl{cfg}
 	apppb.RegisterIPApplicationLookupServiceServer(serverApp,
 		&ipAppLookupService)
 
