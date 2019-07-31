@@ -22,8 +22,8 @@ import (
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 
-	"github.com/smartedgemec/appliance-ce/pkg/ela"
-	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	"github.com/otcshare/edgenode/pkg/ela"
+	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 )
 
 var _ = Describe("gRPC InterfacePolicyService", func() {

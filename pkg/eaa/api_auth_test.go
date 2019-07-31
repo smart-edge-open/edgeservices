@@ -32,8 +32,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/smartedgemec/appliance-ce/pkg/auth"
-	"github.com/smartedgemec/appliance-ce/pkg/eaa"
+	"github.com/otcshare/edgenode/pkg/auth"
+	"github.com/otcshare/edgenode/pkg/eaa"
 )
 
 // PrepareCertificateRequestTemplate prepares a template

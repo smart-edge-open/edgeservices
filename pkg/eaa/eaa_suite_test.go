@@ -44,11 +44,11 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/gorilla/websocket"
-	"github.com/smartedgemec/appliance-ce/internal/authtest"
-	"github.com/smartedgemec/appliance-ce/pkg/eaa"
-	evapb "github.com/smartedgemec/appliance-ce/pkg/eva/internal_pb"
+	"github.com/otcshare/edgenode/internal/authtest"
+	"github.com/otcshare/edgenode/pkg/eaa"
+	evapb "github.com/otcshare/edgenode/pkg/eva/internal_pb"
 
-	"github.com/smartedgemec/log"
+	"github.com/otcshare/common/log"
 )
 
 // EaaCommonName Common Name that EAA uses for TLS connection

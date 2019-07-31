@@ -25,9 +25,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/smartedgemec/appliance-ce/pkg/config"
-	"github.com/smartedgemec/appliance-ce/pkg/util"
-	logger "github.com/smartedgemec/log"
+	"github.com/otcshare/edgenode/pkg/config"
+	"github.com/otcshare/edgenode/pkg/util"
+	logger "github.com/otcshare/common/log"
 )
 
 type services map[string]Service

@@ -22,8 +22,8 @@ import (
 	"path"
 
 	"github.com/pkg/errors"
-	pb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
-	logger "github.com/smartedgemec/log"
+	pb "github.com/otcshare/edgenode/pkg/eva/pb"
+	logger "github.com/otcshare/common/log"
 )
 
 var log = logger.DefaultLogger.WithField("meta", nil)

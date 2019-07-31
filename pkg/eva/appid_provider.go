@@ -22,8 +22,8 @@ import (
 	libvirt "github.com/libvirt/libvirt-go"
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
 	"github.com/pkg/errors"
-	apppb "github.com/smartedgemec/appliance-ce/pkg/eva/internal_pb"
-	pb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
+	apppb "github.com/otcshare/edgenode/pkg/eva/internal_pb"
+	pb "github.com/otcshare/edgenode/pkg/eva/pb"
 	"google.golang.org/grpc"
 )
 

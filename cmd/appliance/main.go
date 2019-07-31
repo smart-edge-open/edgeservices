@@ -26,16 +26,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/smartedgemec/appliance-ce/pkg/auth"
-	"github.com/smartedgemec/appliance-ce/pkg/config"
-	"github.com/smartedgemec/appliance-ce/pkg/util"
-	logger "github.com/smartedgemec/log"
+	"github.com/otcshare/edgenode/pkg/auth"
+	"github.com/otcshare/edgenode/pkg/config"
+	"github.com/otcshare/edgenode/pkg/util"
+	logger "github.com/otcshare/common/log"
 
 	// Imports required to run agents
-	"github.com/smartedgemec/appliance-ce/pkg/eaa"
-	"github.com/smartedgemec/appliance-ce/pkg/eda"
-	"github.com/smartedgemec/appliance-ce/pkg/ela"
-	"github.com/smartedgemec/appliance-ce/pkg/eva"
+	"github.com/otcshare/edgenode/pkg/eaa"
+	"github.com/otcshare/edgenode/pkg/eda"
+	"github.com/otcshare/edgenode/pkg/ela"
+	"github.com/otcshare/edgenode/pkg/eva"
 )
 
 // ServiceStartFunction is func typedef for starting service

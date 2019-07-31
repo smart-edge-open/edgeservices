@@ -21,9 +21,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/smartedgemec/appliance-ce/internal/authtest"
-	"github.com/smartedgemec/appliance-ce/pkg/ela"
-	"github.com/smartedgemec/log"
+	"github.com/otcshare/edgenode/internal/authtest"
+	"github.com/otcshare/edgenode/pkg/ela"
+	"github.com/otcshare/common/log"
 	"google.golang.org/grpc/credentials"
 
 	. "github.com/onsi/ginkgo"

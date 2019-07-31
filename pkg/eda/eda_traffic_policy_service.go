@@ -20,8 +20,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
-	"github.com/smartedgemec/appliance-ce/pkg/ela/ini"
-	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	"github.com/otcshare/edgenode/pkg/ela/ini"
+	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

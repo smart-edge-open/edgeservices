@@ -23,12 +23,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/smartedgemec/appliance-ce/internal/authtest"
-	"github.com/smartedgemec/appliance-ce/pkg/config"
-	"github.com/smartedgemec/appliance-ce/pkg/eva"
-	pb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
+	"github.com/otcshare/edgenode/internal/authtest"
+	"github.com/otcshare/edgenode/pkg/config"
+	"github.com/otcshare/edgenode/pkg/eva"
+	pb "github.com/otcshare/edgenode/pkg/eva/pb"
 
-	logger "github.com/smartedgemec/log"
+	logger "github.com/otcshare/common/log"
 	"log/syslog"
 
 	"google.golang.org/grpc"

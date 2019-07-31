@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
+	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

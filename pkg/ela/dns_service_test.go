@@ -20,11 +20,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	edgednspb "github.com/smartedgemec/appliance-ce/pkg/edgedns/pb"
-	"github.com/smartedgemec/appliance-ce/pkg/ela"
-	elapb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	edgednspb "github.com/otcshare/edgenode/pkg/edgedns/pb"
+	"github.com/otcshare/edgenode/pkg/ela"
+	elapb "github.com/otcshare/edgenode/pkg/ela/pb"
 
-	"github.com/smartedgemec/log"
+	"github.com/otcshare/common/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

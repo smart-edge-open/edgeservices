@@ -34,7 +34,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/gorilla/websocket"
-	"github.com/smartedgemec/appliance-ce/pkg/eaa"
+	"github.com/otcshare/edgenode/pkg/eaa"
 )
 
 const (
