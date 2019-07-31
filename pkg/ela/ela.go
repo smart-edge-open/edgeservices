@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 
 	"github.com/otcshare/edgenode/pkg/config"
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/common"
 
 	"github.com/pkg/errors"
 	"github.com/otcshare/edgenode/pkg/auth"

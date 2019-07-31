@@ -23,7 +23,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/otcshare/edgenode/pkg/edgedns/pb"
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

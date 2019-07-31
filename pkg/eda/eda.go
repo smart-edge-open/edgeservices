@@ -21,7 +21,7 @@ import (
 	"github.com/otcshare/edgenode/pkg/config"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/otcshare/edgenode/pkg/util"
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/common"
 	"google.golang.org/grpc"
 )
 

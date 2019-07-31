@@ -29,7 +29,7 @@ import (
 
 	"github.com/pkg/errors"
 	pb "github.com/otcshare/edgenode/pkg/auth/pb"
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/common"
 	"google.golang.org/grpc"
 	grpcCreds "google.golang.org/grpc/credentials"
 )

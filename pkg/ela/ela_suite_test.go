@@ -23,7 +23,7 @@ import (
 
 	"github.com/otcshare/edgenode/internal/authtest"
 	"github.com/otcshare/edgenode/pkg/ela"
-	"github.com/otcshare/common/log"
+	"github.com/otcshare/common"
 	"google.golang.org/grpc/credentials"
 
 	. "github.com/onsi/ginkgo"

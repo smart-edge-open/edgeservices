@@ -31,7 +31,7 @@ import (
 	apppb "github.com/otcshare/edgenode/pkg/eva/internal_pb"
 	evapb "github.com/otcshare/edgenode/pkg/eva/pb"
 	"github.com/otcshare/edgenode/pkg/util"
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

@@ -27,7 +27,7 @@ import (
 	"github.com/otcshare/edgenode/pkg/edgedns/grpc"
 	"github.com/otcshare/edgenode/pkg/edgedns/storage"
 	"github.com/otcshare/edgenode/pkg/util"
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/common"
 )
 
 var log = logger.DefaultLogger.WithField("main", nil)

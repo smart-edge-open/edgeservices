@@ -29,7 +29,7 @@ import (
 	"github.com/otcshare/edgenode/pkg/auth"
 	"github.com/otcshare/edgenode/pkg/config"
 	"github.com/otcshare/edgenode/pkg/util"
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/common"
 
 	// Imports required to run agents
 	"github.com/otcshare/edgenode/pkg/eaa"

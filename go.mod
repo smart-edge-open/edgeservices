@@ -40,7 +40,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2 // indirect
-	github.com/otcshare/common/log v0.0.0-20190701191526-b666051f6012
+	github.com/otcshare/common v0.0.0-20190701191526-b666051f6012
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
 	github.com/stretchr/testify v1.3.0 // indirect
 	go.etcd.io/bbolt v1.3.2
