@@ -21,8 +21,8 @@ import (
 	. "github.com/onsi/gomega"
 	"io/ioutil"
 
-	. "github.com/smartedgemec/appliance-ce/pkg/ela/ini"
-	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	. "github.com/otcshare/edgenode/pkg/ela/ini"
+	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 )
 
 var _ = Describe("NtsConfig", func() {

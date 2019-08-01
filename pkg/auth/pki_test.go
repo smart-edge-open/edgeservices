@@ -33,7 +33,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/smartedgemec/appliance-ce/pkg/auth"
+	"github.com/otcshare/edgenode/pkg/auth"
 )
 
 func TestPKI(t *testing.T) {

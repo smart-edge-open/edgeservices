@@ -23,7 +23,7 @@ set -e     # every single step failure causes script to stop immediatelly
 
 # Example .netrc file:
 # machine github.com
-# username <your_github_username>
+# login <your_github_username>
 # password <token_generated_on_github_not_your_github_password>
 
 # DO NOT MODIFY
@@ -44,27 +44,22 @@ release_package_name='openness_release_package.tgz'
 #################################################
 
 # edgenode
-git clone -b master https://github.com/smartedgemec/appliance-ce.git "$download_dir/edgenode"
+git clone -b master https://github.com/otcshare/edgenode.git "$download_dir/edgenode"
 
-# edgeapps - a subset of edgenode (appliace-ce repo)
-mkdir "$download_dir/edgeapps"
-mkdir -p "$download_dir/edgeapps/scripts/ansible/examples"
-cp -r "$download_dir/edgenode/scripts/ansible/examples/setup_baidu_openedge" "$download_dir/edgeapps/scripts/ansible/examples/"
-cp "$download_dir/edgenode/LICENSE" "$download_dir/edgeapps/"
-mkdir "$download_dir/edgeapps/build"
-cp -r "$download_dir/edgenode/build/openvino" "$download_dir/edgeapps/build/"
+# edgeapps
+git clone -b master https://github.com/otcshare/edgeapps.git "$download_dir/edgeapps"
 
 # edgecontroller
-git clone -b master https://github.com/smartedgemec/controller-ce.git "$download_dir/edgecontroller"
+git clone -b master https://github.com/otcshare/edgecontroller.git "$download_dir/edgecontroller"
 
 # doc
-git clone -b master https://github.com/smartedgemec/doc.git "$download_dir/spec"
+git clone -b master https://github.com/otcshare/specs.git "$download_dir/specs"
 
 # epcforedge
-git clone -b master https://github.com/smartedgemec/epc-oam.git "$download_dir/epcforedge"
+git clone -b master https://github.com/otcshare/epcforedge.git "$download_dir/epcforedge"
 
 # common
-git clone -b master https://github.com/smartedgemec/log.git "$download_dir/common"
+git clone -b master https://github.com/otcshare/common.git "$download_dir/common"
 
 #################################################
 # REMOVE UNWANTED FOLDERS/FILES FROM EACH REPO
@@ -77,9 +72,6 @@ done
 
 # Remove folder we do not want to have in output release package
 rm -rf "$download_dir/edgenode/scripts/release"
-
-rm -rf "$download_dir/edgenode/scripts/ansible/examples/setup_baidu_openedge"
-rm -rf "$download_dir/edgenode/build/openvino"
 
 #################################################
 # CUSTOMIZATIONS FOR EACH DOWNLOADED REPO
@@ -104,12 +96,11 @@ fi
 export GOPATH=${go_cached_modules_path}
 export PATH=$root_dir/go/bin:$PATH
 export GOROOT=$root_dir/go
-( GOPATH=${go_cached_modules_path} go get github.com/smartedgemec/log )
+( GOPATH=${go_cached_modules_path} go get github.com/otcshare/common )
 
-# Store them in a .tgz package (to be decompressed in extract script)
+# Store cached go files in a .tgz package (to be decompressed in extract script) in edgecontroller subfolder
 [[ -f $go_cached_modules_path/cached-modules.tgz ]] && rm -f $go_cached_modules_path/cached-modules.tgz
-(cd $go_cached_modules_path && tar cvfz cached-modules.tgz pkg/mod/cache/download/github.com/smartedgemec )
-# Move file to log repo (common folder on disk)
+(cd $go_cached_modules_path && tar cvfz cached-modules.tgz pkg/mod/cache/download/github.com/otcshare )
 mv $go_cached_modules_path/cached-modules.tgz $root_dir/$download_dir/edgecontroller/
 
 #################################################

@@ -25,9 +25,9 @@ import (
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 
-	"github.com/smartedgemec/appliance-ce/pkg/edgedns"
-	"github.com/smartedgemec/appliance-ce/pkg/edgedns/grpc"
-	"github.com/smartedgemec/appliance-ce/pkg/edgedns/storage"
+	"github.com/otcshare/edgenode/pkg/edgedns"
+	"github.com/otcshare/edgenode/pkg/edgedns/grpc"
+	"github.com/otcshare/edgenode/pkg/edgedns/storage"
 )
 
 var dnsServer *edgedns.Responder

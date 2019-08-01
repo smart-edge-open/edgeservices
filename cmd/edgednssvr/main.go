@@ -23,11 +23,11 @@ import (
 	"syscall"
 	"time"
 
-	edgedns "github.com/smartedgemec/appliance-ce/pkg/edgedns"
-	"github.com/smartedgemec/appliance-ce/pkg/edgedns/grpc"
-	"github.com/smartedgemec/appliance-ce/pkg/edgedns/storage"
-	"github.com/smartedgemec/appliance-ce/pkg/util"
-	logger "github.com/smartedgemec/log"
+	edgedns "github.com/otcshare/edgenode/pkg/edgedns"
+	"github.com/otcshare/edgenode/pkg/edgedns/grpc"
+	"github.com/otcshare/edgenode/pkg/edgedns/storage"
+	"github.com/otcshare/edgenode/pkg/util"
+	logger "github.com/otcshare/common"
 )
 
 var log = logger.DefaultLogger.WithField("main", nil)

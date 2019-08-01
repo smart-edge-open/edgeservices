@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
-	"github.com/smartedgemec/appliance-ce/pkg/edgedns/storage"
+	"github.com/otcshare/edgenode/pkg/edgedns/storage"
 )
 
 var _ = Describe("BoltDB Storage", func() {

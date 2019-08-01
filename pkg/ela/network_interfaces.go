@@ -30,8 +30,8 @@ import (
 	"github.com/kata-containers/runtime/virtcontainers/pkg/nsenter"
 
 	"github.com/pkg/errors"
-	"github.com/smartedgemec/appliance-ce/pkg/ela/ini"
-	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	"github.com/otcshare/edgenode/pkg/ela/ini"
+	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 )
 
 // NetworkDevice contains data for network device

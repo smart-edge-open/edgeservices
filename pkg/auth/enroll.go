@@ -28,8 +28,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/smartedgemec/appliance-ce/pkg/auth/pb"
-	logger "github.com/smartedgemec/log"
+	pb "github.com/otcshare/edgenode/pkg/auth/pb"
+	logger "github.com/otcshare/common"
 	"google.golang.org/grpc"
 	grpcCreds "google.golang.org/grpc/credentials"
 )

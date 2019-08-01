@@ -22,13 +22,13 @@ import (
 	"net"
 	"path/filepath"
 
-	"github.com/smartedgemec/appliance-ce/pkg/config"
-	logger "github.com/smartedgemec/log"
+	"github.com/otcshare/edgenode/pkg/config"
+	logger "github.com/otcshare/common"
 
 	"github.com/pkg/errors"
-	"github.com/smartedgemec/appliance-ce/pkg/auth"
-	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
-	"github.com/smartedgemec/appliance-ce/pkg/util"
+	"github.com/otcshare/edgenode/pkg/auth"
+	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	"github.com/otcshare/edgenode/pkg/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

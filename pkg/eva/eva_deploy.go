@@ -37,8 +37,8 @@ import (
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
 
 	"github.com/pkg/errors"
-	metadata "github.com/smartedgemec/appliance-ce/pkg/app-metadata"
-	pb "github.com/smartedgemec/appliance-ce/pkg/eva/pb"
+	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
+	pb "github.com/otcshare/edgenode/pkg/eva/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

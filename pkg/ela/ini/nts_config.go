@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	pb "github.com/smartedgemec/appliance-ce/pkg/ela/pb"
+	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 
 	"gopkg.in/ini.v1"
 )

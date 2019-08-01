@@ -30,7 +30,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/smartedgemec/appliance-ce/pkg/auth"
+	"github.com/otcshare/edgenode/pkg/auth"
 
 	"github.com/pkg/errors"
 )
