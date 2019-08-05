@@ -24,14 +24,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	logger "github.com/otcshare/common"
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 	"github.com/otcshare/edgenode/pkg/auth"
 	"github.com/otcshare/edgenode/pkg/config"
 	apppb "github.com/otcshare/edgenode/pkg/eva/internal_pb"
 	evapb "github.com/otcshare/edgenode/pkg/eva/pb"
 	"github.com/otcshare/edgenode/pkg/util"
-	logger "github.com/otcshare/common"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -66,9 +66,15 @@ func waitForCancel(ctx context.Context, server *grpc.Server) {
 }
 
 func runEva(ctx context.Context, cfg *Config) error {
-	creds, err := prepareCreds(cfg)
+	srvCreds, err := prepareServerCreds(cfg)
 	if err != nil {
-		log.Errf("Failed to prepare credentials: %v", err)
+		log.Errf("Failed to prepare server credentials: %v", err)
+		return err
+	}
+
+	clientCreds, err := prepareClientCreds(cfg)
+	if err != nil {
+		log.Errf("Failed to prepare client credentials: %v", err)
 		return err
 	}
 
@@ -78,7 +84,7 @@ func runEva(ctx context.Context, cfg *Config) error {
 		return err
 	}
 
-	server := grpc.NewServer(grpc.Creds(creds))
+	server := grpc.NewServer(grpc.Creds(srvCreds))
 
 	/* Register our interfaces. */
 	metadata := metadata.AppMetadata{RootPath: cfg.AppImageDir}
@@ -116,7 +122,7 @@ func runEva(ctx context.Context, cfg *Config) error {
 	}
 
 	serverApp := grpc.NewServer()
-	ipAppLookupService := IPApplicationLookupServiceServerImpl{cfg}
+	ipAppLookupService := IPApplicationLookupServiceServerImpl{cfg, clientCreds}
 	apppb.RegisterIPApplicationLookupServiceServer(serverApp,
 		&ipAppLookupService)
 
@@ -141,30 +147,56 @@ func runEva(ctx context.Context, cfg *Config) error {
 	}
 }
 
-func prepareCreds(cfg *Config) (credentials.TransportCredentials, error) {
+func getNodeCerts(cfg *Config) (*tls.Certificate, *x509.CertPool, error) {
 	crtPath := filepath.Join(cfg.CertsDir, auth.CertName)
 	keyPath := filepath.Join(cfg.CertsDir, auth.KeyName)
 	caPath := filepath.Join(cfg.CertsDir, auth.CAPoolName)
 
-	srvCert, err := tls.LoadX509KeyPair(crtPath, keyPath)
+	x509KeyPair, err := tls.LoadX509KeyPair(crtPath, keyPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to load server key pair")
-	}
-	certPool := x509.NewCertPool()
-	ca, err := ioutil.ReadFile(filepath.Clean(caPath))
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to read ca certificates")
+		return nil, nil,
+			errors.Wrap(err, "failed to load x509 key pair")
 	}
 
-	if ok := certPool.AppendCertsFromPEM(ca); !ok {
-		return nil,
+	ca, err := ioutil.ReadFile(filepath.Clean(caPath))
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to load ca")
+	}
+
+	pool := x509.NewCertPool()
+	if ok := pool.AppendCertsFromPEM(ca); !ok {
+		return nil, nil,
 			errors.New("Failed to append CA certs from " + caPath)
+	}
+
+	return &x509KeyPair, pool, nil
+}
+
+func prepareClientCreds(cfg *Config) (credentials.TransportCredentials,
+	error) {
+
+	cert, pool, err := getNodeCerts(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load node certs")
+	}
+
+	return credentials.NewTLS(&tls.Config{
+		ServerName:   auth.ControllerServerName,
+		Certificates: []tls.Certificate{*cert},
+		RootCAs:      pool,
+	}), nil
+}
+
+func prepareServerCreds(cfg *Config) (credentials.TransportCredentials, error) {
+	cert, pool, err := getNodeCerts(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load node certs")
 	}
 
 	creds := credentials.NewTLS(&tls.Config{
 		ClientAuth:   tls.RequireAndVerifyClientCert,
-		Certificates: []tls.Certificate{srvCert},
-		ClientCAs:    certPool,
+		Certificates: []tls.Certificate{*cert},
+		ClientCAs:    pool,
 	})
 	return creds, nil
 }

@@ -21,16 +21,18 @@ import (
 	"github.com/docker/docker/client"
 	libvirt "github.com/libvirt/libvirt-go"
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
-	"github.com/pkg/errors"
 	apppb "github.com/otcshare/edgenode/pkg/eva/internal_pb"
 	pb "github.com/otcshare/edgenode/pkg/eva/pb"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 // IPApplicationLookupServiceServerImpl describes
 // IP Application Lookup Service Server Implementation
 type IPApplicationLookupServiceServerImpl struct {
-	cfg *Config
+	cfg                  *Config
+	transportCredentials credentials.TransportCredentials
 }
 
 // GetApplicationByIP retrieves application ID of instance owning
@@ -44,7 +46,7 @@ func (s *IPApplicationLookupServiceServerImpl) GetApplicationByIP(
 		ipAppLookupInfo.GetIpAddress())
 
 	if s.cfg.KubernetesMode {
-		return getK8sContainerByIP(ctx, ipAppLookupInfo,
+		return s.getK8sContainerByIP(ctx, ipAppLookupInfo,
 			s.cfg.ControllerEndpoint)
 	}
 
@@ -65,11 +67,17 @@ func (s *IPApplicationLookupServiceServerImpl) GetApplicationByIP(
 	return &result, err
 }
 
-func getK8sContainerByIP(ctx context.Context,
-	ipAppLookupInfo *apppb.IPApplicationLookupInfo, endpoint string) (
-	*apppb.IPApplicationLookupResult, error) {
+func (s *IPApplicationLookupServiceServerImpl) getK8sContainerByIP(
+	ctx context.Context, ipAppLookupInfo *apppb.IPApplicationLookupInfo,
+	endpoint string) (*apppb.IPApplicationLookupResult, error) {
 
-	conn, dialErr := grpc.DialContext(ctx, endpoint)
+	if s.transportCredentials == nil {
+		return nil, errors.New(
+			"getK8sContainerByIP: transport credentials not set")
+	}
+
+	conn, dialErr := grpc.DialContext(ctx, endpoint,
+		grpc.WithTransportCredentials(s.transportCredentials))
 	if dialErr != nil {
 		return nil, errors.Wrapf(dialErr,
 			"Failed to create a connection to %s", endpoint)
