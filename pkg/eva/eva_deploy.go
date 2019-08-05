@@ -523,7 +523,7 @@ func (s *DeploySrv) Redeploy(ctx context.Context,
 	}
 
 	// Check new metadata (deploy preconditions)
-	dapp = s.meta.NewDeployedApp(metadata.Container, app)
+	dapp = s.meta.NewDeployedApp(dapp.Type, app)
 	if err = s.checkDeployPreconditions(dapp); err != nil {
 		return nil, errors.Wrap(err, "preconditions unfulfilled")
 	}
