@@ -64,6 +64,53 @@ type DeployedApp struct {
 	Path       string
 }
 
+// IsChangeAllowed checks if transition from current state to desired is allowed
+func (a *DeployedApp) IsChangeAllowed(
+	targetStatus pb.LifecycleStatus_Status) error { //nolint:interfacer
+
+	switch a.App.Status {
+	case pb.LifecycleStatus_READY:
+		switch targetStatus {
+		case pb.LifecycleStatus_STARTING,
+			pb.LifecycleStatus_UNKNOWN:
+			return nil
+		}
+
+	case pb.LifecycleStatus_RUNNING:
+		switch targetStatus {
+		case pb.LifecycleStatus_STARTING,
+			pb.LifecycleStatus_STOPPING,
+			pb.LifecycleStatus_UNKNOWN:
+			return nil
+		}
+
+	case pb.LifecycleStatus_ERROR:
+		switch targetStatus {
+		case pb.LifecycleStatus_STARTING,
+			pb.LifecycleStatus_UNKNOWN:
+			return nil
+		}
+
+	case pb.LifecycleStatus_STOPPED:
+		switch targetStatus {
+		case pb.LifecycleStatus_STOPPING,
+			pb.LifecycleStatus_STARTING,
+			pb.LifecycleStatus_UNKNOWN:
+			return nil
+		}
+
+	// Transition from non-existent application
+	case pb.LifecycleStatus_UNKNOWN:
+		switch targetStatus {
+		case pb.LifecycleStatus_DEPLOYING:
+			return nil
+		}
+	}
+
+	return errors.Errorf("transition from %s to %s is not allowed",
+		a.App.Status.String(), targetStatus.String())
+}
+
 func (m *AppMetadata) appPath(appID string) string {
 	return path.Join(m.RootPath, appID)
 }
@@ -87,6 +134,7 @@ func (m *AppMetadata) NewDeployedApp(appType AppType,
 	a := new(DeployedApp)
 	a.Type = appType
 	a.App = app
+	a.App.Status = pb.LifecycleStatus_UNKNOWN
 	a.IsDeployed = false
 	a.Path = m.appPath(app.Id)
 

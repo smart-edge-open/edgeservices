@@ -53,6 +53,15 @@ type ApplicationLifecycleServiceHandler interface {
 	StartHandler(context.Context, time.Duration) error
 	StopHandler(context.Context, time.Duration) error
 	RestartHandler(context.Context, time.Duration) error
+	getMetadata() *metadata.DeployedApp
+}
+
+func (c *ContainerHandler) getMetadata() *metadata.DeployedApp {
+	return c.meta
+}
+
+func (v *VMHandler) getMetadata() *metadata.DeployedApp {
+	return v.meta
 }
 
 // UpdateStatus updates a status
@@ -318,6 +327,11 @@ func (s *ApplicationLifecycleServiceServer) Start(ctx context.Context,
 				l.Id)
 	}
 
+	metadata := d.getMetadata()
+	if err = metadata.IsChangeAllowed(pb.LifecycleStatus_STARTING); err != nil {
+		return nil, err
+	}
+
 	if err = d.UpdateStatus(pb.LifecycleStatus_STARTING); err != nil {
 		return nil, errors.Wrapf(err, "Failed to update status for appID: %s",
 			l.Id)
@@ -354,6 +368,11 @@ func (s *ApplicationLifecycleServiceServer) Stop(ctx context.Context,
 				l.Id)
 	}
 
+	metadata := d.getMetadata()
+	if err = metadata.IsChangeAllowed(pb.LifecycleStatus_STOPPING); err != nil {
+		return nil, err
+	}
+
 	if err = d.UpdateStatus(pb.LifecycleStatus_STOPPING); err != nil {
 		return nil, errors.Wrapf(err, "Failed to update status for appID: %s",
 			l.Id)
@@ -388,6 +407,11 @@ func (s *ApplicationLifecycleServiceServer) Restart(ctx context.Context,
 			errors.Wrapf(err,
 				"failed to identify type of application with ID: %s",
 				l.Id)
+	}
+
+	metadata := d.getMetadata()
+	if err = metadata.IsChangeAllowed(pb.LifecycleStatus_STARTING); err != nil {
+		return nil, err
 	}
 
 	if err = d.UpdateStatus(pb.LifecycleStatus_STARTING); err != nil {

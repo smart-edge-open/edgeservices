@@ -27,7 +27,6 @@ import (
 	"math"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -55,15 +54,23 @@ type DeploySrv struct {
 var httpMatcher = regexp.MustCompile("^http://.")
 var httpsMatcher = regexp.MustCompile("^https://.")
 
-func downloadImage(url string, target string, timeout time.Duration) error {
+func downloadImage(ctx context.Context, url string,
+	target string) error {
+
 	var input io.Reader
 
 	if httpMatcher.MatchString(url) {
 		return fmt.Errorf("HTTP image path unsupported as insecure, " +
 			"please use HTTPS")
 	} else if httpsMatcher.MatchString(url) {
-		client := &http.Client{Timeout: timeout}
-		resp, err := client.Get(url)
+		request, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return err
+		}
+		request = request.WithContext(ctx)
+
+		client := http.DefaultClient
+		resp, err := client.Do(request)
 		if err != nil {
 			return err
 		}
@@ -107,21 +114,39 @@ func downloadImage(url string, target string, timeout time.Duration) error {
 	return err
 }
 
-func (s *DeploySrv) sanitizeApplication(app *pb.Application) error {
+func (s *DeploySrv) checkDeployPreconditions(dapp *metadata.DeployedApp) error {
 	c := s.cfg
 
-	if app.Cores <= 0 {
-		return fmt.Errorf("Cores value incorrect: %v", app.Cores)
-	} else if app.Cores > c.MaxCores {
-		return fmt.Errorf("Cores value over limit: %v > %v",
-			app.Cores, c.MaxCores)
+	app2, err := s.meta.Load(dapp.App.Id)
+	if err == nil && app2.IsDeployed {
+		return status.Errorf(codes.AlreadyExists, "app %s already deployed",
+			dapp.App.Id)
 	}
 
-	if app.Memory <= 0 {
-		return fmt.Errorf("Memory value incorrect: %v", app.Memory)
-	} else if app.Memory > c.MaxAppMem {
+	if dapp.App.Cores <= 0 {
+		return fmt.Errorf("Cores value incorrect: %v", dapp.App.Cores)
+	} else if dapp.App.Cores > c.MaxCores {
+		return fmt.Errorf("Cores value over limit: %v > %v",
+			dapp.App.Cores, c.MaxCores)
+	}
+
+	if dapp.App.Memory <= 0 {
+		return fmt.Errorf("Memory value incorrect: %v", dapp.App.Memory)
+	} else if dapp.App.Memory > c.MaxAppMem {
 		return fmt.Errorf("Memory value over limit: %v > %v",
-			app.Memory, c.MaxAppMem)
+			dapp.App.Memory, c.MaxAppMem)
+	}
+
+	switch uri := dapp.App.Source.(type) {
+	case *pb.Application_HttpUri:
+		if httpMatcher.MatchString(uri.HttpUri.HttpUri) {
+			return fmt.Errorf("HTTP image path unsupported as insecure, " +
+				"please use HTTPS")
+		}
+		dapp.URL = uri.HttpUri.HttpUri
+		dapp.App.Source = nil
+	default:
+		return status.Errorf(codes.Unimplemented, "unknown app source")
 	}
 
 	return nil
@@ -130,35 +155,15 @@ func (s *DeploySrv) sanitizeApplication(app *pb.Application) error {
 func (s *DeploySrv) deployCommon(ctx context.Context,
 	dapp *metadata.DeployedApp) error {
 
-	if err := s.sanitizeApplication(dapp.App); err != nil {
-		return err
-	}
-	app2, err := s.meta.Load(dapp.App.Id)
-	if err == nil && app2.IsDeployed {
-		return status.Errorf(codes.AlreadyExists, "app %s already deployed",
-			dapp.App.Id)
-	}
 	dapp.App.Status = pb.LifecycleStatus_DEPLOYING
 
-	// TODO: either fix unmarshall of dapp.App.Source
-	// or store the url directly in the DeployedApp structure
-	source := dapp.App.Source
-	dapp.App.Source = nil // reset source as can't unmarshall this
-
 	// Initial save - creates the app directory if needed
-	if err = dapp.Save(false); err != nil {
+	if err := dapp.Save(false); err != nil {
 		return errors.Wrap(err, "metadata save failed")
 	}
 
 	/* Now download the image. */
-	switch uri := source.(type) {
-	case *pb.Application_HttpUri:
-		dapp.URL = uri.HttpUri.HttpUri
-		return downloadImage(dapp.URL, dapp.ImageFilePath(),
-			s.cfg.DownloadTimeout.Duration)
-	default:
-		return status.Errorf(codes.Unimplemented, "unknown app source")
-	}
+	return downloadImage(ctx, dapp.URL, dapp.ImageFilePath())
 }
 
 // This function uses named return variables
@@ -242,61 +247,93 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	pbapp *pb.Application) (*empty.Empty, error) {
 
 	dapp := s.meta.NewDeployedApp(metadata.Container, pbapp)
+
+	if err := s.checkDeployPreconditions(dapp); err != nil {
+		return nil, errors.Wrap(err, "preconditions unfulfilled")
+	}
+
+	if err := dapp.IsChangeAllowed(pb.LifecycleStatus_DEPLOYING); err != nil {
+		return nil, err
+	}
+
+	go func() {
+		deployCtx, cancel := context.WithTimeout(context.Background(),
+			s.cfg.DownloadTimeout.Duration)
+		defer cancel()
+		s.syncDeployContainer(deployCtx, dapp)
+	}()
+
+	return &empty.Empty{}, nil
+}
+
+func (s *DeploySrv) syncDeployContainer(ctx context.Context,
+	dapp *metadata.DeployedApp) {
+
+	defer func() {
+		if err := dapp.Save(true); err != nil {
+			log.Errf("failed to save state of %v: %+v", dapp.App.Id, err)
+		}
+	}()
+
 	if err := s.deployCommon(ctx, dapp); err != nil {
-		return nil, errors.Wrap(err, "deployCommon() failed")
+		dapp.App.Status = pb.LifecycleStatus_ERROR
+		log.Errf("deployCommon failed: %s", err.Error())
+		return
 	}
 
 	/* Now call the docker API. */
 	docker, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create a docker client")
+		dapp.App.Status = pb.LifecycleStatus_ERROR
+		log.Errf("failed to create a docker client: %s", err.Error())
+		return
 	}
 
 	// Load the image first
 	if err = loadImage(ctx, dapp, docker); err != nil {
-		return nil, err
+		dapp.App.Status = pb.LifecycleStatus_ERROR
+		log.Errf("failed to load docker image: %s", err.Error())
+		return
 	}
 
-	defer func() { /* We're far enough to warrant metadata update. */
-		if err = dapp.Save(true); err != nil {
-			log.Errf("Failed to save initial state of %v: %+v", pbapp.Id, err)
-		}
-	}()
 	// Status will be error unless explicitly reset
 	dapp.App.Status = pb.LifecycleStatus_ERROR
 
 	if s.cfg.KubernetesMode { // this mode requires us to only upload the image
 		if err = dapp.SetDeployed(""); err != nil {
-			return nil, errors.Wrapf(err, "SetDeployed(%v) failed", pbapp.Id)
+			log.Errf("SetDeployed() failed: %+v", err)
+			return
 		}
 		dapp.App.Status = pb.LifecycleStatus_READY
-
-		return &empty.Empty{}, nil // success
+		return
 	}
 
 	// Now create a container out of the image
 	resources := container.Resources{
-		Memory:    int64(pbapp.Memory) * 1024 * 1024,
-		CPUShares: int64(pbapp.Cores),
+		Memory:    int64(dapp.App.Memory) * 1024 * 1024,
+		CPUShares: int64(dapp.App.Cores),
 	}
 	respCreate, err := docker.ContainerCreate(ctx,
-		&container.Config{Image: pbapp.Id},
+		&container.Config{Image: dapp.App.Id},
 		&container.HostConfig{
 			Resources: resources,
 			CapAdd:    []string{"NET_ADMIN"}},
-		nil, pbapp.Id)
+		nil, dapp.App.Id)
+
 	if err != nil {
-		return nil, errors.Wrap(err, "ContinerCreate failed")
+		log.Errf("docker.ContainerCreate failed: %+v", err)
+		return
 	}
+
 	log.Infof("Created a container with id %v", respCreate.ID)
 
 	// Deployment succeeded, update our metadata
 	if err = dapp.SetDeployed(respCreate.ID); err != nil {
-		return nil, errors.Wrapf(err, "SetDeployed(%v) failed", pbapp.Id)
+		log.Errf("SetDeployed(%v) failed: %+v", dapp.App.Id, err)
+		return
 	}
-	dapp.App.Status = pb.LifecycleStatus_READY
 
-	return &empty.Empty{}, nil
+	dapp.App.Status = pb.LifecycleStatus_READY
 }
 
 // DeployVM deploys VM
@@ -304,15 +341,47 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	pbapp *pb.Application) (*empty.Empty, error) {
 
 	dapp := s.meta.NewDeployedApp(metadata.VM, pbapp)
+	if err := s.checkDeployPreconditions(dapp); err != nil {
+		return nil, errors.Wrap(err, "preconditions unfulfilled")
+	}
+
+	if err := dapp.IsChangeAllowed(pb.LifecycleStatus_DEPLOYING); err != nil {
+		return nil, err
+	}
+
+	go func() {
+		deployCtx, cancel := context.WithTimeout(context.Background(),
+			s.cfg.DownloadTimeout.Duration)
+		defer cancel()
+		s.syncDeployVM(deployCtx, dapp)
+	}()
+
+	return &empty.Empty{}, nil
+}
+
+func (s *DeploySrv) syncDeployVM(ctx context.Context,
+	dapp *metadata.DeployedApp) {
+
+	defer func() {
+		if err := dapp.Save(true); err != nil {
+			log.Errf("failed to save state of %v: %+v", dapp.App.Id, err)
+		}
+	}()
+
 	if err := s.deployCommon(ctx, dapp); err != nil {
-		return nil, errors.Wrap(err, "deployCommon() failed")
+		dapp.App.Status = pb.LifecycleStatus_ERROR
+		log.Errf("deployCommon failed: %s", err.Error())
+		return
 	}
 
 	/* Now call the libvirt API. */
 	conn, err := libvirt.NewConnect("qemu:///system")
 	if err != nil {
-		return nil, err
+		dapp.App.Status = pb.LifecycleStatus_ERROR
+		log.Errf("failed to create a libvirt client: %s", err.Error())
+		return
 	}
+
 	defer func() {
 		if c, err1 := conn.Close(); err1 != nil || c < 0 {
 			log.Errf("Failed to close libvirt connection: code: %v, error: %v",
@@ -321,9 +390,9 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	}()
 
 	// Round up to next 2 MiB boundary
-	memRounded := math.Ceil(float64(pbapp.Memory)/2) * 2
+	memRounded := math.Ceil(float64(dapp.App.Memory)/2) * 2
 	domcfg := libvirtxml.Domain{
-		Type: "kvm", Name: pbapp.Id,
+		Type: "kvm", Name: dapp.App.Id,
 		OS: &libvirtxml.DomainOS{
 			Type: &libvirtxml.DomainOSType{Arch: "x86_64", Type: "hvm"},
 		},
@@ -334,7 +403,7 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 				Cell: []libvirtxml.DomainCell{
 					{
 						ID:        new(uint), // it's initialized to 0
-						CPUs:      fmt.Sprintf("0-%v", pbapp.Cores-1),
+						CPUs:      fmt.Sprintf("0-%v", dapp.App.Cores-1),
 						Memory:    fmt.Sprintf("%v", memRounded),
 						Unit:      "MiB",
 						MemAccess: "shared",
@@ -342,7 +411,7 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 				},
 			},
 		},
-		VCPU: &libvirtxml.DomainVCPU{Value: int(pbapp.Cores)},
+		VCPU: &libvirtxml.DomainVCPU{Value: int(dapp.App.Cores)},
 
 		MemoryBacking: &libvirtxml.DomainMemoryBacking{
 			MemoryHugePages: &libvirtxml.DomainMemoryHugepages{
@@ -392,54 +461,79 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 
 	xmldoc, err := domcfg.Marshal()
 	if err != nil {
-		return nil, err
+		dapp.App.Status = pb.LifecycleStatus_ERROR
+		log.Errf("failed to marshal a domain: %s", err.Error())
+		return
 	}
-	log.Debugf("XML doc for %v:\n%v", pbapp.Id, xmldoc)
+	log.Debugf("XML doc for %v:\n%v", dapp.App.Id, xmldoc)
 
 	dom, err := conn.DomainDefineXML(xmldoc)
 	if err != nil {
-		return nil, err
+		dapp.App.Status = pb.LifecycleStatus_ERROR
+		log.Errf("failed to define a domain: %s", err.Error())
+		return
 	}
 	defer func() { _ = dom.Free() }()
+
 	name, err := dom.GetName()
 	if err == nil {
 		log.Infof("VM '%v' created", name)
 	} else {
-		log.Errf("Failed to get VM name of '%v'", pbapp.Id)
+		log.Errf("failed to get VM name of '%v'", dapp.App.Id)
 	}
 
-	if err = dapp.SetDeployed(pbapp.Id); err != nil {
-		return nil, err
+	if err = dapp.SetDeployed(dapp.App.Id); err != nil {
+		log.Errf("SetDeployed(%v) failed: %+v", dapp.App.Id, err)
+		return
 	}
+
 	dapp.App.Status = pb.LifecycleStatus_READY
-	if err = dapp.Save(true); err != nil {
-		return nil, err
-	}
-
-	return &empty.Empty{}, nil
 }
 
-// Redeploy trigger the deployment again
+func (s *DeploySrv) syncRedeploy(ctx context.Context,
+	dapp *metadata.DeployedApp) {
+
+	if err := s.syncUndeploy(ctx, dapp); err != nil {
+		log.Errf("failed to undeploy %v", dapp.App.Id)
+		return
+	}
+
+	switch dapp.Type {
+	case metadata.Container:
+		s.syncDeployContainer(ctx, dapp)
+	case metadata.VM:
+		s.syncDeployVM(ctx, dapp)
+	default:
+		log.Errf("redeploy for unknown app type: %v", dapp.Type)
+	}
+}
+
+// Redeploy asynchronously undeploys and deploys application again
 func (s *DeploySrv) Redeploy(ctx context.Context,
 	app *pb.Application) (*empty.Empty, error) {
 
+	// Check currently existing metadata (undeploy preconditions)
 	dapp, err := s.meta.Load(app.Id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Application %v not found", app.Id)
 	}
 
-	if _, err = s.Undeploy(ctx, &pb.ApplicationID{Id: app.Id}); err != nil {
-		return nil, errors.Wrapf(err, "Could not undeploy %v", app.Id)
+	if err = dapp.IsChangeAllowed(pb.LifecycleStatus_UNKNOWN); err != nil {
+		return nil, err
 	}
 
-	switch dapp.Type {
-	case metadata.Container:
-		_, err = s.DeployContainer(ctx, app)
-	case metadata.VM:
-		_, err = s.DeployVM(ctx, app)
-	default:
-		err = status.Errorf(codes.Unimplemented, "not implemented app type")
+	// Check new metadata (deploy preconditions)
+	dapp = s.meta.NewDeployedApp(dapp.Type, app)
+	if err = s.checkDeployPreconditions(dapp); err != nil {
+		return nil, errors.Wrap(err, "preconditions unfulfilled")
 	}
+
+	go func() {
+		redeployCtx, cancel := context.WithTimeout(context.Background(),
+			s.cfg.DownloadTimeout.Duration)
+		defer cancel()
+		s.syncRedeploy(redeployCtx, dapp)
+	}()
 
 	return &empty.Empty{}, err
 }
@@ -515,50 +609,72 @@ func libvirtUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
 	return dapp.SetUndeployed()
 }
 
-// Undeploy do the removel of deployment
-func (s *DeploySrv) Undeploy(ctx context.Context,
-	app *pb.ApplicationID) (*empty.Empty, error) {
+func (s *DeploySrv) syncUndeploy(ctx context.Context,
+	dapp *metadata.DeployedApp) error {
 
-	log.Infof("Undeploy(%s) running", app.Id)
-	dapp, err := s.meta.Load(app.Id)
-	if err != nil {
-		return nil, status.Errorf(codes.FailedPrecondition,
-			"Application %v not found: %v", app.Id, err)
-	}
-	if !dapp.IsDeployed {
-		return nil, status.Errorf(codes.FailedPrecondition,
-			"Application %v is not deployed", app.Id)
-	}
-
+	var err error
 	switch dapp.Type {
 	case metadata.Container:
 		err = s.dockerUndeploy(ctx, dapp)
 	case metadata.VM:
 		err = libvirtUndeploy(ctx, dapp)
 	default:
-		return nil, status.Errorf(codes.Unimplemented,
-			"not implemented app type %v", dapp.Type)
+		log.Errf("Undeploy(%s): not supported application type: %v",
+			dapp.App.Id, dapp.Type)
+		return err
 	}
-
-	defer func() {
-		if err = dapp.Save(true); err != nil {
-			log.Errf("Failed to save final state of %v: %+v", app.Id, err)
-		}
-	}()
 
 	if err != nil {
-		log.Errf("Undeploy(%v) failed: %+v", app.Id, err)
+		log.Errf("Undeploy(%v) failed: %+v", dapp.App.Id, err)
 		dapp.App.Status = pb.LifecycleStatus_ERROR /* We're in a bad state.*/
-
-		return nil, status.Errorf(codes.Internal,
-			"Undeploy(%v) failed: %v", app.Id, err)
+		if saveErr := dapp.Save(true); saveErr != nil {
+			log.Errf("failed to save state of %v: %+v", dapp.App.Id, saveErr)
+		}
+		return err
 	}
 
-	if os.Remove(dapp.ImageFilePath()) == nil {
-		log.Infof("Deleted image file of %v", app.Id)
+	if err = os.RemoveAll(dapp.Path); err != nil {
+		log.Errf("failed to delete metadata directory of %v because: %+v",
+			dapp.App.Id, err)
+	} else {
+		log.Debugf("Deleted metadata directory of %v", dapp.App.Id)
 	}
-	/* App is removed, no state left. */
-	dapp.App.Status = pb.LifecycleStatus_UNKNOWN
+
+	return nil
+}
+
+// Undeploy executes asynchronous removal of application
+func (s *DeploySrv) Undeploy(ctx context.Context,
+	app *pb.ApplicationID) (*empty.Empty, error) {
+
+	log.Infof("Undeploy(%s)", app.Id)
+
+	dapp, err := s.meta.Load(app.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.FailedPrecondition,
+			"Application %v not found: %v", app.Id, err)
+	}
+
+	if err := dapp.IsChangeAllowed(pb.LifecycleStatus_UNKNOWN); err != nil {
+		return nil, err
+	}
+
+	if !dapp.IsDeployed {
+		log.Debugf("Undeploing not deployed app (%v)", app.Id)
+
+		if os.Remove(dapp.Path) == nil {
+			log.Debugf("Deleted metadata directory of %v", app.Id)
+		}
+
+		return &empty.Empty{}, nil
+	}
+
+	go func() {
+		undeployCtx, cancel := context.WithTimeout(context.Background(),
+			s.cfg.DownloadTimeout.Duration)
+		defer cancel()
+		_ = s.syncUndeploy(undeployCtx, dapp)
+	}()
 
 	return &empty.Empty{}, nil
 }
