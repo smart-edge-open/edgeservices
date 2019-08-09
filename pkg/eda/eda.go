@@ -18,10 +18,10 @@ import (
 	"context"
 	"net"
 
+	logger "github.com/otcshare/common"
 	"github.com/otcshare/edgenode/pkg/config"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/otcshare/edgenode/pkg/util"
-	logger "github.com/otcshare/common"
 	"google.golang.org/grpc"
 )
 

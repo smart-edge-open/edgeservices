@@ -35,9 +35,9 @@ import (
 	"github.com/docker/docker/client"
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
 
-	"github.com/pkg/errors"
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 	pb "github.com/otcshare/edgenode/pkg/eva/pb"
+	"github.com/pkg/errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

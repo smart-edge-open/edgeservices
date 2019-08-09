@@ -19,9 +19,9 @@ import (
 	"net"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/pkg/errors"
 	"github.com/otcshare/edgenode/pkg/ela/ini"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	"github.com/pkg/errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

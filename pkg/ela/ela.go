@@ -22,13 +22,13 @@ import (
 	"net"
 	"path/filepath"
 
-	"github.com/otcshare/edgenode/pkg/config"
 	logger "github.com/otcshare/common"
+	"github.com/otcshare/edgenode/pkg/config"
 
-	"github.com/pkg/errors"
 	"github.com/otcshare/edgenode/pkg/auth"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/otcshare/edgenode/pkg/util"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
