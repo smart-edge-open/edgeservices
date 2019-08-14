@@ -113,3 +113,4 @@
  - Wait for default cert key file with size greater than zero
  - ELA - accept variable column count in lspci output
  - Kubernetes integration changes
+ - Fix core allocation for docker containers
