@@ -114,14 +114,18 @@ func downloadImage(ctx context.Context, url string,
 	return err
 }
 
-func (s *DeploySrv) checkDeployPreconditions(dapp *metadata.DeployedApp) error {
-	c := s.cfg
-
-	app2, err := s.meta.Load(dapp.App.Id)
+func (s *DeploySrv) checkIfAppNotDeployed(id string) error {
+	app2, err := s.meta.Load(id)
 	if err == nil && app2.IsDeployed {
 		return status.Errorf(codes.AlreadyExists, "app %s already deployed",
-			dapp.App.Id)
+			id)
 	}
+
+	return nil
+}
+
+func (s *DeploySrv) checkDeployPreconditions(dapp *metadata.DeployedApp) error {
+	c := s.cfg
 
 	if dapp.App.Cores <= 0 {
 		return fmt.Errorf("Cores value incorrect: %v", dapp.App.Cores)
@@ -248,6 +252,10 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 
 	dapp := s.meta.NewDeployedApp(metadata.Container, pbapp)
 
+	if err := s.checkIfAppNotDeployed(dapp.App.Id); err != nil {
+		return nil, err
+	}
+
 	if err := s.checkDeployPreconditions(dapp); err != nil {
 		return nil, errors.Wrap(err, "preconditions unfulfilled")
 	}
@@ -341,6 +349,11 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	pbapp *pb.Application) (*empty.Empty, error) {
 
 	dapp := s.meta.NewDeployedApp(metadata.VM, pbapp)
+
+	if err := s.checkIfAppNotDeployed(dapp.App.Id); err != nil {
+		return nil, err
+	}
+
 	if err := s.checkDeployPreconditions(dapp); err != nil {
 		return nil, errors.Wrap(err, "preconditions unfulfilled")
 	}
@@ -662,8 +675,9 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 	if !dapp.IsDeployed {
 		log.Debugf("Undeploing not deployed app (%v)", app.Id)
 
-		if os.Remove(dapp.Path) == nil {
-			log.Debugf("Deleted metadata directory of %v", app.Id)
+		if err := os.RemoveAll(dapp.Path); err != nil {
+			log.Debugf("Failed to delete metadata directory of %v because: %+v",
+				app.Id, err)
 		}
 
 		return &empty.Empty{}, nil
