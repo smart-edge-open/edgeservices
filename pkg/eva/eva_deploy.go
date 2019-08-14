@@ -317,9 +317,10 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	}
 
 	// Now create a container out of the image
+	nanoCPUs := int64(dapp.App.Cores) * 1e9 // convert CPUs to NanoCPUs
 	resources := container.Resources{
-		Memory:    int64(dapp.App.Memory) * 1024 * 1024,
-		CPUShares: int64(dapp.App.Cores),
+		Memory:   int64(dapp.App.Memory) * 1024 * 1024,
+		NanoCPUs: nanoCPUs,
 	}
 	respCreate, err := docker.ContainerCreate(ctx,
 		&container.Config{Image: dapp.App.Id},
