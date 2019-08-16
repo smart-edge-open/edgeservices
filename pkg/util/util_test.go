@@ -21,7 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/otcshare/edgenode/pkg/util"
+	"github.com/open-ness/edgenode/pkg/util"
 )
 
 func TestUtil(t *testing.T) {

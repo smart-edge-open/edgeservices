@@ -8,9 +8,9 @@
         "ConnectionTimeout": "2s"
     },
     "Services": {
-        "github.com/otcshare/edgenode/pkg/eaa": "configs/eaa.json",
-        "github.com/otcshare/edgenode/pkg/ela": "configs/ela.json",
-        "github.com/otcshare/edgenode/pkg/eda": "configs/eda.json",
-        "github.com/otcshare/edgenode/pkg/eva": "configs/eva.json"
+        "github.com/open-ness/edgenode/pkg/eaa": "configs/eaa.json",
+        "github.com/open-ness/edgenode/pkg/ela": "configs/ela.json",
+        "github.com/open-ness/edgenode/pkg/eda": "configs/eda.json",
+        "github.com/open-ness/edgenode/pkg/eva": "configs/eva.json"
     }
 }

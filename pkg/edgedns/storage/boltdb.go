@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 	bolt "go.etcd.io/bbolt"
 
-	logger "github.com/otcshare/common"
+	logger "github.com/open-ness/common"
 )
 
 var log = logger.DefaultLogger.WithField("storage", nil)

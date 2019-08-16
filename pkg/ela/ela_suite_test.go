@@ -21,9 +21,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/otcshare/edgenode/internal/authtest"
-	"github.com/otcshare/edgenode/pkg/ela"
-	"github.com/otcshare/common"
+	"github.com/open-ness/edgenode/internal/authtest"
+	"github.com/open-ness/edgenode/pkg/ela"
+	"github.com/open-ness/common"
 	"google.golang.org/grpc/credentials"
 
 	. "github.com/onsi/ginkgo"
