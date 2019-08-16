@@ -58,6 +58,7 @@ static void nes_connection_setup_test(void) {
 static void nes_connection_un_setup_test(void) {
 	tcp_connection_t conn;
 	CU_ASSERT_EQUAL(nes_connection_un_setup("/tmp/ut_test.socket", &conn), NES_SUCCESS);
+	close(conn.listen_sock);
 	CU_ASSERT_EQUAL(nes_connection_un_setup("/1234567890/1234567890/", &conn), NES_FAIL);
 
 	struct rlimit rlim;

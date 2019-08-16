@@ -446,7 +446,7 @@ nts_packet_flow_encap_gtpu_test(void) {
 	teid_data.teid = 10;
 
 	gtpu_pkt_header = nts_packet_flow_encap_gtpu(pkt, &encap_data, &teid_data);
-	CU_ASSERT_PTR_NOT_NULL(gtpu_pkt_header);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(gtpu_pkt_header);
 	CU_ASSERT_EQUAL(gtpu_pkt_header->gtpu_no_vlan.gtpu_hdr.teid, teid_data.teid);
 	CU_ASSERT_EQUAL(memcmp(&gtpu_pkt_header->gtpu_no_vlan.outer_ether_hdr.d_addr,
 		&mac_dst, sizeof (mac_dst)), 0);
