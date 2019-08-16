@@ -100,6 +100,7 @@ static ssize_t
 getline_stub(char __attribute__((unused))**lineptr,
 	size_t __attribute__((unused)) * n, FILE __attribute__((unused)) * stream) {
 	*lineptr = malloc(sizeof (getline_line));
+	CU_ASSERT_PTR_NOT_NULL_FATAL(lineptr);
 	strncpy(*lineptr, getline_line, sizeof (getline_line));
 	*n = getline_line_len;
 	return getline_ret[getline_ret_idx++ % (sizeof (getline_ret) / sizeof (ssize_t))];
