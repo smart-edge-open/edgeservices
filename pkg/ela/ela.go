@@ -41,6 +41,7 @@ type Configuration struct {
 	NtsConfigPath     string        `json:"NtsConfigPath"`
 	CertsDir          string        `json:"CertsDirectory"`
 	DNSIP             string        `json:"DnsIP"`
+	PCIBlacklist      []string      `json:"PCIBlacklist"`
 }
 
 var (

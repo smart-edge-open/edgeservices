@@ -114,3 +114,5 @@
  - ELA - accept variable column count in lspci output
  - Kubernetes integration changes
  - Fix core allocation for docker containers
+ - Blacklisting PCI ports added to ELA
+

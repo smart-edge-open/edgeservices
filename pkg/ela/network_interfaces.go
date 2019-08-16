@@ -45,6 +45,17 @@ type NetworkDevice struct {
 	Direction         pb.NetworkInterface_InterfaceType
 }
 
+// IsPCIportBlacklisted check if a pci port is blacklisted and cannot be used
+// by controller to set up connection.
+func IsPCIportBlacklisted(pci string) bool {
+	for _, port := range Config.PCIBlacklist {
+		if port == pci {
+			return true
+		}
+	}
+	return false
+}
+
 func getNetworkPCIs() ([]NetworkDevice, error) {
 
 	// #nosec G204 - called with lspci
@@ -84,6 +95,12 @@ func getNetworkPCIs() ([]NetworkDevice, error) {
 	for _, rec := range records {
 		if len(rec) >= 4 {
 			pci, manufacturer, devName := rec[0], rec[2], rec[3]
+
+			// do not use blacklisted network devices
+			if IsPCIportBlacklisted(pci) {
+				log.Infof("Skipping blacklisted interface %s", pci)
+				continue
+			}
 
 			devs = append(devs, NetworkDevice{
 				PCI:          pci,
