@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"net"
 
-	edgedns "github.com/otcshare/edgenode/pkg/edgedns"
+	edgedns "github.com/open-ness/edgenode/pkg/edgedns"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/otcshare/edgenode/pkg/edgedns/pb"
-	logger "github.com/otcshare/common"
+	"github.com/open-ness/edgenode/pkg/edgedns/pb"
+	logger "github.com/open-ness/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

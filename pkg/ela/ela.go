@@ -22,13 +22,13 @@ import (
 	"net"
 	"path/filepath"
 
-	"github.com/otcshare/edgenode/pkg/config"
-	logger "github.com/otcshare/common"
+	"github.com/open-ness/edgenode/pkg/config"
+	logger "github.com/open-ness/common"
 
 	"github.com/pkg/errors"
-	"github.com/otcshare/edgenode/pkg/auth"
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
-	"github.com/otcshare/edgenode/pkg/util"
+	"github.com/open-ness/edgenode/pkg/auth"
+	pb "github.com/open-ness/edgenode/pkg/ela/pb"
+	"github.com/open-ness/edgenode/pkg/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	edgednspb "github.com/otcshare/edgenode/pkg/edgedns/pb"
-	elapb "github.com/otcshare/edgenode/pkg/ela/pb"
+	edgednspb "github.com/open-ness/edgenode/pkg/edgedns/pb"
+	elapb "github.com/open-ness/edgenode/pkg/ela/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

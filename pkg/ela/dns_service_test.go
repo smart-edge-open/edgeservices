@@ -20,11 +20,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	edgednspb "github.com/otcshare/edgenode/pkg/edgedns/pb"
-	"github.com/otcshare/edgenode/pkg/ela"
-	elapb "github.com/otcshare/edgenode/pkg/ela/pb"
+	edgednspb "github.com/open-ness/edgenode/pkg/edgedns/pb"
+	"github.com/open-ness/edgenode/pkg/ela"
+	elapb "github.com/open-ness/edgenode/pkg/ela/pb"
 
-	"github.com/otcshare/common"
+	"github.com/open-ness/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

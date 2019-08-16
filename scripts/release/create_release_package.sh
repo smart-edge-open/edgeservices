@@ -44,22 +44,22 @@ release_package_name='openness_release_package.tgz'
 #################################################
 
 # edgenode
-git clone -b master https://github.com/otcshare/edgenode.git "$download_dir/edgenode"
+git clone -b master https://github.com/open-ness/edgenode.git "$download_dir/edgenode"
 
 # edgeapps
-git clone -b master https://github.com/otcshare/edgeapps.git "$download_dir/edgeapps"
+git clone -b master https://github.com/open-ness/edgeapps.git "$download_dir/edgeapps"
 
 # edgecontroller
-git clone -b master https://github.com/otcshare/edgecontroller.git "$download_dir/edgecontroller"
+git clone -b master https://github.com/open-ness/edgecontroller.git "$download_dir/edgecontroller"
 
 # doc
-git clone -b master https://github.com/otcshare/specs.git "$download_dir/specs"
+git clone -b master https://github.com/open-ness/specs.git "$download_dir/specs"
 
 # epcforedge
-git clone -b master https://github.com/otcshare/epcforedge.git "$download_dir/epcforedge"
+git clone -b master https://github.com/open-ness/epcforedge.git "$download_dir/epcforedge"
 
 # common
-git clone -b master https://github.com/otcshare/common.git "$download_dir/common"
+git clone -b master https://github.com/open-ness/common.git "$download_dir/common"
 
 #################################################
 # REMOVE UNWANTED FOLDERS/FILES FROM EACH REPO
@@ -96,11 +96,11 @@ fi
 export GOPATH=${go_cached_modules_path}
 export PATH=$root_dir/go/bin:$PATH
 export GOROOT=$root_dir/go
-( GOPATH=${go_cached_modules_path} go get github.com/otcshare/common )
+( GOPATH=${go_cached_modules_path} go get github.com/open-ness/common )
 
 # Store cached go files in a .tgz package (to be decompressed in extract script) in edgecontroller subfolder
 [[ -f $go_cached_modules_path/cached-modules.tgz ]] && rm -f $go_cached_modules_path/cached-modules.tgz
-(cd $go_cached_modules_path && tar cvfz cached-modules.tgz pkg/mod/cache/download/github.com/otcshare )
+(cd $go_cached_modules_path && tar cvfz cached-modules.tgz pkg/mod/cache/download/github.com/open-ness )
 mv $go_cached_modules_path/cached-modules.tgz $root_dir/$download_dir/edgecontroller/
 
 #################################################

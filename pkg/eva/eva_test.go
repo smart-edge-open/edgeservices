@@ -23,12 +23,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otcshare/edgenode/internal/authtest"
-	"github.com/otcshare/edgenode/pkg/config"
-	"github.com/otcshare/edgenode/pkg/eva"
-	pb "github.com/otcshare/edgenode/pkg/eva/pb"
+	"github.com/open-ness/edgenode/internal/authtest"
+	"github.com/open-ness/edgenode/pkg/config"
+	"github.com/open-ness/edgenode/pkg/eva"
+	pb "github.com/open-ness/edgenode/pkg/eva/pb"
 
-	logger "github.com/otcshare/common"
+	logger "github.com/open-ness/common"
 	"log/syslog"
 
 	"google.golang.org/grpc"

@@ -25,9 +25,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/otcshare/edgenode/pkg/config"
-	"github.com/otcshare/edgenode/pkg/util"
-	logger "github.com/otcshare/common"
+	"github.com/open-ness/edgenode/pkg/config"
+	"github.com/open-ness/edgenode/pkg/util"
+	logger "github.com/open-ness/common"
 )
 
 type services map[string]Service

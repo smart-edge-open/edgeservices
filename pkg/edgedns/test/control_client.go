@@ -21,7 +21,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/otcshare/edgenode/pkg/edgedns/pb"
+	"github.com/open-ness/edgenode/pkg/edgedns/pb"
 	"google.golang.org/grpc"
 )
 

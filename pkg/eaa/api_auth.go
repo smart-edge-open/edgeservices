@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/otcshare/edgenode/pkg/eva/internal_pb"
+	"github.com/open-ness/edgenode/pkg/eva/internal_pb"
 	"google.golang.org/grpc"
 )
 

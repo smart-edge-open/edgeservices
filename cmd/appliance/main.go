@@ -26,16 +26,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/otcshare/edgenode/pkg/auth"
-	"github.com/otcshare/edgenode/pkg/config"
-	"github.com/otcshare/edgenode/pkg/util"
-	logger "github.com/otcshare/common"
+	"github.com/open-ness/edgenode/pkg/auth"
+	"github.com/open-ness/edgenode/pkg/config"
+	"github.com/open-ness/edgenode/pkg/util"
+	logger "github.com/open-ness/common"
 
 	// Imports required to run agents
-	"github.com/otcshare/edgenode/pkg/eaa"
-	"github.com/otcshare/edgenode/pkg/eda"
-	"github.com/otcshare/edgenode/pkg/ela"
-	"github.com/otcshare/edgenode/pkg/eva"
+	"github.com/open-ness/edgenode/pkg/eaa"
+	"github.com/open-ness/edgenode/pkg/eda"
+	"github.com/open-ness/edgenode/pkg/ela"
+	"github.com/open-ness/edgenode/pkg/eva"
 )
 
 // ServiceStartFunction is func typedef for starting service

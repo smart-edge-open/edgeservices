@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/otcshare/edgenode/pkg/ela/ini"
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	"github.com/open-ness/edgenode/pkg/ela/ini"
+	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
