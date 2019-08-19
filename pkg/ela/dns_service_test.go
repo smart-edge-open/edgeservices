@@ -24,7 +24,7 @@ import (
 	"github.com/otcshare/edgenode/pkg/ela"
 	elapb "github.com/otcshare/edgenode/pkg/ela/pb"
 
-	"github.com/otcshare/common"
+	"github.com/otcshare/common/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

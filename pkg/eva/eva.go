@@ -24,7 +24,7 @@ import (
 	"os"
 	"path/filepath"
 
-	logger "github.com/otcshare/common"
+	logger "github.com/otcshare/common/log"
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 	"github.com/otcshare/edgenode/pkg/auth"
 	"github.com/otcshare/edgenode/pkg/config"

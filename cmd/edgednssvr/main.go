@@ -23,7 +23,7 @@ import (
 	"syscall"
 	"time"
 
-	logger "github.com/otcshare/common"
+	logger "github.com/otcshare/common/log"
 	edgedns "github.com/otcshare/edgenode/pkg/edgedns"
 	"github.com/otcshare/edgenode/pkg/edgedns/grpc"
 	"github.com/otcshare/edgenode/pkg/edgedns/storage"

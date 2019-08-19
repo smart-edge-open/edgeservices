@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	log "github.com/otcshare/common"
+	log "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/internal/authtest"
 	"github.com/otcshare/edgenode/pkg/ela"
 	"google.golang.org/grpc/credentials"

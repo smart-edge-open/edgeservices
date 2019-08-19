@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	log "github.com/otcshare/common"
+	log "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/pkg/eda"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/pkg/errors"

@@ -26,7 +26,7 @@ import (
 	"syscall"
 	"time"
 
-	logger "github.com/otcshare/common"
+	logger "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/pkg/auth"
 	"github.com/otcshare/edgenode/pkg/config"
 	"github.com/otcshare/edgenode/pkg/util"

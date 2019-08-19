@@ -18,7 +18,7 @@ import (
 	"context"
 	"net"
 
-	logger "github.com/otcshare/common"
+	logger "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/pkg/config"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/otcshare/edgenode/pkg/util"

@@ -77,6 +77,9 @@ github.com/opencontainers/image-spec v1.0.1 h1:JMemWkRwHx4Zj+fVxWoMCFm/8sYGGrUVo
 github.com/opencontainers/image-spec v1.0.1/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zMzWCbyJoFRP3s7yZA0=
 github.com/otcshare/common v0.0.0-20190731121638-5acbb45f824d h1:l6ge32lxX12zUw9LdCNpg6cAimKXg/l3YRkPix1GXN4=
 github.com/otcshare/common v0.0.0-20190731121638-5acbb45f824d/go.mod h1:k37pBh+2fxqQvVjhNh2umOebXflNt3fYhMvgrE7j20Q=
+github.com/otcshare/common v0.0.0-20190819124907-99dcb8b50ed8 h1:Wl0YeHKQaL5pM8dhWiWA9zRirwYdKC66cUQQZsLZQms=
+github.com/otcshare/common/log v0.0.0-20190819124907-99dcb8b50ed8 h1:B+7EfOKdvEVfemAtsnXYmqKQs4d8Iyz8qq5QeX4K1U4=
+github.com/otcshare/common/log v0.0.0-20190819124907-99dcb8b50ed8/go.mod h1:30kZGx52RercaMNsH35keYVwwh2KCNXBnXTAdm2XPfM=
 github.com/otcshare/pkg v0.0.0-20190731121638-5acbb45f824d h1:SQ7tBA6W+EUqJzjqczCCA2dJgy3Br0lw83JoU0r976U=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
