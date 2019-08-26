@@ -833,10 +833,13 @@ void nes_ctrl_main_test(void)
 			nes_conn_close(&remote_NEV[i]);
 
 		usleep(DEFAULT_RESPONSE_TOUT * 2);
-
-		free(buffer);
-		free(response);
 	}
+
+	if (NULL != buffer)
+		free(buffer);
+	
+	if (NULL != response)
+		free(response);
 
 	nes_thread_terminate = 1;
 	usleep(10);
@@ -844,6 +847,9 @@ void nes_ctrl_main_test(void)
 	pthread_join(nes_ctrl_main_thread, &res);
 	MOCK_RESET(mocked_nes_cfgfile_load);
 	MOCK_RESET(mocked_nes_cfgfile_close);
+
+	if (NULL != remote_NEV)
+		free(remote_NEV);
 }
 
 static nes_ring_t ring1;
