@@ -47,7 +47,7 @@ clean:
 build-docker: build
 	cp build/appliance/Dockerfile "${TMP_DIR}/Dockerfile_appliance"
 	cp build/appliance/entrypoint.sh "${TMP_DIR}"
-	cp /opt/dpdk-18.08/usertools/dpdk-devbind.py "${TMP_DIR}"
+	cp /opt/dpdk-18.11.2/usertools/dpdk-devbind.py "${TMP_DIR}"
 	cp "${BUILD_DIR}/appliance" "${TMP_DIR}"
 	cp build/edgednssvr/Dockerfile "${TMP_DIR}/Dockerfile_edgednssvr"
 	cp "${BUILD_DIR}/edgednssvr" "${TMP_DIR}"

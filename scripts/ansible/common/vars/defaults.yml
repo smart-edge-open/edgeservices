@@ -23,7 +23,7 @@ centos_rt_kernel_grub_parameters: "hugepagesz=2M hugepages=50000 intel_iommu=on 
 centos_rt_tuned_package_link: "ftp://ftp.icm.edu.pl/vol/rzm3/linux-slc/centos/7.5.1804/os/x86_64/Packages/tuned-2.9.0-1.el7.noarch.rpm"
 epel_repository_package_link: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ centos_version }}.noarch.rpm"
 packages_to_install: "curl,wget"
-dpdk_name: "dpdk-18.08"
+dpdk_name: "dpdk-18.11.2"
 dpdk_url: "http://fast.dpdk.org/rel/{{ dpdk_name }}.tar.xz"
 dpdk_downloaddir: "/temp/dpdk_downloaddir"
 dpdk_install_location: "/opt/{{ dpdk_name }}"
@@ -42,3 +42,13 @@ qemu_downloaddir: "/temp/qemu_downloaddir"
 qemu_target_list: "x86_64-softmmu"
 qemu_extract_relative_path: "../temp/qemu/"
 #
+ovs_version: "2.11.1"
+ovs_url: "https://www.openvswitch.org/releases/openvswitch-{{ ovs_version }}.tar.gz"
+ovs_downloaddir: "/temp/ovs_downloaddir"
+ovs_install_location: "/opt/ovs-{{ ovs_version }}"
+ovs_cores_hex: "0x4"
+ovs_bridge_name: "br0"
+ovs_socket_mem: "1024,0"
+dpdk_build: "{{dpdk_install_location}}/{{dpdk_make_target}}/"
+ovs:
+  enabled: false

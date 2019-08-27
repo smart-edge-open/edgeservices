@@ -34,5 +34,9 @@
   - include_tasks: ../../common/tasks/dpdk/enable_load_modules_at_boot.yml
   - include_tasks: ../../common/tasks/dpdk/unload_modules.yml
   - include_tasks: ../../common/tasks/dpdk/load_modules.yml
+  - include_tasks: ../../deploy_server/tasks/ovs/check_if_set.yml
+  - include_tasks: ../../deploy_server/tasks/ovs/set_eva_config.yml
+  - include_tasks: ../../deploy_server/tasks/ovs/ovs.yml
+    when: ovs['enabled']
   - include_tasks: ../../common/tasks/go/download_if_missing.yml
   - include_tasks: ../../common/tasks/other/script_success.yml

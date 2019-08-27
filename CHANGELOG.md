@@ -115,4 +115,6 @@
  - Kubernetes integration changes
  - Fix core allocation for docker containers
  - Blacklisting PCI ports added to ELA
+ - Chaned DPDK version from 18.08 to 18.11.2
+ - Added support to OVS
 
