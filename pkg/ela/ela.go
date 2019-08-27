@@ -42,6 +42,7 @@ type Configuration struct {
 	CertsDir          string        `json:"CertsDirectory"`
 	DNSIP             string        `json:"DnsIP"`
 	PCIBlacklist      []string      `json:"PCIBlacklist"`
+	KubeOVNMode       bool          `json:"KubeOVNMode"`
 }
 
 var (
@@ -85,9 +86,12 @@ func runServer(ctx context.Context) error {
 		return err
 	}
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
-	applicationPolicyService := ApplicationPolicyServiceServerImpl{}
-	pb.RegisterApplicationPolicyServiceServer(grpcServer,
-		&applicationPolicyService)
+
+	if !Config.KubeOVNMode {
+		applicationPolicyService := ApplicationPolicyServiceServerImpl{}
+		pb.RegisterApplicationPolicyServiceServer(grpcServer,
+			&applicationPolicyService)
+	}
 
 	interfacePolicyService := InterfacePolicyService{}
 	pb.RegisterInterfacePolicyServiceServer(grpcServer, &interfacePolicyService)
