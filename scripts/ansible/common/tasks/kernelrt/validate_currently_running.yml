@@ -27,4 +27,4 @@
     msg: 
       - "Kernel version mismatch. Please run setup_server.sh script again to install required RT kernel version"
       - "After reboot,re-run this script again to continue"
-  when: kernel_version_running.stdout != "{{ centos_rt_kernel_package_version }}"
+  when: kernel_version_running.stdout != centos_rt_kernel_package_version
