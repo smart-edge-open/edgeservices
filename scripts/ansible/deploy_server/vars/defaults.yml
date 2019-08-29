@@ -22,7 +22,7 @@ docker_nts_mem_mb_s0: "2048"
 #Change the following for two socket NUMA systems
 docker_nts_mem_mb_s1: "0"
 #
-docker_syslog_ng_container_name: "appliance-ce_syslog-ng_1"
+docker_syslog_ng_container_name: "edgenode_syslog-ng_1"
 docker_edgednssvr_container_name: "mec-app-edgednssvr"
 docker_nts_container_name: "nts"
 docker_appliance_container_name: "edgenode_appliance_1"
