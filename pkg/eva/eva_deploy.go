@@ -22,7 +22,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"time"
 
 	"math"
 	"regexp"
@@ -43,6 +45,9 @@ import (
 	"google.golang.org/grpc/status"
 
 	libvirt "github.com/libvirt/libvirt-go"
+
+	"github.com/digitalocean/go-openvswitch/ovs"
+	"github.com/digitalocean/go-openvswitch/ovsdb"
 )
 
 // DeploySrv describes deplyment
@@ -50,6 +55,18 @@ type DeploySrv struct {
 	cfg  *Config
 	meta *metadata.AppMetadata
 }
+
+const (
+	// InterfaceTypeDpdk defines ovs interface type used to set a port up
+	interfaceTypeDpdk ovs.InterfaceType = "dpdkvhostuserclient"
+
+	// ovsDbSocket defines a path, where ovs db socket persist
+	ovsDbSocket = "/usr/local/var/run/openvswitch/db.sock"
+
+	// ovsPath defines a path to ovs tmp folder, where all port sockers are
+	// placed into
+	ovsPath = "/tmp/openvswitch"
+)
 
 var httpMatcher = regexp.MustCompile("^http://.")
 var httpsMatcher = regexp.MustCompile("^https://.")
@@ -373,6 +390,105 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
+type updateDPDKVHostPath struct {
+	PortName  string
+	VHostPath string
+}
+
+func (u updateDPDKVHostPath) MarshalJSON() ([]byte, error) {
+	// Following command must be reproduced in go:
+	//   ovsdb-client -v transact '["Open_vSwitch", { "op": "update", "table":
+	//   "Interface", "where": [["name", "==", "PORT"]], "row": {"options":
+	//   ["map", [["vhost-server-path", "SOCK_PATH"]]]}}]'
+	// Command performs an UPDATE query against ovs database. In table
+	// "Interface" it changes "options" row to
+	// "vhost-server-path:/path/vhost.sock" where "name" is specified name of
+	// ovs interface.
+	return []byte(fmt.Sprintf("{\"op\": \"update\", \"table\": \"Interface\","+
+		" \"where\": [[\"name\", \"==\", \"%s\"]], "+
+		"\"row\": {\"options\": "+
+		"[\"map\", [[\"vhost-server-path\", \"%s\"]]]}}",
+		u.PortName, u.VHostPath)), nil
+}
+
+// isOVSBridgeCreated checks whether the bridge given already exists
+func isOVSBridgeCreated(o *ovs.Client, name string) (bool, error) {
+
+	bridges, err := o.VSwitch.ListBridges()
+	if err != nil {
+		log.Errf("Couldn't list OVS bridges: %+v", err.Error())
+		return false, err
+	}
+
+	for _, b := range bridges {
+		if b == name {
+			return true, nil // Found!
+		}
+	}
+
+	return false, nil
+}
+
+func addOVSPort(bridgeName string, id string) error {
+	var (
+		o               *ovs.Client = ovs.New()
+		portName                    = bridgeName + "-" + id
+		vHostSocketPath             = path.Join(ovsPath, "vhost-"+
+			portName+".sock")
+		err error
+	)
+
+	if _, err = os.Stat(ovsPath); os.IsNotExist(err) {
+		if err = os.Mkdir(ovsPath, os.ModeDir); err != nil {
+			return errors.Wrap(err, "Couldn't create OVS folder: "+ovsPath)
+		}
+	}
+
+	isBrCreated, err := isOVSBridgeCreated(o, bridgeName)
+	if err != nil {
+		return errors.Wrap(err, "Couldn't check status of bridge: "+bridgeName)
+	}
+	if !isBrCreated {
+		return errors.Wrap(err, "There is no OVS bridge: "+bridgeName)
+	}
+
+	// The port may or may not already exist no need to check that
+	err = o.VSwitch.AddPort(bridgeName, portName)
+	if err != nil {
+		return errors.Wrapf(err, "Couldn't attach OVS port %s ", portName)
+	}
+
+	// Set type to dpdkvhostuserclient
+	if err = o.VSwitch.Set.Interface(portName,
+		ovs.InterfaceOptions{Type: interfaceTypeDpdk}); err != nil {
+		return errors.Wrapf(err, "Couldn't set interface dpdk type")
+	}
+
+	// Set option:'vhost-server-path' by making a transaction against ovsdb
+	db, err := ovsdb.Dial("unix", ovsDbSocket)
+	if err != nil {
+		return errors.Wrap(err, "Failed to connect to ovsdb")
+	}
+	defer func() {
+		if err = db.Close(); err != nil {
+			log.Warning("Couldn't cloense db socket")
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = db.Transact(ctx, "Open_vSwitch",
+		[]ovsdb.TransactOp{updateDPDKVHostPath{
+			PortName:  portName,
+			VHostPath: vHostSocketPath}})
+	if err != nil {
+		return errors.Wrapf(err, "db.Transact() failure")
+	}
+
+	return nil
+}
+
 func (s *DeploySrv) syncDeployVM(ctx context.Context,
 	dapp *metadata.DeployedApp) {
 
@@ -471,6 +587,27 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 				},
 			},
 		},
+	}
+
+	if s.cfg.OpenvSwitch {
+		domcfg.Devices.Interfaces = append(domcfg.Devices.Interfaces,
+			libvirtxml.DomainInterface{
+				Source: &libvirtxml.DomainInterfaceSource{
+					VHostUser: &libvirtxml.DomainChardevSource{
+						UNIX: &libvirtxml.DomainChardevSourceUNIX{
+							Path: path.Join(ovsPath, s.cfg.OpenvSwitchBridge+
+								"-"+dapp.App.Id+".sock"),
+							Mode: "server",
+						},
+					},
+				},
+				Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
+			},
+		)
+		if err = addOVSPort(s.cfg.OpenvSwitchBridge, dapp.App.Id); err != nil {
+			log.Errf("failed to add port to OVS: %+v", err)
+			return
+		}
 	}
 
 	xmldoc, err := domcfg.Marshal()

@@ -12,5 +12,6 @@
   "KubernetesMode": false,
   "VhostSocket": "/var/lib/appliance/nts/qemu/usvhost-1",
   "DownloadTimeout": "10m",
-  "OpenvSwitch": false
+  "OpenvSwitch": true,
+  "OpenvSwitchBridge": "br0"
 }

@@ -28,8 +28,9 @@ import (
 	"github.com/otcshare/edgenode/pkg/eva"
 	pb "github.com/otcshare/edgenode/pkg/eva/pb"
 
-	logger "github.com/otcshare/common/log"
 	"log/syslog"
+
+	logger "github.com/otcshare/common/log"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

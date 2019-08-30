@@ -52,10 +52,12 @@ type Config struct {
 	AppStopTimeout     util.Duration `json:"AppStopTimeout"`
 	AppRestartTimeout  util.Duration `json:"AppRestartTimeout"`
 	CertsDir           string        `json:"CertsDirectory"`
-	KubernetesMode     bool          `json:"KubernetesMode"`
 	VhostSocket        string        `json:"VhostSocket"`
 	DownloadTimeout    util.Duration `json:"DownloadTimeout"`
 	ControllerEndpoint string        `json:"ControllerEndpoint"`
+	OpenvSwitchBridge  string        `json:"OpenvSwitchBridge"`
+	OpenvSwitch        bool          `json:"OpenvSwitch"`
+	KubernetesMode     bool          `json:"KubernetesMode"`
 }
 
 // Wait for cancellation event and then stop the server from other goroutine
