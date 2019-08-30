@@ -74,6 +74,8 @@ services:
     environment:
      - NTS_SOCKET0_MEM=${NTS_MEM_MB_S0}
      - NTS_SOCKET1_MEM=${NTS_MEM_MB_S1}
+     - OVS_BRIDGE_NAME=${OVS_BRIDGE_NAME}
+     - OVS_ENABLED=${OVSE}
     network_mode: host
 
   syslog-ng:

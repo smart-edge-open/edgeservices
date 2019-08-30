@@ -22,6 +22,7 @@ RUN yum upgrade ca-certificates && \
 
 ADD ./nts/nes-daemon /root/
 ADD ./nts/kni_docker_daemon.py /root/
+ADD ./nts/ovs_docker_daemon.py /root/
 ADD ./nts/entrypoint.sh /root/
 ADD ./nts/libnes_api_shared.so /root/
 

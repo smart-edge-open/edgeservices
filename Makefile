@@ -54,6 +54,7 @@ build-docker: build
 	mkdir -p "${TMP_DIR}/nts"
 	cp internal/nts/build/nes-daemon "${TMP_DIR}/nts"
 	cp internal/nts/kni_docker_daemon.py "${TMP_DIR}/nts"
+	cp internal/nts/ovs_docker_daemon.py "${TMP_DIR}/nts"
 	cp internal/nts/entrypoint.sh "${TMP_DIR}/nts"
 	cp internal/nts/build/libnes_api_shared.so "${TMP_DIR}/nts"
 	cp internal/nts/Dockerfile "${TMP_DIR}/Dockerfile_nts"
