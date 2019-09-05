@@ -90,7 +90,9 @@ func runEva(ctx context.Context, cfg *Config) error {
 
 	/* Register our interfaces. */
 	metadata := metadata.AppMetadata{RootPath: cfg.AppImageDir}
-	adss := DeploySrv{cfg, &metadata}
+	adss := DeploySrv{cfg, &metadata, false}
+	// Sets a flag to detect if HDDL card is set up and configured
+	adss.detectHDDL()
 	evapb.RegisterApplicationDeploymentServiceServer(server, &adss)
 	alss := ApplicationLifecycleServiceServer{cfg, &metadata}
 	evapb.RegisterApplicationLifecycleServiceServer(server, &alss)

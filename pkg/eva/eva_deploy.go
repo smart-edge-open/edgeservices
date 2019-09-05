@@ -52,8 +52,9 @@ import (
 
 // DeploySrv describes deplyment
 type DeploySrv struct {
-	cfg  *Config
-	meta *metadata.AppMetadata
+	cfg		*Config
+	meta	*metadata.AppMetadata
+	hddlIn	bool
 }
 
 const (
@@ -70,6 +71,20 @@ const (
 
 var httpMatcher = regexp.MustCompile("^http://.")
 var httpsMatcher = regexp.MustCompile("^https://.")
+
+// detectHDDL detects if HDDL is present and configured - checks if devices exist
+func (s *DeploySrv) detectHDDL() {
+	var hddlPaths = []string{"/dev/ion", "/dev/myriad0", "/var/tmp/hddl_service.sock"}
+	
+	for _, d := range hddlPaths {
+		if _, err := os.Stat(filepath.Clean(d)); os.IsNotExist(err) {
+			s.hddlIn = false
+			break;
+		} else {
+			s.hddlIn = true
+		}
+	}
+}
 
 func downloadImage(ctx context.Context, url string,
 	target string) error {
@@ -334,15 +349,28 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	}
 
 	// Now create a container out of the image
+	devIon := container.DeviceMapping{
+		PathOnHost:        "/dev/ion",
+    	PathInContainer:   "/dev/ion",
+    	CgroupPermissions: "rmw",
+	}
+	var hddlDevices []container.DeviceMapping
+	var hddlBinds []string
+	if s.hddlIn == true {
+		hddlDevices = []container.DeviceMapping{devIon}
+		hddlBinds = []string{"/var/tmp:/var/tmp"}
+	}
 	nanoCPUs := int64(dapp.App.Cores) * 1e9 // convert CPUs to NanoCPUs
 	resources := container.Resources{
 		Memory:   int64(dapp.App.Memory) * 1024 * 1024,
 		NanoCPUs: nanoCPUs,
+		Devices:  hddlDevices,
 	}
 	respCreate, err := docker.ContainerCreate(ctx,
 		&container.Config{Image: dapp.App.Id},
 		&container.HostConfig{
 			Resources: resources,
+			Binds:     hddlBinds,
 			CapAdd:    []string{"NET_ADMIN"}},
 		nil, dapp.App.Id)
 
