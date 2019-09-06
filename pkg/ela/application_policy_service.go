@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/otcshare/edgenode/pkg/ela/helpers"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
@@ -71,7 +72,7 @@ func (srv *ApplicationPolicyServiceServerImpl) Set(ctx context.Context,
 	trafficPolicy *pb.TrafficPolicy) (*empty.Empty, error) {
 	log.Info("ApplicationPolicyService Set: Received request")
 
-	if err := VerifyTrafficPolicy(trafficPolicy); err != nil {
+	if err := helpers.VerifyTrafficPolicy(trafficPolicy); err != nil {
 		log.Errf("ApplicationPolicyService Set: Invalid TrafficPolicy: %v",
 			err)
 		return nil,
@@ -91,7 +92,7 @@ func (srv *ApplicationPolicyServiceServerImpl) Set(ctx context.Context,
 	log.Infof("Found MAC '%s' for application '%s'",
 		destMacAddress, trafficPolicy.Id)
 
-	if err := VerifyMACAddress(destMacAddress); err != nil {
+	if err := helpers.VerifyMACAddress(destMacAddress); err != nil {
 		log.Errf("ApplicationPolicyService Set: "+
 			"Obtained MAC '%s' format is incorrect because: %v",
 			destMacAddress, err)

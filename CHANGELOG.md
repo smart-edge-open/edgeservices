@@ -117,4 +117,4 @@
  - Blacklisting PCI ports added to ELA
  - Chaned DPDK version from 18.08 to 18.11.2
  - Added support to OVS
-
+ - ELA: InterfaceService for kube-ovn mode

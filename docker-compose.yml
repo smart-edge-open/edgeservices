@@ -37,6 +37,7 @@ services:
      - "/var/lib/appliance/certs:/root/certs"
      - "/var/lib/appliance/configs:/root/configs"
      - "/var/lib/appliance/applications:/var/lib/appliance/applications"
+     - "/var/run/openvswitch:/usr/local/var/run/openvswitch"
     network_mode: bridge
 
   edgednssvr:

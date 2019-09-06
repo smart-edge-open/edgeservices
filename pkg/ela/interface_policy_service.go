@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/otcshare/edgenode/pkg/ela/helpers"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 )
 
@@ -31,7 +32,7 @@ func (*InterfacePolicyService) Set(ctx context.Context,
 
 	log.Info("InterfacePolicyService Set: received request")
 
-	if err := VerifyTrafficPolicy(tp); err != nil {
+	if err := helpers.VerifyTrafficPolicy(tp); err != nil {
 		return nil, err
 	}
 

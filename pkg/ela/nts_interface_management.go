@@ -101,7 +101,7 @@ OUTER:
 }
 
 func (data *InterfacesData) getDevicesToUnbind() ([]string, error) {
-	nis, err := GetNetworkInterfaces()
+	nis, err := GetInterfaces()
 	if err != nil {
 		return nil, err
 	}

@@ -24,6 +24,7 @@ import (
 
 	logger "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/pkg/config"
+	"github.com/otcshare/edgenode/pkg/ela/kubeovn"
 
 	"github.com/otcshare/edgenode/pkg/auth"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
@@ -87,10 +88,19 @@ func runServer(ctx context.Context) error {
 	}
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
 
-	if !Config.KubeOVNMode {
+	if Config.KubeOVNMode {
+		log.Info("kube-ovn mode")
+		// No ApplicationPolicyService in kube-ovn mode
+
+		interfaceService := kubeovn.InterfaceService{}
+		pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
+	} else {
 		applicationPolicyService := ApplicationPolicyServiceServerImpl{}
 		pb.RegisterApplicationPolicyServiceServer(grpcServer,
 			&applicationPolicyService)
+
+		interfaceService := InterfaceService{}
+		pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
 	}
 
 	interfacePolicyService := InterfacePolicyService{}
@@ -98,9 +108,6 @@ func runServer(ctx context.Context) error {
 
 	dnsService := DNSServiceServer{}
 	pb.RegisterDNSServiceServer(grpcServer, &dnsService)
-
-	interfaceService := InterfaceService{}
-	pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
 
 	go func() {
 		<-ctx.Done()
