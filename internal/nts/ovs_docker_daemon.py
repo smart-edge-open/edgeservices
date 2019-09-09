@@ -88,7 +88,12 @@ def docker_connect():
         return None
     return docker_cli
 
-def create_veth_pair_names(docker_name):
+def create_veth_pair_names(docker_name, name_filter):
+
+    if docker_name.startswith(name_filter):
+        offset = len(name_filter)
+        return "ve1-"+docker_name[offset:offset+9], "ve2-"+docker_name[offset:offset+9]
+
     return "ve1-"+docker_name[:9], "ve2-"+docker_name[:9]
 
 
@@ -149,8 +154,8 @@ def move_if_to_host(if_name, bridge_name):
 
     return True
 
-def docker_create_if(docker_name, dst_ip_ns_path, bridge_name):
-    ovsIf, dstIf = create_veth_pair_names(docker_name)
+def docker_create_if(docker_name, dst_ip_ns_path, bridge_name, name_filter):
+    ovsIf, dstIf = create_veth_pair_names(docker_name, name_filter)
     createVethPair = [  "ip",
                         "link",
                         "add",
@@ -168,17 +173,21 @@ def docker_create_if(docker_name, dst_ip_ns_path, bridge_name):
     # move to ovs host
     if not move_if_to_host(ovsIf, bridge_name):
         _LOG.error("Failed to move interface to host")
+        run_command(["ip", "link", "delete" ,ovsIf], "")
+        run_command(["ip", "link", "delete" ,dstIf], "")
+
+        return False
 
     # move to docker dst
     if not move_if(dst_ip_ns_path, dstIf):
         _LOG.error("Failed to move interface to container " + docker_name)
-
+        return False
 
     return True
 
-def docker_delete_if(docker_name, bridge_name):
+def docker_delete_if(docker_name, bridge_name, name_filter):
 
-    ovsIf, dstIf = create_veth_pair_names(docker_name)
+    ovsIf, dstIf = create_veth_pair_names(docker_name, name_filter)
     remove_from_ovs =  ["nsenter",
                     "--mount=" + _HOST_NS_MNT,
                     "--net=" + _HOST_NS] + [ "ovs-vsctl", "del-port", bridge_name, ovsIf]
@@ -228,10 +237,14 @@ def docker_poll(docker_cli, name_filter, bridge_name):
 
                 if event['Action'] == 'start':
                     _LOG.info("New container found: " + str(pod_name))
-                    docker_create_if(pod_name, ip_ns_path, bridge_name)
+                    if docker_create_if(pod_name, ip_ns_path, bridge_name, name_filter):
+                        _LOG.info("Interfaces added successfully")
+                    else:
+                        _LOG.info("Adding interfaces failed")
+                        docker_delete_if(pod_name, bridge_name, name_filter)
 
                 elif event['Action'] == 'die':
-                    docker_delete_if(pod_name, bridge_name)
+                    docker_delete_if(pod_name, bridge_name, name_filter)
                     _LOG.info("Container has been removed: " + str(pod_name))
 
 
@@ -256,7 +269,7 @@ def main(options):
 if __name__ == '__main__':
     options = make_parser().parse_args()
     _LOG = setup_logger(options)
-    if options.enable != "true":
+    if options.enable.lower() != "true":
         _LOG.info("OVS disabled - shutting down")
         sys.exit()
     sys.exit(main(options))
