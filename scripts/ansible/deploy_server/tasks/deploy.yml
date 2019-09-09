@@ -22,5 +22,6 @@
   - debug:
       msg: "Base path set to: {{ base_path }}"
 
+  - include_tasks: ../../common/tasks/other/ela_config.yml
   - include_tasks: ../../common/tasks/sets/deploy.yml
   - include_tasks: ../../common/tasks/other/script_success.yml

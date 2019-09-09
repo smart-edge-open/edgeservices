@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- include_tasks: ../../deploy_server/tasks/ovs/remove_old.yml
-- include_tasks: ../../deploy_server/tasks/ovs/download.yml
-- include_tasks: ../../deploy_server/tasks/ovs/compile.yml
-- include_tasks: ../../deploy_server/tasks/ovs/move_to_install_location.yml
-- include_tasks: ../../deploy_server/tasks/ovs/add_parameters.yml
-- include_tasks: ../../deploy_server/tasks/ovs/start_ovs.yml
-- include_tasks: ../../deploy_server/tasks/ovs/configure.yml
-- include_tasks: ../../common/tasks/other/ovs_ph_port.yml
+- name: Reseting ela confing
+  shell: jq '.PCIBlacklist =  []'  {{base_path}}/configs/ela.json | sponge {{base_path}}/configs/ela.json
+
+- name: Adding blacklisted ports to ela config
+  shell: jq '.PCIBlacklist +=  ["{{ item }}"]'  {{base_path}}/configs/ela.json | sponge {{base_path}}/configs/ela.json
+  loop: "{{ovs_ports}}"
+  when: ovs['enabled']

@@ -49,9 +49,10 @@ ovs_install_location: "/opt/ovs-{{ ovs_version }}"
 ovs_cores_hex: "0x4"
 ovs_bridge_name: "br0"
 ovs_socket_mem: "1024,0"
-dpdk_build: "{{dpdk_install_location}}/{{dpdk_make_target}}/"
+ovs_dpdk_build: "{{dpdk_install_location}}/{{dpdk_make_target}}/"
 ovs:
   enabled: false
+ovs_ports: []
 #
 kubernetes_repo_yum_gpg: "https://packages.cloud.google.com/yum/doc/yum-key.gpg"
 kubernetes_repo_rpm_gpg: "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"

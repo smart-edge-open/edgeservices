@@ -10,13 +10,17 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
 
-- include_tasks: ../../deploy_server/tasks/ovs/remove_old.yml
-- include_tasks: ../../deploy_server/tasks/ovs/download.yml
-- include_tasks: ../../deploy_server/tasks/ovs/compile.yml
-- include_tasks: ../../deploy_server/tasks/ovs/move_to_install_location.yml
-- include_tasks: ../../deploy_server/tasks/ovs/add_parameters.yml
-- include_tasks: ../../deploy_server/tasks/ovs/start_ovs.yml
-- include_tasks: ../../deploy_server/tasks/ovs/configure.yml
-- include_tasks: ../../common/tasks/other/ovs_ph_port.yml
+- name: Add ovs physical port
+  shell: ovs-vsctl add-port {{ovs_bridge_name}} dpdk-p{{index}} -- set Interface dpdk-p{{index}} type=dpdk options:dpdk-devargs={{item}}  
+  loop: "{{ovs_ports}}"
+  loop_control:
+    index_var: index
+
+- name: Interfaces 
+  debug:
+    msg: "port dpdk-p{{index}} connected to {{item}}"
+  loop: "{{ovs_ports}}"
+  loop_control:
+    index_var: index
+
