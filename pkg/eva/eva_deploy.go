@@ -52,9 +52,9 @@ import (
 
 // DeploySrv describes deplyment
 type DeploySrv struct {
-	cfg		*Config
-	meta	*metadata.AppMetadata
-	hddlIn	bool
+	cfg    *Config
+	meta   *metadata.AppMetadata
+	hddlIn bool
 }
 
 const (
@@ -75,11 +75,11 @@ var httpsMatcher = regexp.MustCompile("^https://.")
 // detectHDDL detects if HDDL is present and configured - checks if devices exist
 func (s *DeploySrv) detectHDDL() {
 	var hddlPaths = []string{"/dev/ion", "/dev/myriad0", "/var/tmp/hddl_service.sock"}
-	
+
 	for _, d := range hddlPaths {
 		if _, err := os.Stat(filepath.Clean(d)); os.IsNotExist(err) {
 			s.hddlIn = false
-			break;
+			break
 		} else {
 			s.hddlIn = true
 		}
@@ -351,12 +351,12 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	// Now create a container out of the image
 	devIon := container.DeviceMapping{
 		PathOnHost:        "/dev/ion",
-    	PathInContainer:   "/dev/ion",
-    	CgroupPermissions: "rmw",
+		PathInContainer:   "/dev/ion",
+		CgroupPermissions: "rmw",
 	}
 	var hddlDevices []container.DeviceMapping
 	var hddlBinds []string
-	if s.hddlIn == true {
+	if s.hddlIn {
 		hddlDevices = []container.DeviceMapping{devIon}
 		hddlBinds = []string{"/var/tmp:/var/tmp"}
 	}
@@ -459,18 +459,11 @@ func isOVSBridgeCreated(o *ovs.Client, name string) (bool, error) {
 
 func addOVSPort(bridgeName string, id string) error {
 	var (
-		o               *ovs.Client = ovs.New()
-		portName                    = bridgeName + "-" + id
-		vHostSocketPath             = path.Join(ovsPath, "vhost-"+
-			portName+".sock")
-		err error
+		o               = ovs.New()
+		portName        = bridgeName + "-" + id
+		vHostSocketPath = path.Join(ovsPath, portName+".sock")
+		err             error
 	)
-
-	if _, err = os.Stat(ovsPath); os.IsNotExist(err) {
-		if err = os.Mkdir(ovsPath, os.ModeDir); err != nil {
-			return errors.Wrap(err, "Couldn't create OVS folder: "+ovsPath)
-		}
-	}
 
 	isBrCreated, err := isOVSBridgeCreated(o, bridgeName)
 	if err != nil {
@@ -512,6 +505,22 @@ func addOVSPort(bridgeName string, id string) error {
 			VHostPath: vHostSocketPath}})
 	if err != nil {
 		return errors.Wrapf(err, "db.Transact() failure")
+	}
+
+	return nil
+}
+
+func removeOVSPort(bridgeName string, id string) error {
+	var (
+		o        = ovs.New()
+		portName = bridgeName + "-" + id
+		err      error
+	)
+
+	// The port may or may not already exist no need to check that
+	err = o.VSwitch.DeletePort(bridgeName, portName)
+	if err != nil {
+		return errors.Wrapf(err, "Couldn't remove OVS port %s ", portName)
 	}
 
 	return nil
@@ -748,7 +757,8 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 	return dapp.SetUndeployed()
 }
 
-func libvirtUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
+func (s *DeploySrv) libvirtUndeploy(ctx context.Context,
+	dapp *metadata.DeployedApp) error {
 
 	conn, err := libvirt.NewConnect("qemu:///system")
 	if err != nil {
@@ -785,6 +795,13 @@ func libvirtUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
 	}
 	log.Infof("Domain (VM) '%v' undefined", dapp.App.Id)
 
+	if s.cfg.OpenvSwitch {
+		if err = removeOVSPort(s.cfg.OpenvSwitchBridge,
+			dapp.App.Id); err != nil {
+			log.Errf("Undeploy(%v) failed: %+v", dapp.App.Id, err)
+		}
+	}
+
 	return dapp.SetUndeployed()
 }
 
@@ -796,7 +813,7 @@ func (s *DeploySrv) syncUndeploy(ctx context.Context,
 	case metadata.Container:
 		err = s.dockerUndeploy(ctx, dapp)
 	case metadata.VM:
-		err = libvirtUndeploy(ctx, dapp)
+		err = s.libvirtUndeploy(ctx, dapp)
 	default:
 		log.Errf("Undeploy(%s): not supported application type: %v",
 			dapp.App.Id, dapp.Type)
