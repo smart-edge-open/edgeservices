@@ -17,3 +17,4 @@
     path: "{{ kubernetes_kubeadm_conf }}"
     line: Environment="KUBELET_EXTRA_ARGS=--runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates=\"HugePages=true\""
     create: no
+

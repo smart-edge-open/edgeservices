@@ -1,4 +1,4 @@
-  # Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
+# Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Cleanup
+  # Cleanup
   - include_tasks: ../../common/tasks/docker/remove_images_and_containers.yml
   - include_tasks: ../../common/tasks/libvirt/remove_all_vms.yml
   
@@ -57,3 +57,11 @@
 
   # Restart containers
   - include_tasks: ../../../deploy_server/tasks/docker/restart_syslog_ng.yml
+
+  # Kubernetes enrollment
+  - include_tasks: ../../../deploy_server/tasks/kubernetes/join.yml
+    when: kubernetes['enabled']
+  - include_tasks: ../../../deploy_server/tasks/kubernetes/dns_setup.yml
+    when: kubernetes['enabled']
+  - include_tasks: ../../../deploy_server/tasks/kubernetes/open_firewall_ports.yml
+    when: kubernetes['enabled']

@@ -12,20 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- name: Enable Kubernetes ip6tables
-  sysctl:
-    name: net.bridge.bridge-nf-call-ip6tables
-    value: '1'
-    sysctl_set: yes
-    state: present
-    reload: yes
-    sysctl_file: "{{ kubernetes_sysctl }}"
+- name: Setup firewall - 53/tcp
+  ignore_errors: yes
+  shell: firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 0 -d 192.168.122.1 -p tcp --dport 53 -j ACCEPT
 
-- name: Enable Kubernetes iptables
-  sysctl:
-    name: net.bridge.bridge-nf-call-iptables
-    value: '1'
-    sysctl_set: yes
-    state: present
-    reload: yes
-    sysctl_file: "{{ kubernetes_sysctl }}"
+- name: Setup firewall - 53/udp
+  ignore_errors: yes
+  shell: firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 0 -d 192.168.122.1 -p udp --dport 53 -j ACCEPT
+
+- name: Setup firewall - POSTROUTING
+  ignore_errors: yes
+  shell: firewall-cmd --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.244.0.0/16 -d 192.168.122.0/24 -j ACCEPT
+
+- name: Setup firewall - RELOAD
+  ignore_errors: yes
+  shell: firewall-cmd --reload

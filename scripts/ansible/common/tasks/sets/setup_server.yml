@@ -16,11 +16,17 @@
   - include_tasks: ../../common/tasks/os/disable_selinux_temporarily.yml
   - include_tasks: ../../common/tasks/os/disable_selinux_permanently.yml
   - include_tasks: ../../common/tasks/os/check_selinux_is_disabled.yml
+  - include_tasks: ../../common/tasks/os/disable_swap_temporarily.yml
+    when: kubernetes['enabled']
+  - include_tasks: ../../common/tasks/os/disable_swap_permanently.yml
+    when: kubernetes['enabled']
   - include_tasks: ../../common/tasks/yum/clean_all.yml
   - include_tasks: ../../common/tasks/yum/disable_plugins.yml
   - include_tasks: ../../common/tasks/yum/install_epel_package.yml
   - include_tasks: ../../common/tasks/kernelrt/install_repo.yml
   - include_tasks: ../../common/tasks/docker/install_repo.yml
+  - include_tasks: ../../common/tasks/kubernetes/install_repo.yml
+    when: kubernetes['enabled']
 
   - include_tasks: ../../common/tasks/yum/remove_excludes.yml
   - include_tasks: ../../common/tasks/yum/add_excludes.yml

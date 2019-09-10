@@ -11,23 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-- hosts: localhost
-  any_errors_fatal: false
-  tasks:
-  - debug:
-      msg: "--- SETTING UP KUBERNETES---"
-  - include_vars: ../../vars/defaults.yml
-  - debug:
-      msg: "Base path set to: {{ base_path }}"
 
-  - include_tasks: ../os/disable_swap_temporarily.yml
-  - include_tasks: ../os/disable_swap_permanently.yml
-  - include_tasks: install_repo.yml
-  - include_tasks: install.yml
-  - include_tasks: ../os/enable_kubernetes_iptables.yml
-  - include_tasks: open_firewall_ports.yml
-  - include_tasks: set_kubeadm_extra_arg.yml
-  - include_tasks: enable.yml
+- name: Reset Kubernetes network if exist
+  shell: kubeadm reset --force
 
-  - include_tasks: ../other/script_success.yml
+- name: Join Kubernetes cluster
+  shell: "{{ kubernetes_join }}"
