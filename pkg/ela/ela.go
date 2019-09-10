@@ -44,6 +44,7 @@ type Configuration struct {
 	DNSIP             string        `json:"DnsIP"`
 	PCIBlacklist      []string      `json:"PCIBlacklist"`
 	KubeOVNMode       bool          `json:"KubeOVNMode"`
+	InterfaceMTU      uint16        `json:"InterfaceMTU"`
 }
 
 var (

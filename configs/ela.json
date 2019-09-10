@@ -6,5 +6,6 @@
     "CertsDirectory": "certs",
     "DnsIP": "53.53.53.53",
     "PCIBlacklist": [],
+    "InterfaceMTU": 1500,
     "KubeOVNMode": false
 }

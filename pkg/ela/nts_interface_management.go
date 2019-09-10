@@ -191,7 +191,7 @@ func makeAndSaveNtsConfig(data map[string]interfaceData,
 	cfg := ntsConfigTemplate
 
 	for pci, d := range data {
-		port := ini.Port{}
+		port := ini.Port{MTU: Config.InterfaceMTU}
 		if err := port.UpdateFromTrafficPolicy(d.TrafficPolicy); err != nil {
 			return errors.Wrapf(err,
 				"failed to create port from traffic policy (pci: %s)", pci)
