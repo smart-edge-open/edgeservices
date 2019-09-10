@@ -119,3 +119,4 @@
  - Added support for inter app communication using OVS-dpdk
  - ELA: InterfaceService for kube-ovn mode
  - Fix IP fragmentation handling
+ - Fix duplicated entries error in kni_docker_daemon.py
