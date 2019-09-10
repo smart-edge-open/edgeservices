@@ -609,14 +609,14 @@ gtpu_head_t *nts_packet_flow_encap_gtpu(struct rte_mbuf *mbuf,
 	struct outer_ip_pkt_head * outer_ip_pkt_header;
 	struct ether_hdr * eth_header;
 	uint16_t pkt_len, vlan_len;
+	const size_t gtpu_tunnel_len = sizeof (struct ipv4_hdr) +
+		sizeof (struct udp_hdr) +
+		sizeof (gtpuHdr_t);
 
 	if (NTS_ENCAP_VLAN_FLAG & encap_data->encap_flag) {
 		vlan_len = sizeof(struct vlan_hdr);
 		pkt_header = (gtpu_head_t *)rte_pktmbuf_prepend(mbuf,
-				vlan_len +
-				sizeof (struct ipv4_hdr) +
-				sizeof (struct udp_hdr) +
-				sizeof (gtpuHdr_t));
+				vlan_len + gtpu_tunnel_len);
 		if (NULL == pkt_header)
 			return NULL;
 
@@ -628,10 +628,7 @@ gtpu_head_t *nts_packet_flow_encap_gtpu(struct rte_mbuf *mbuf,
 			&pkt_header->gtpu_vlan.outer_ipv4_hdr;
 	} else {
 		vlan_len = 0;
-		pkt_header = (gtpu_head_t *)rte_pktmbuf_prepend(mbuf,
-				sizeof (struct ipv4_hdr) +
-				sizeof (struct udp_hdr) +
-				sizeof (gtpuHdr_t));
+		pkt_header = (gtpu_head_t *)rte_pktmbuf_prepend(mbuf, gtpu_tunnel_len);
 		if (NULL == pkt_header)
 			return NULL;
 
@@ -641,6 +638,8 @@ gtpu_head_t *nts_packet_flow_encap_gtpu(struct rte_mbuf *mbuf,
 			&pkt_header->gtpu_no_vlan.outer_ipv4_hdr;
 	}
 
+	// Increase l3_len to avoid any offload issues
+	mbuf->l3_len += gtpu_tunnel_len;
 	pkt_len = mbuf->pkt_len;
 
 	ether_addr_copy(&encap_data->dst_mac_addrs, &eth_header->d_addr);

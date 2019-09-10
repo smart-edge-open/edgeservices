@@ -120,3 +120,4 @@
  - ELA: InterfaceService for kube-ovn mode
  - Fix IP fragmentation handling
  - Fix duplicated entries error in kni_docker_daemon.py
+ - Fix TCP checksum offloading for GTP-U encapsulated packets
