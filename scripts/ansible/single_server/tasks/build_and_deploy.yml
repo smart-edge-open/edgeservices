@@ -24,6 +24,7 @@
   - debug:
       msg: "Base path set to: {{ base_path }}"
   - include_tasks: ../../common/tasks/other/ela_config.yml
+  - include_tasks: ../../common/tasks/other/ovs_appliance_dockerfile.yml
   - include_tasks: ../../common/tasks/os/check_selinux_is_disabled.yml
   - include_tasks: ../../common/tasks/os/reread_shell_profile.yml
   - include_tasks: ../../common/tasks/kernelrt/validate_currently_running.yml
