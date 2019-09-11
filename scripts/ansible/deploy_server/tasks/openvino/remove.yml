@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- name: Build images
-  shell: source /etc/profile && RTE_SDK={{ dpdk_install_location }} RTE_TARGET={{ dpdk_make_target }} KUBE_OVN_MODE={{ kube_ovn['enabled'] }} make build-docker
-  args:
-    chdir: "{{ base_path }}"
+- name: Remove OpenVino temporary download directory
+  become: true
+  file:
+    path: "{{ openvino_downloaddir }}"
+    state: absent
 
-- name: Build extra images
-  shell: make build-docker-hddl
-  args:
-    chdir: "{{ base_path }}"
-  when: openvino['enabled']
-  
+- name: Remove OpenVino old install directory
+  become: true
+  shell: rm -rf /opt/intel/openvino*
+

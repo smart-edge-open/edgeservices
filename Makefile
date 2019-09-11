@@ -16,7 +16,7 @@
 
 export GO111MODULE = on
 
-.PHONY: build appliance edgedns clean build-docker lint test help
+.PHONY: build appliance edgedns clean build-docker lint test help build-docker-hddl 
 TMP_DIR:=$(shell mktemp -d)
 BUILD_DIR ?=dist
 
@@ -68,6 +68,14 @@ endif
 	ls "${TMP_DIR}"
 	rm -rf "${TMP_DIR}"
 
+build-docker-hddl:
+	cp build/hddlservice/Dockerfile "${TMP_DIR}/Dockerfile_hddlservice"
+	cp build/hddlservice/start.sh "${TMP_DIR}"
+	cp build/hddlservice/docker-compose.yml "${TMP_DIR}"
+	cd "${TMP_DIR}" && VER=${VER} docker-compose build
+	ls "${TMP_DIR}"
+	rm -rf "${TMP_DIR}"
+
 run-docker:
 ifeq ($(KUBE_OVN_MODE), True)
 	VER=${VER} docker-compose up --no-build
@@ -83,12 +91,13 @@ test: edalibs
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
-	@echo "  build          to build the appliance application, edgedns server and NTS"
-	@echo "  appliance      to build the appliance application"
-	@echo "  edgedns        to build the edgedns server"
-	@echo "  nts            to build the NTS"
-	@echo "  clean          to clean up build artifacts and docker"
-	@echo "  build-docker   to build the release docker image"
-	@echo "  run-docker     to start containers"
-	@echo "  lint           to run linters and static analysis on the code"
-	@echo "  test           to run unit tests"
+	@echo "  build                  to build the appliance application, edgedns server and NTS"
+	@echo "  appliance              to build the appliance application"
+	@echo "  edgedns                to build the edgedns server"
+	@echo "  nts                    to build the NTS"
+	@echo "  clean                  to clean up build artifacts and docker"
+	@echo "  build-docker           to build the release docker image"
+	@echo "  build-docker-hddl      to build optional docker image for hddl-service"
+	@echo "  run-docker             to start containers"
+	@echo "  lint                   to run linters and static analysis on the code"
+	@echo "  test                   to run unit tests"

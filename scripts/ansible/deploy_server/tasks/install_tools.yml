@@ -36,6 +36,9 @@
   - include_tasks: ../../deploy_server/tasks/ovs/set_eva_config.yml
   - include_tasks: ../../deploy_server/tasks/ovs/ovs.yml  
     when: ovs['enabled']
+  - include_tasks: ../../deploy_server/tasks/openvino/check_if_set.yml
+  - include_tasks: ../../deploy_server/tasks/openvino/openvino.yml  
+    when: openvino['enabled']
   - include_tasks: ../../common/tasks/kubernetes/check_if_set.yml
   - include_tasks: ../../common/tasks/kubernetes/install.yml
     when: kubernetes['enabled']

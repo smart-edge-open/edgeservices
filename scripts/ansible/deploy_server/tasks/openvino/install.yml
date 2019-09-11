@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- name: Build images
-  shell: source /etc/profile && RTE_SDK={{ dpdk_install_location }} RTE_TARGET={{ dpdk_make_target }} KUBE_OVN_MODE={{ kube_ovn['enabled'] }} make build-docker
-  args:
-    chdir: "{{ base_path }}"
 
-- name: Build extra images
-  shell: make build-docker-hddl
-  args:
-    chdir: "{{ base_path }}"
-  when: openvino['enabled']
-  
+- name: Configure licence agreement OpenVino
+  lineinfile:
+    path: "{{ openvino_silent_config }}"
+    regexp: '^ACCEPT_EULA='
+    line: ACCEPT_EULA=accept
+
+- name: Install OpenVino
+  command: "{{ openvino_install_command }}"
+  args: 
+    chdir: "{{ openvino_downloaddir }}"
+
+- name: Install OpenVino kernel drivers and udev rules
+  shell: "{{ openvino_hddl_dependency_install }}" 

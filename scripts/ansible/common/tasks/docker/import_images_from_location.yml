@@ -18,6 +18,13 @@
     #tag: 1.0
     load_path: "{{ docker_image_import_location_path }}/appliance.docker"
 
+- name: Import Docker hddlservice image from defined location
+  docker_image:
+    name: hddlservice
+    #tag: 1.0
+    load_path: "{{ docker_image_import_location_path }}/hddlservice.docker"
+  when: openvino['enabled']
+
 - name: Import Docker edgednssvr image from defined location
   docker_image:
     name: edgednssvr

@@ -23,6 +23,10 @@
 - name: Export appliance image to filesystem
   shell: docker save appliance -o "{{ docker_images_save_path }}/appliance.docker"
 
+- name: Export hddlservice image to filesystem
+  shell: docker save hddlservice -o "{{ docker_images_save_path }}/hddlservice.docker"
+  when: openvino['enabled']
+
 - name: Export edgednssvr image to filesystem
   shell: docker save edgednssvr -o "{{ docker_images_save_path }}/edgednssvr.docker"
 

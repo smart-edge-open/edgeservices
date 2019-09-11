@@ -12,14 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- name: Build images
-  shell: source /etc/profile && RTE_SDK={{ dpdk_install_location }} RTE_TARGET={{ dpdk_make_target }} KUBE_OVN_MODE={{ kube_ovn['enabled'] }} make build-docker
+- name: Bring up hddlservice container
+  shell: "VER={{ docker_hddlservice_tag }} docker-compose up -d --no-build hddlservice"
   args:
-    chdir: "{{ base_path }}"
-
-- name: Build extra images
-  shell: make build-docker-hddl
-  args:
-    chdir: "{{ base_path }}"
-  when: openvino['enabled']
+    chdir: "{{ base_path }}/build/hddlservice"
   
