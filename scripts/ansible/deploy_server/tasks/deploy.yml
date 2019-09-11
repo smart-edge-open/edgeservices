@@ -25,4 +25,8 @@
   - include_tasks: ../../common/tasks/other/ela_config.yml
   - include_tasks: ../../common/tasks/other/ovs_appliance_dockerfile.yml
   - include_tasks: ../../common/tasks/sets/deploy.yml
+  - include_tasks: ../../common/tasks/sets/bringup.yml
+    when: not kube_ovn['enabled']
+  - include_tasks: ../../common/tasks/other/kubeovn_note.yml
+    when: kube_ovn['enabled']
   - include_tasks: ../../common/tasks/other/script_success.yml

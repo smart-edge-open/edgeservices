@@ -63,3 +63,5 @@ kubernetes_join: ""
 kubernetes:
   enabled: false
 #
+kube_ovn:
+  enabled: false

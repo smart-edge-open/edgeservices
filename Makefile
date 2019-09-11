@@ -51,6 +51,11 @@ build-docker: build
 	cp "${BUILD_DIR}/appliance" "${TMP_DIR}"
 	cp build/edgednssvr/Dockerfile "${TMP_DIR}/Dockerfile_edgednssvr"
 	cp "${BUILD_DIR}/edgednssvr" "${TMP_DIR}"
+	cp docker-compose.yml "${TMP_DIR}"
+ifeq ($(KUBE_OVN_MODE), True)
+	cd "${TMP_DIR}" && VER=${VER} docker-compose build
+else
+	cp docker-compose.nts.yml "${TMP_DIR}"
 	mkdir -p "${TMP_DIR}/nts"
 	cp internal/nts/build/nes-daemon "${TMP_DIR}/nts"
 	cp internal/nts/kni_docker_daemon.py "${TMP_DIR}/nts"
@@ -58,13 +63,17 @@ build-docker: build
 	cp internal/nts/entrypoint.sh "${TMP_DIR}/nts"
 	cp internal/nts/build/libnes_api_shared.so "${TMP_DIR}/nts"
 	cp internal/nts/Dockerfile "${TMP_DIR}/Dockerfile_nts"
-	cp docker-compose.yml "${TMP_DIR}"
-	cd "${TMP_DIR}" && VER=${VER} docker-compose build
+	cd "${TMP_DIR}" && VER=${VER} docker-compose -f docker-compose.yml -f docker-compose.nts.yml build
+endif	
 	ls "${TMP_DIR}"
 	rm -rf "${TMP_DIR}"
 
 run-docker:
+ifeq ($(KUBE_OVN_MODE), True)
 	VER=${VER} docker-compose up --no-build
+else
+	VER=${VER} docker-compose -f docker-compose.yml -f docker-compose.nts.yml up --no-build
+endif
 
 lint: edalibs
 	golangci-lint run

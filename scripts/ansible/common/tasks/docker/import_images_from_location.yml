@@ -29,3 +29,5 @@
     name: nts
     # tag: 1.0
     load_path: "{{ docker_image_import_location_path }}/nts.docker"
+  when: not kube_ovn['enabled']
+

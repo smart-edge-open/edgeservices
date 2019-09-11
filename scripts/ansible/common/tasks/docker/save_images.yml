@@ -28,3 +28,4 @@
 
 - name: Export nts image to filesystem
   shell: docker save nts -o "{{ docker_images_save_path }}/nts.docker"
+  when: not kube_ovn['enabled']
