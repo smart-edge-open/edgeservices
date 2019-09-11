@@ -14,9 +14,10 @@
 
 FROM centos:7.6.1810
 
-RUN yum install -y libvirt-devel pciutils \
-        unbound openssl && \
-    yum clean all
+RUN yum install -y libvirt-devel \
+        pciutils which \
+        unbound openssl \
+    && yum clean all
 RUN rpm -ivh https://github.com/alauda/ovs/releases/download/v2.11.1-1/openvswitch-2.11.1-1.el7.x86_64.rpm
 
 WORKDIR /root/
