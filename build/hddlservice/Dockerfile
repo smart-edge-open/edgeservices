@@ -52,5 +52,5 @@ RUN sudo -E sed -i '/"abort_if_hw_reset_failed"/ s/true/false/' /opt/intel/openv
 RUN echo "source /opt/intel/openvino/bin/setupvars.sh" >> ~/.bashrc
 
 COPY start.sh ./
-WORKDIR /home/hddl
+COPY ./hddllog ./
 CMD ["./start.sh"]

@@ -70,7 +70,7 @@ openvino_install_command: "./install.sh -s silent.cfg"
 openvino_install_dir: "/opt/intel/"
 openvino_hddl_dependency_install: "source /opt/intel/openvino/bin/setupvars.sh && ${HDDL_INSTALL_DIR}/install_IVAD_VPU_dependencies.sh"
 openvino:
-  enabled: true 
+  enabled: false 
 #
 kube_ovn:
   enabled: false

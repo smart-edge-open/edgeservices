@@ -16,7 +16,7 @@
 
 export GO111MODULE = on
 
-.PHONY: build appliance edgedns clean build-docker lint test help build-docker-hddl 
+.PHONY: build appliance edgedns clean build-docker lint test help build-docker-hddl hddllog 
 TMP_DIR:=$(shell mktemp -d)
 BUILD_DIR ?=dist
 
@@ -38,6 +38,9 @@ nts:
 edalibs:
 	make -C internal/nts/eda_libs
 
+hddllog:
+	mkdir -p "${BUILD_DIR}"
+	GOOS=linux go build -o "${BUILD_DIR}/hddllog" ./cmd/hddllog
 
 clean:
 	rm -rf "${BUILD_DIR}"
@@ -68,10 +71,11 @@ endif
 	ls "${TMP_DIR}"
 	rm -rf "${TMP_DIR}"
 
-build-docker-hddl:
+build-docker-hddl: hddllog
 	cp build/hddlservice/Dockerfile "${TMP_DIR}/Dockerfile_hddlservice"
 	cp build/hddlservice/start.sh "${TMP_DIR}"
 	cp build/hddlservice/docker-compose.yml "${TMP_DIR}"
+	cp "${BUILD_DIR}/hddllog" "${TMP_DIR}"
 	cd "${TMP_DIR}" && VER=${VER} docker-compose build
 	ls "${TMP_DIR}"
 	rm -rf "${TMP_DIR}"
@@ -95,6 +99,7 @@ help:
 	@echo "  appliance              to build the appliance application"
 	@echo "  edgedns                to build the edgedns server"
 	@echo "  nts                    to build the NTS"
+	@echo "  hddllog                to build the log supporting hddl service"
 	@echo "  clean                  to clean up build artifacts and docker"
 	@echo "  build-docker           to build the release docker image"
 	@echo "  build-docker-hddl      to build optional docker image for hddl-service"
