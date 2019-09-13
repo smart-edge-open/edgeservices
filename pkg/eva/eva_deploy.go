@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"time"
@@ -457,9 +458,22 @@ func isOVSBridgeCreated(o *ovs.Client, name string) (bool, error) {
 	return false, nil
 }
 
+// execOvsWithPath concatenates a path with rest of options to execute
+// ovs-vsctl with apropriate ovs db path
+func execOvsWithPath(cmd string, args ...string) ([]byte, error) {
+	commands := append(
+		[]string{"--db=unix:" + ovsDbSocket}, args...)
+	return exec.Command(cmd, commands...).CombinedOutput()
+}
+
+// newOvs creates OVS Client with changed ovs-vsctl database path
+func newOvs() *ovs.Client {
+	return ovs.New(ovs.Exec(execOvsWithPath))
+}
+
 func addOVSPort(bridgeName string, id string) error {
 	var (
-		o               = ovs.New()
+		o               = newOvs()
 		portName        = bridgeName + "-" + id
 		vHostSocketPath = path.Join(ovsPath, portName+".sock")
 		err             error
@@ -512,7 +526,7 @@ func addOVSPort(bridgeName string, id string) error {
 
 func removeOVSPort(bridgeName string, id string) error {
 	var (
-		o        = ovs.New()
+		o        = newOvs()
 		portName = bridgeName + "-" + id
 		err      error
 	)
