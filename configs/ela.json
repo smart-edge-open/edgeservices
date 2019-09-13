@@ -7,5 +7,6 @@
     "DnsIP": "53.53.53.53",
     "PCIBlacklist": [],
     "InterfaceMTU": 1500,
-    "KubeOVNMode": false
+    "KubeOVNMode": false,
+    "ControllerEndpoint": "1.2.3.4:8081"
 }

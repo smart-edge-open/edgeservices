@@ -26,6 +26,7 @@ import (
 	"github.com/otcshare/edgenode/pkg/config"
 	"github.com/otcshare/edgenode/pkg/ela/kubeovn"
 
+	"github.com/otcshare/common/proxy/progutil"
 	"github.com/otcshare/edgenode/pkg/auth"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/otcshare/edgenode/pkg/util"
@@ -36,15 +37,16 @@ import (
 
 // Configuration describes JSON configuration
 type Configuration struct {
-	Endpoint          string        `json:"Endpoint"`
-	HeartbeatInterval util.Duration `json:"HeartbeatInterval"`
-	EDAEndpoint       string        `json:"EdaEndpoint"`
-	NtsConfigPath     string        `json:"NtsConfigPath"`
-	CertsDir          string        `json:"CertsDirectory"`
-	DNSIP             string        `json:"DnsIP"`
-	PCIBlacklist      []string      `json:"PCIBlacklist"`
-	KubeOVNMode       bool          `json:"KubeOVNMode"`
-	InterfaceMTU      uint16        `json:"InterfaceMTU"`
+	Endpoint           string        `json:"Endpoint"`
+	HeartbeatInterval  util.Duration `json:"HeartbeatInterval"`
+	EDAEndpoint        string        `json:"EdaEndpoint"`
+	NtsConfigPath      string        `json:"NtsConfigPath"`
+	CertsDir           string        `json:"CertsDirectory"`
+	DNSIP              string        `json:"DnsIP"`
+	PCIBlacklist       []string      `json:"PCIBlacklist"`
+	KubeOVNMode        bool          `json:"KubeOVNMode"`
+	InterfaceMTU       uint16        `json:"InterfaceMTU"`
+	ControllerEndpoint string        `json:"ControllerEndpoint"`
 }
 
 var (
@@ -81,12 +83,19 @@ func runServer(ctx context.Context) error {
 		ClientCAs:    certPool,
 	})
 
-	lis, err := net.Listen("tcp", Config.Endpoint)
-
 	if err != nil {
 		log.Errf("net.Listen error: %+v", err)
 		return err
 	}
+
+	addr, err := net.ResolveTCPAddr("tcp", Config.ControllerEndpoint)
+	if err != nil {
+		log.Errf("Failed to resolve the controller address: %v", err)
+		return err
+	}
+	lis := &progutil.DialListener{RemoteAddr: addr, Name: "ELA"}
+	defer lis.Close()
+
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
 
 	if Config.KubeOVNMode {

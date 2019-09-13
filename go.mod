@@ -26,7 +26,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/gogo/protobuf v1.2.1 // indirect
-	github.com/golang/protobuf v1.3.0
+	github.com/golang/protobuf v1.3.1
 	github.com/google/go-cmp v0.3.0 // indirect
 	github.com/gorilla/mux v1.7.0
 	github.com/gorilla/websocket v1.4.0
@@ -40,6 +40,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/otcshare/common/log v0.0.0-20190819124907-99dcb8b50ed8
+	github.com/otcshare/common/proxy v0.0.0-20190820113043-69a7d2cb754d
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
@@ -48,8 +49,9 @@ require (
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c // indirect
 	golang.org/x/text v0.3.1-0.20181227161524-e6919f6577db // indirect
 	golang.org/x/time v0.0.0-20161028155119-f51c12702a4d // indirect
+	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190502173448-54afdca5d873
-	google.golang.org/grpc v1.19.0
+	google.golang.org/grpc v1.20.1
 	gopkg.in/ini.v1 v1.42.0
 	gotest.tools v2.2.0+incompatible // indirect
 )

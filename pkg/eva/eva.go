@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 
 	logger "github.com/otcshare/common/log"
+	"github.com/otcshare/common/proxy/progutil"
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 	"github.com/otcshare/edgenode/pkg/auth"
 	"github.com/otcshare/edgenode/pkg/config"
@@ -80,11 +81,13 @@ func runEva(ctx context.Context, cfg *Config) error {
 		return err
 	}
 
-	lis, err := net.Listen("tcp", cfg.Endpoint)
+	addr, err := net.ResolveTCPAddr("tcp", cfg.ControllerEndpoint)
 	if err != nil {
-		log.Errf("Failed tcp listen on %s: %v", cfg.Endpoint, err)
+		log.Errf("Failed to resolve the controller address: %v", err)
 		return err
 	}
+	lis := &progutil.DialListener{RemoteAddr: addr, Name: "EVA"}
+	defer lis.Close()
 
 	server := grpc.NewServer(grpc.Creds(srvCreds))
 
