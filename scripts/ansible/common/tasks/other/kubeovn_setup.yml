@@ -12,5 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+- name: Installing OVS tools
+  yum:
+    name: "unbound,https://github.com/alauda/ovs/releases/download/v2.11.1-1/openvswitch-2.11.1-1.el7.x86_64.rpm"
+    
 - debug:
     msg: "EdgeNode apps image build finished. Ensure that OpenNess with Kube-OVN is configured on edgecontroller"
+
+- name: Waiting for node to be joined to cluster
+  wait_for:
+    path: /var/run/openvswitch/db.sock
+
+- name: Configure OVS
+  shell: |
+    ovs-vsctl set open . external-ids:ovn-bridge-mappings=local-network:br-local
+    ovs-vsctl --may-exist add-br br-local

@@ -32,7 +32,7 @@ import (
 
 const (
 	// kubeOvnBridge is name of kube-ovn's bridge
-	kubeOvnBridge = "br-int"
+	kubeOvnBridge = "br-local"
 )
 
 var (
