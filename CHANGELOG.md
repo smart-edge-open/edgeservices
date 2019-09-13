@@ -121,3 +121,4 @@
  - Fix IP fragmentation handling
  - Fix duplicated entries error in kni_docker_daemon.py
  - Fix TCP checksum offloading for GTP-U encapsulated packets
+ - Decrease allocated 2MB hugepages count to 5000(10GB)

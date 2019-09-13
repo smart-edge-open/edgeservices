@@ -19,7 +19,7 @@ centos_rt_repo_gpg_file: "http://linuxsoft.cern.ch/cern/centos/7/os/x86_64/RPM-G
 centos_rt_repo_file: "http://linuxsoft.cern.ch/cern/centos/{{ centos_version }}/rt/CentOS-RT.repo"
 centos_rt_kernel_package_name: "kernel-rt-kvm"
 centos_rt_kernel_package_version: "3.10.0-957.12.2.rt56.929.el7.x86_64"
-centos_rt_kernel_grub_parameters: "hugepagesz=2M hugepages=50000 intel_iommu=on iommu=pt"
+centos_rt_kernel_grub_parameters: "hugepagesz=2M hugepages=5000 intel_iommu=on iommu=pt"
 centos_rt_tuned_package_link: "ftp://ftp.icm.edu.pl/vol/rzm3/linux-slc/centos/7.5.1804/os/x86_64/Packages/tuned-2.9.0-1.el7.noarch.rpm"
 epel_repository_package_link: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ centos_version }}.noarch.rpm"
 packages_to_install: "curl,wget"
