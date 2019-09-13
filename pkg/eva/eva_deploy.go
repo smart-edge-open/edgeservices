@@ -577,6 +577,7 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 		OS: &libvirtxml.DomainOS{
 			Type: &libvirtxml.DomainOSType{Arch: "x86_64", Type: "hvm"},
 		},
+		Features: &libvirtxml.DomainFeatureList{ACPI: &libvirtxml.DomainFeature{}},
 
 		CPU: &libvirtxml.DomainCPU{
 			Mode: "host-passthrough",
