@@ -63,7 +63,7 @@ kubernetes_join: ""
 kubernetes:
   enabled: false
 #
-openvino_url: "http://registrationcenter-download.intel.com/akdlm/irc_nas/15693/l_openvino_toolkit_p_2019.2.242.tgz"
+openvino_url: "http://registrationcenter-download.intel.com/akdlm/irc_nas/15791/l_openvino_toolkit_fpga_p_2019.2.275.tgz"
 openvino_downloaddir: "/temp/openvino_downloaddir"
 openvino_silent_config: "/temp/openvino_downloaddir/silent.cfg"
 openvino_install_command: "./install.sh -s silent.cfg" 

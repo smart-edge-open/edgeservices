@@ -75,7 +75,7 @@ var httpsMatcher = regexp.MustCompile("^https://.")
 
 // detectHDDL detects if HDDL is present and configured - checks if devices exist
 func (s *DeploySrv) detectHDDL() {
-	var hddlPaths = []string{"/dev/ion", "/dev/myriad0", "/var/tmp/hddl_service.sock"}
+	var hddlPaths = []string{"/dev/ion", "/dev/myriad0"}
 
 	for _, d := range hddlPaths {
 		if _, err := os.Stat(filepath.Clean(d)); os.IsNotExist(err) {

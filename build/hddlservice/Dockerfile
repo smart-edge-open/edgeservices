@@ -1,3 +1,17 @@
+# Copyright 2019 Intel Corporation. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 FROM ubuntu:16.04
 
 ENV http_proxy=$http_proxy
@@ -34,7 +48,7 @@ USER hddl
 WORKDIR "/home/hddl/"
 RUN sudo usermod -a -G users,video hddl 
 
-ARG OPENVINO_LINK=http://registrationcenter-download.intel.com/akdlm/irc_nas/15512/l_openvino_toolkit_p_2019.1.144.tgz
+ARG OPENVINO_LINK=http://registrationcenter-download.intel.com/akdlm/irc_nas/15791/l_openvino_toolkit_fpga_p_2019.2.275.tgz
 
 # OpenVino installation
 RUN cd /home/hddl && \
@@ -47,8 +61,8 @@ RUN cd /home/hddl && \
     sudo -E ./install.sh -s silent.cfg && \
     rm -rf /tmp/l_openvino_toolkit* 
 # Edit hddl_autoboot config and hddl_service config in order to stop failing on reset and enabling additional logs for service
-RUN sudo -E sed -i '/"abort_if_hw_reset_failed"/ s/true/false/' /opt/intel/openvino_2019.1.144/deployment_tools/inference_engine/external/hddl/config/hddl_autoboot.config && \
-    sudo -E sed -i '/"device_snapshot_mode"/ s/none/full/' /opt/intel/openvino_2019.1.144/deployment_tools/inference_engine/external/hddl/config/hddl_service.config 
+RUN sudo -E sed -i '/"abort_if_hw_reset_failed"/ s/true/false/' /opt/intel/openvino_2019.2.275/deployment_tools/inference_engine/external/hddl/config/hddl_autoboot.config && \
+    sudo -E sed -i '/"device_snapshot_mode"/ s/none/full/' /opt/intel/openvino_2019.2.275/deployment_tools/inference_engine/external/hddl/config/hddl_service.config 
 RUN echo "source /opt/intel/openvino/bin/setupvars.sh" >> ~/.bashrc
 
 COPY start.sh ./
