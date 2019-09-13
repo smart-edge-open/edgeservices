@@ -38,6 +38,8 @@ services:
      - "/var/lib/appliance/configs:/root/configs"
      - "/var/lib/appliance/applications:/var/lib/appliance/applications"
      - "/usr/local/var/run/openvswitch:/usr/local/var/run/openvswitch"
+    environment:
+     - SYSLOG_ADDR=syslog.community.appliance.mec
     network_mode: bridge
 
   edgednssvr:

@@ -37,7 +37,7 @@ else
     msg="Controller's Root CA not found. Put it into: /etc/pki/tls/certs/controller-root-ca.pem"
     echo "${msg}"
     logger \
-        --server syslog.community.appliance.mec \
+        --server ${SYSLOG_ADDR} \
         --tag "${BASENAME}" \
         "${msg}"
 fi
