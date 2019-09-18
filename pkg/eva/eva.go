@@ -209,6 +209,9 @@ func prepareServerCreds(cfg *Config) (credentials.TransportCredentials, error) {
 }
 
 func sanitizeConfig(cfg *Config) error {
+	if cfg.ControllerEndpoint == "" {
+		return fmt.Errorf("ControllerEndpoint is not set")
+	}
 	if cfg.MaxCores <= 0 {
 		return fmt.Errorf("MaxCores value invalid: %d", cfg.MaxCores)
 	}
