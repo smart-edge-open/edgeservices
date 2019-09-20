@@ -32,3 +32,8 @@
     src: "{{ base_path }}/scripts/ansible/deploy_server/configs/modules-load/dpdk.conf"
     dest: /etc/modules-load.d/dpdk.conf
     remote_src: no
+- name: "Copy files with OpenNESS modules to modprobe with params at boot"
+  copy:
+    src: "{{ base_path }}/scripts/ansible/deploy_server/configs/modules-probe/dpdk0kni.conf"
+    dest: /etc/modprobe.d/dpdk0kni.conf
+    remote_src: no

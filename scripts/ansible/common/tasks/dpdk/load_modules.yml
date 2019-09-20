@@ -25,4 +25,5 @@
 - name: Load rte_kni.ko module now
   modprobe:
     name: rte_kni
+    params: 'carrier=on'
     state: present
