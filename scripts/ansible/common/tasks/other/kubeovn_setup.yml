@@ -19,11 +19,20 @@
 - debug:
     msg: "EdgeNode apps image build finished. Ensure that OpenNess with Kube-OVN is configured on edgecontroller"
 
+- name: Join Kubernetes cluster
+  shell: "{{ kubernetes_join }}"
+
 - name: Waiting for node to be joined to cluster
   wait_for:
     path: /var/run/openvswitch/db.sock
+    timeout: 600
 
 - name: Configure OVS
   shell: |
     ovs-vsctl set open . external-ids:ovn-bridge-mappings=local-network:br-local
     ovs-vsctl --may-exist add-br br-local
+  register: result
+  until: result.failed == false
+  retries: 5
+  delay: 30
+

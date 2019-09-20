@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Disconnect node from cluster
+- include_tasks: ../../../deploy_server/tasks/kubernetes/reset.yml
+  when: kubernetes['enabled']
+
 # Cleanup
 - include_tasks: ../../common/tasks/docker/remove_images_and_containers.yml
 - include_tasks: ../../common/tasks/libvirt/remove_all_vms.yml
