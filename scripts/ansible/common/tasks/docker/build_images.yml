@@ -18,7 +18,7 @@
     chdir: "{{ base_path }}"
 
 - name: Build extra images
-  shell: make build-docker-hddl
+  shell: source /etc/profile && make build-docker-hddl
   args:
     chdir: "{{ base_path }}"
   when: openvino['enabled']
