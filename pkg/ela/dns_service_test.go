@@ -25,6 +25,7 @@ import (
 	elapb "github.com/otcshare/edgenode/pkg/ela/pb"
 
 	"github.com/otcshare/common/log"
+	"github.com/otcshare/common/proxy/progutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -84,8 +85,14 @@ var _ = Describe("DnsService gRPC Server", func() {
 	When("SetA is called", func() {
 		Context("with correct arguments", func() {
 			It("responds with no error", func() {
-				conn, err := grpc.Dial(elaTestEndpoint,
-					grpc.WithTransportCredentials(transportCreds))
+
+				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				prefaceLis := progutil.NewPrefaceListener(lis)
+				defer prefaceLis.Close()
+				go prefaceLis.Accept() // we only expect 1 connection
+
+				conn, err := grpc.Dial("",
+					grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 
@@ -104,8 +111,13 @@ var _ = Describe("DnsService gRPC Server", func() {
 		})
 		Context("with wrong arguments", func() {
 			It("responds with error", func() {
-				conn, err := grpc.Dial(elaTestEndpoint,
-					grpc.WithTransportCredentials(transportCreds))
+				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				prefaceLis := progutil.NewPrefaceListener(lis)
+				defer prefaceLis.Close()
+				go prefaceLis.Accept() // we only expect 1 connection
+
+				conn, err := grpc.Dial("",
+					grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 
@@ -127,8 +139,14 @@ var _ = Describe("DnsService gRPC Server", func() {
 	When("DeleteA is called", func() {
 		Context("with correct arguments", func() {
 			It("responds with no error", func() {
-				conn, err := grpc.Dial(elaTestEndpoint,
-					grpc.WithTransportCredentials(transportCreds))
+
+				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				prefaceLis := progutil.NewPrefaceListener(lis)
+				defer prefaceLis.Close()
+				go prefaceLis.Accept() // we only expect 1 connection
+
+				conn, err := grpc.Dial("",
+					grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 

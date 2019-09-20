@@ -16,12 +16,14 @@ package ela_test
 
 import (
 	"context"
+	"net"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 
+	"github.com/otcshare/common/proxy/progutil"
 	"github.com/otcshare/edgenode/pkg/ela"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 )
@@ -30,8 +32,15 @@ var _ = Describe("gRPC InterfacePolicyService", func() {
 	Context("Set method", func() {
 		Specify("will store received TrafficPolicy", func() {
 			By("dialing to ELA and calling InterfacePolicyService's Set method")
-			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
+
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+			go prefaceLis.Accept() // we only expect 1 connection
+
+			// Then connecting to it from this thread
+			conn, err := grpc.Dial("",
+				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 

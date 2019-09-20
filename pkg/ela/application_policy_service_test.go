@@ -16,9 +16,11 @@ package ela_test
 
 import (
 	"context"
+	"net"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/otcshare/common/proxy/progutil"
 	"github.com/otcshare/edgenode/pkg/ela"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"google.golang.org/grpc"
@@ -49,8 +51,14 @@ var _ = Describe("Application Policy gRPC Server", func() {
 			ela.DialEDASet = fakeDialEDASet
 			ela.MACFetcher = &fakeMACAddressProvider{}
 
-			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+			go prefaceLis.Accept() // we only expect 1 connection
+
+			// Then connecting to it from this thread
+			conn, err := grpc.Dial("",
+				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
