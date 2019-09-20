@@ -17,3 +17,4 @@
     name: "{{ kubernetes_packages }}"
     state: present
     disable_excludes: kubernetes
+    allow_downgrade: yes
