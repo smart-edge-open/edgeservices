@@ -37,6 +37,8 @@ Section 9 - Change Log
 | QEMU               |Quick Emulator; open source emulator for hardware virtualization                   |
 | RPM                | RPM Package Manager                                                               |
 | VM                 | Virtual Machine                                                                   |
+| OpenVINO           | The OpenVINO™ toolkit is a comprehensive toolkit for quickly developing deep neural networks and visual inference applications across heterogeneous Intel® platforms                                          |
+| HDDL plugin        | OpenVINO™ plugin for inference of neural networks on Intel® Vision Accelerator Design with Intel® Movidius™ VPUs which is designed for use cases that require large throughput of deep learning inference.                                               |
 # 2. Software overview
 
 OpenNESS Edge Node uses a set of open source applications and framework, both inside the product and during installation/deployment process.
@@ -141,6 +143,13 @@ The OpenNESS Edge Node product has been tested using the following hardware spec
 |                  | (Symmetrical design) LBG integrated                                                        |
 | NIC on board     | Intel® Ethernet Controller I210 (for management)                                           |
 | Other card       | 2x PCIe* Riser cards                                                                       |
+
+- Optional: Support for Intel® Vision Accelerator Design with Intel® Movidius™ VPUs - HDDL-R8 card is provided. To be used with applications using Intel® Distribution of OpenVINO™ Toolkit and its HDDL plugin.
+
+|                  |                                                                                            |
+|------------------|--------------------------------------------------------------------------------------------|
+| HDDL-R8 PCI card | Mustang-V100-MX8                                                              |
+
 
 # 5. Hardware setup
 There are no special requirements for setting up hardware compared to a typical network server setup, except modifying BIOS settings and making sure the server is able to reach the internet (required to download other packages during server software setup).
@@ -266,6 +275,8 @@ Before configuring Edge Node server from automation scripts below (see chapter 7
 
 Edgenode supports 5 modes in which it will run. It covers both networking settings (OVS/non-OVS) and application deployment mode (Kubernetes, Docker). Operator needs to set required flags manually, before running Edgenode automation scripts described later.
 
+Additionally support for Intel® Vision Accelerator Design with Intel® Movidius™ VPUs (HDDL-R8 PCI card) can be enabled for 'Native Mode' and 'Native IAC mode'.
+
 To enable one of required modes described below, a set of configuration flags has been provided in the following configuration file: `./scripts/ansible/common/vars/defaults.yml`
 
 By default, Edgenode will be installed in the first listed mode - Native, non-IAC mode.
@@ -327,6 +338,16 @@ kubernetes:
   enabled: true
 kubernetes_join: <output from Controller>  
 kube_ovn:
+  enabled: true
+```
+
+### 7.3.6. Support for Intel® Vision Accelerator Design with Intel® Movidius™ VPUs
+OpenVino Applications deployed on EdgeNode can be accelerated with Intel® Vision Accelerator Design with Intel® Movidius™ VPUs HDDL card.
+It requires a HDDL PCI card plugged in into the platform. It is only supported for 'Native Mode' and 'Native IAC Mode' and any prerequisites needed for either of the modes must be completed before enabling support for HDDL.
+
+Flags to set:  
+```
+openvino:
   enabled: true
 ```
 
