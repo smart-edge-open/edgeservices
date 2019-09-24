@@ -14,11 +14,11 @@
 
 # Bring up containers
 - include_tasks: ../../../deploy_server/tasks/docker/up_syslog_ng.yml
+- include_tasks: ../../../deploy_server/tasks/docker/up_hddlservice.yml
+  when: openvino['enabled']
 - include_tasks: ../../../deploy_server/tasks/docker/up_edgednssvr.yml
 - include_tasks: ../../../deploy_server/tasks/docker/up_nts.yml
 - include_tasks: ../../../deploy_server/tasks/docker/up_appliance.yml
-- include_tasks: ../../../deploy_server/tasks/docker/up_hddlservice.yml
-  when: openvino['enabled']
 - include_tasks: ../../../deploy_server/tasks/docker/get_containers_ids.yml
 
 # Certificates and keys exchange

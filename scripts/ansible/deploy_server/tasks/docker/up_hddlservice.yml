@@ -16,4 +16,13 @@
   shell: "VER={{ docker_hddlservice_tag }} docker-compose up -d --no-build hddlservice"
   args:
     chdir: "{{ base_path }}/build/hddlservice"
-  
+
+- debug:
+    msg: "HDDL Service is starting"
+
+- name: Wait until VPU is bound to Myriad driver
+  wait_for:
+    path: /dev/myriad0
+
+- debug:
+    msg: "HDDL Service is running"  
