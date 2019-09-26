@@ -154,6 +154,19 @@ def move_if_to_host(if_name, bridge_name):
 
     return True
 
+def bring_if_up(docker_name, name_filter):
+    ovsIf, dstIf = create_veth_pair_names(docker_name, name_filter)
+    bring_up =   ["nsenter",
+                    "--mount=" + _HOST_NS_MNT,
+                    "--net=" + _HOST_NS] + \
+    [ "ip", "link", "set", ovsIf, "up"]
+
+    if not run_command(bring_up, ""):
+        _LOG.error("Failed to bring interface {} up".format(ovsIf))
+        return False
+
+    return True
+
 def docker_create_if(docker_name, dst_ip_ns_path, bridge_name, name_filter):
     ovsIf, dstIf = create_veth_pair_names(docker_name, name_filter)
     createVethPair = [  "ip",
@@ -238,6 +251,8 @@ def docker_poll(docker_cli, name_filter, bridge_name):
                 if event['Action'] == 'start':
                     _LOG.info("New container found: " + str(pod_name))
                     if docker_create_if(pod_name, ip_ns_path, bridge_name, name_filter):
+                        if bring_if_up(pod_name, name_filter):
+                            _LOG.info("OVS interfaces are up")
                         _LOG.info("Interfaces added successfully")
                     else:
                         _LOG.info("Adding interfaces failed")
