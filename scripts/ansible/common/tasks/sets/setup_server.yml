@@ -1,4 +1,4 @@
-  # Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
+# Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@
   - include_tasks: ../../common/tasks/yum/remove_excludes.yml
   - include_tasks: ../../common/tasks/yum/add_excludes.yml
   - include_tasks: ../../common/tasks/kernelrt/install.yml
+  - include_tasks: ../../common/tasks/grub/get_grub_cfg_file_path.yml
   - include_tasks: ../../common/tasks/grub/set_kernels_default_parameters.yml
   - include_tasks: ../../common/tasks/grub/set_rt_kernel_as_default.yml
 
