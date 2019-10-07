@@ -18,9 +18,6 @@
   - debug:
       msg: "--- INSTALL TOOLS ---"
   - include_vars: ../../common/vars/defaults.yml
-  - include_vars: ../../build_server/vars/defaults.yml
-  - include_vars: ../../deploy_server/vars/defaults.yml
-  - include_vars: ../vars/defaults.yml
   - debug:
       msg: "Base path set to: {{ base_path }}"
 

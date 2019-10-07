@@ -22,7 +22,6 @@ centos_rt_kernel_package_version: "3.10.0-957.21.3.rt56.935.el7.x86_64"
 centos_rt_kernel_grub_parameters: "hugepagesz=2M hugepages=5000 intel_iommu=on iommu=pt"
 centos_rt_tuned_package_link: "ftp://ftp.icm.edu.pl/vol/rzm3/linux-slc/centos/7.5.1804/os/x86_64/Packages/tuned-2.9.0-1.el7.noarch.rpm"
 epel_repository_package_link: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ centos_version }}.noarch.rpm"
-packages_to_install: "curl,wget"
 dpdk_name: "dpdk-18.11.2"
 dpdk_url: "http://fast.dpdk.org/rel/{{ dpdk_name }}.tar.xz"
 dpdk_downloaddir: "/temp/dpdk_downloaddir"
@@ -74,3 +73,47 @@ openvino:
 #
 kube_ovn:
   enabled: false
+
+# Build configuration
+
+docker_images_save_path: "{{ base_path }}/dist/"
+
+# Deploy configuration 
+
+packages_to_install: "jq,moreutils,pixman-devel,curl,yum-utils,device-mapper-persistent-data,lvm2,python-pip,libvirt,libvirt-devel,wget,bridge-utils,boost-devel,openssl-devel,pcre-devel,zlib-devel,glib2-devel,autoconf,automake,libtool,flex,bison,git,cmake,pciutils,python-websocket-client,jsoncpp-devel,fcgi-devel,hiredis-devel,numactl-devel,gcc-c++,psmisc,python-httplib2,vim-common"
+docker_image_import_location_path: "{{ base_path }}/dist"
+docker_syslog_ng_tag: "1.0"
+docker_edgednssvr_tag: "1.0"
+docker_nts_tag: "1.0"
+docker_appliance_tag: "1.0"
+docker_hddlservice_tag: "1.0"
+docker_nts_mem_mb_s0: "2048"
+# Change the following for two socket NUMA systems
+docker_nts_mem_mb_s1: "0"
+#
+docker_syslog_ng_container_name: "edgenode_syslog-ng_1"
+docker_edgednssvr_container_name: "mec-app-edgednssvr"
+docker_nts_container_name: "nts"
+docker_appliance_container_name: "edgenode_appliance_1"
+docker_hddlservice_container_name: "openvino_hddl_service"
+#
+docker_syslog_ng_container_id: ""
+docker_edgednssvr_container_id: ""
+docker_nts_tag_container_id: ""
+docker_appliance_container_id: ""
+docker_hddlservice_container_id: ""
+#
+remote_syslog_ip: "192.168.1.1"
+appliance_local_ip: "192.168.122.2"
+local_network: "192.168.122.0/25"
+local_syslog_ip: "192.168.122.3"
+# Change the following for controller ip
+enrollment_endpoint: "1.2.3.4:8081"
+
+# Proxy settings
+proxy_enable: false
+proxy_http: ""
+proxy_https: ""
+proxy_ftp: ""
+proxy_noproxy: "127.0.0.1,localhost"
+
