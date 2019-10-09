@@ -91,7 +91,7 @@ lint: edalibs
 	golangci-lint run
 
 test: edalibs
-	ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor
+	ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor,edants
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"

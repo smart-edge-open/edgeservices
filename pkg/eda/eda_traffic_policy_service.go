@@ -19,6 +19,7 @@ import (
 	"net"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/otcshare/edgenode/pkg/edants"
 	"github.com/otcshare/edgenode/pkg/ela/ini"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/pkg/errors"
@@ -29,7 +30,7 @@ import (
 
 // NewConnFn is a fun to new Connection
 var NewConnFn = func() (NtsConnectionInt, error) {
-	return NewNtsConnection()
+	return edants.NewNtsConnection()
 }
 
 // NtsConnectionInt interface representing nts connection

@@ -205,6 +205,15 @@ var _ = Describe("EDA gRPC Set() request handling", func() {
 		client    pb.ApplicationPolicyServiceClient
 	)
 
+	Describe("Run EDA", func() {
+		It("With wrong config path", func() {
+			srvCtx, srvCancel = context.WithCancel(context.Background())
+			_ = srvCancel
+			err = eda.Run(srvCtx, "fake_config_path.json")
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
 	BeforeEach(func() {
 		srvCtx, srvCancel = context.WithCancel(context.Background())
 		_ = srvCancel

@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package eda
+// Package edants is a wrapper on NTS C library functions. As it uses a lot of external
+// library functions calls there is no way to test it in any reasonable way.
+// This file should be excluded from code coverage calculations.
+package edants
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/../../internal/nts/eda_libs/libnes_api
