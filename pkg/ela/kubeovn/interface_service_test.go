@@ -16,6 +16,7 @@ package kubeovn_test
 
 import (
 	"context"
+	"net"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -24,6 +25,8 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
+	"github.com/otcshare/common/proxy/progutil"
+	"github.com/otcshare/edgenode/pkg/ela"
 	k "github.com/otcshare/edgenode/pkg/ela/kubeovn"
 
 	h "github.com/otcshare/edgenode/pkg/ela/helpers"
@@ -106,8 +109,14 @@ var _ = Describe("InterfaceService", func() {
 
 	Describe("GetAll", func() {
 		elaGetAll := func() (*pb.NetworkInterfaces, error) {
+
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+			go prefaceLis.Accept() // we only expect 1 connection
+
 			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
+				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -126,7 +135,7 @@ var _ = Describe("InterfaceService", func() {
 				ifs, err := elaGetAll()
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
 				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-int"}))
+					To(Equal([]string{"list-ports", "br-local"}))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(ifs).ToNot(BeNil())
 				Expect(ifs.NetworkInterfaces).To(HaveLen(4))
@@ -156,7 +165,7 @@ var _ = Describe("InterfaceService", func() {
 				ifs, err := elaGetAll()
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
 				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-int"}))
+					To(Equal([]string{"list-ports", "br-local"}))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(ifs).ToNot(BeNil())
 				Expect(ifs.NetworkInterfaces).To(HaveLen(4))
@@ -203,7 +212,7 @@ var _ = Describe("InterfaceService", func() {
 				ifs, err := elaGetAll()
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
 				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-int"}))
+					To(Equal([]string{"list-ports", "br-local"}))
 				Expect(err).To(HaveOccurred())
 				Expect(ifs).To(BeNil())
 				Expect(err.Error()).To(ContainSubstring("command not found"))
@@ -213,8 +222,12 @@ var _ = Describe("InterfaceService", func() {
 
 	Describe("Get", func() {
 		elaGet := func(pci string) (*pb.NetworkInterface, error) {
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+			go prefaceLis.Accept() // we only expect 1 connection
 			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
+				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -235,7 +248,7 @@ var _ = Describe("InterfaceService", func() {
 				iface, err := elaGet("0000:00:00.0")
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
 				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-int"}))
+					To(Equal([]string{"list-ports", "br-local"}))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(iface).ToNot(BeNil())
 				Expect(iface.Id).To(Equal("0000:00:00.0"))
@@ -246,7 +259,7 @@ var _ = Describe("InterfaceService", func() {
 				iface, err = elaGet("0000:00:00.2")
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
 				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-int"}))
+					To(Equal([]string{"list-ports", "br-local"}))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(iface).ToNot(BeNil())
 
@@ -285,8 +298,12 @@ var _ = Describe("InterfaceService", func() {
 
 	Describe("BulkUpdate", func() {
 		elaBulkUpdate := func(ifs *pb.NetworkInterfaces) error {
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+			go prefaceLis.Accept() // we only expect 1 connection
 			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
+				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -392,10 +409,10 @@ var _ = Describe("InterfaceService", func() {
 
 		Context("valid request parameters", func() {
 			It("should detach/attach ports", func() {
-				vsctlMock.AddResult("eth2\neth3", nil) // list-ports br-int
-				vsctlMock.AddResult("", nil)           // add-port br-int eth0
-				vsctlMock.AddResult("", nil)           // add-port br-int eth1
-				vsctlMock.AddResult("", nil)           // del-port br-int eth2
+				vsctlMock.AddResult("eth2\neth3", nil) // list-ports br-local
+				vsctlMock.AddResult("", nil)           // add-port br-local eth0
+				vsctlMock.AddResult("", nil)           // add-port br-local eth1
+				vsctlMock.AddResult("", nil)           // del-port br-local eth2
 
 				err := elaBulkUpdate(&pb.NetworkInterfaces{
 					NetworkInterfaces: []*pb.NetworkInterface{
@@ -420,22 +437,26 @@ var _ = Describe("InterfaceService", func() {
 
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(4))
 				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-int"}))
+					To(Equal([]string{"list-ports", "br-local"}))
 
 				Expect(vsctlMock.ReceivedArgs[1]).To(Equal(
-					[]string{"--may-exist", "add-port", "br-int", "eth0"}))
+					[]string{"--may-exist", "add-port", "br-local", "eth0"}))
 				Expect(vsctlMock.ReceivedArgs[2]).To(Equal(
-					[]string{"--may-exist", "add-port", "br-int", "eth1"}))
+					[]string{"--may-exist", "add-port", "br-local", "eth1"}))
 				Expect(vsctlMock.ReceivedArgs[3]).To(Equal(
-					[]string{"--if-exist", "del-port", "br-int", "eth2"}))
+					[]string{"--if-exist", "del-port", "br-local", "eth2"}))
 			})
 		})
 	})
 
 	Describe("Update", func() {
 		elaUpdate := func(iface *pb.NetworkInterface) error {
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+			go prefaceLis.Accept() // we only expect 1 connection
 			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
+				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -452,8 +473,8 @@ var _ = Describe("InterfaceService", func() {
 			When("ovs-vsctl failes", func() {
 				It("should return error", func() {
 					By("testing ovs-vsctl del-port")
-					vsctlMock.AddResult("eth0", nil) // list-ports br-int
-					vsctlMock.AddResult("",          // del-port br-int eth0
+					vsctlMock.AddResult("eth0", nil) // list-ports br-local
+					vsctlMock.AddResult("",          // del-port br-local eth0
 						errors.New("failed to delete port"))
 
 					err := elaUpdate(&pb.NetworkInterface{
@@ -467,15 +488,15 @@ var _ = Describe("InterfaceService", func() {
 
 					Expect(vsctlMock.ReceivedArgs).To(HaveLen(2))
 					Expect(vsctlMock.ReceivedArgs[0]).
-						To(Equal([]string{"list-ports", "br-int"}))
+						To(Equal([]string{"list-ports", "br-local"}))
 					Expect(vsctlMock.ReceivedArgs[1]).To(Equal(
-						[]string{"--if-exist", "del-port", "br-int", "eth0"}))
+						[]string{"--if-exist", "del-port", "br-local", "eth0"}))
 
 					vsctlMock.Reset()
 
 					By("testing ovs-vsctl add-port")
-					vsctlMock.AddResult("", nil) // list-ports br-int
-					vsctlMock.AddResult("",      // add-port br-int eth0
+					vsctlMock.AddResult("", nil) // list-ports br-local
+					vsctlMock.AddResult("",      // add-port br-local eth0
 						errors.New("failed to add port"))
 
 					err = elaUpdate(&pb.NetworkInterface{
@@ -489,9 +510,9 @@ var _ = Describe("InterfaceService", func() {
 
 					Expect(vsctlMock.ReceivedArgs).To(HaveLen(2))
 					Expect(vsctlMock.ReceivedArgs[0]).
-						To(Equal([]string{"list-ports", "br-int"}))
+						To(Equal([]string{"list-ports", "br-local"}))
 					Expect(vsctlMock.ReceivedArgs[1]).To(Equal(
-						[]string{"--may-exist", "add-port", "br-int", "eth0"}))
+						[]string{"--may-exist", "add-port", "br-local", "eth0"}))
 				})
 			})
 		})

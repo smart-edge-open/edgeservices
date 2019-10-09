@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,8 +31,9 @@ import (
 )
 
 var (
-	elaTestEndpoint = "localhost:42201"
-	transportCreds  credentials.TransportCredentials
+	elaTestEndpoint    = "localhost:42201"
+	transportCreds     credentials.TransportCredentials
+	controllerEndpoint = "127.0.0.1:8081"
 )
 
 func TestKubeovn(t *testing.T) {
@@ -50,8 +52,9 @@ func TestKubeovn(t *testing.T) {
 	{
 		"endpoint": "%s",
 		"certsDirectory": "%s",
-		"KubeOVNMode": true
-	}`, elaTestEndpoint, certsDir)), os.FileMode(0644))
+		"KubeOVNMode": true,
+		"ControllerEndpoint": "%s"
+	}`, elaTestEndpoint, certsDir, controllerEndpoint)), os.FileMode(0644))
 	Expect(err).NotTo(HaveOccurred())
 
 	// Set up ELA server
@@ -68,6 +71,14 @@ func TestKubeovn(t *testing.T) {
 		srvCancel()
 		<-srvErrChan
 	}()
+
+	//waiting for ela.json
+	for start := time.Now(); time.Since(start) < 3*time.Second; {
+		if ela.Config.ControllerEndpoint != "" {
+			break
+		}
+	}
+	Expect(ela.Config.ControllerEndpoint).ToNot(Equal(""))
 
 	RunSpecs(t, "kube-ovn mode ELA suite")
 }

@@ -16,9 +16,12 @@ package kubeovn_test
 
 import (
 	"context"
+	"net"
 	"time"
 
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	"github.com/otcshare/common/proxy/progutil"
+	"github.com/otcshare/edgenode/pkg/ela"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,8 +33,14 @@ import (
 var _ = When("kube-ovn mode is enabled", func() {
 	Describe("ApplicationPolicyService", func() {
 		It("should not be available", func() {
+
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+			go prefaceLis.Accept() // we only expect 1 connection
+
 			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
+				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
