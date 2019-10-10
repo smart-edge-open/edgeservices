@@ -15,81 +15,19 @@
 package metadata_test
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
 
+	. "github.com/otcshare/edgenode/internal/metadatahelpers"
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 	pb "github.com/otcshare/edgenode/pkg/eva/pb"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
-
-var createdFiles []string
-
-func createDir(path string) {
-	err := os.Mkdir(path, os.ModePerm)
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create dir: %s because: %v",
-			path, err.Error()))
-	}
-
-	createdFiles = append(createdFiles, path)
-}
-
-func createFile(path, content string) {
-	err := ioutil.WriteFile(path, []byte(content), 0755)
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create file: %s because: %v",
-			path, err.Error()))
-	}
-
-	createdFiles = append(createdFiles, path)
-}
-
-func cleanFiles() {
-	for _, path := range createdFiles {
-		if err := os.RemoveAll(path); err != nil {
-			Fail(fmt.Sprintf("Failed to remove: %s because: %v",
-				path, err.Error()))
-		}
-	}
-}
-
-func loadFile(filePath string) []byte {
-	if filePath == "" {
-		Fail("Filepath parameter is empty")
-	}
-
-	bytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to read metadata file from: %s because: %v",
-			filePath, err))
-	}
-
-	return bytes
-}
-
-func loadMetadataFile(filePath string) metadata.AppData {
-	bytes := loadFile(filePath)
-	md := metadata.AppData{}
-	err := json.Unmarshal(bytes, &md)
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to unmarshal metadata: %v", err))
-	}
-
-	return md
-}
-
-func loadDeployedFile(filePath string) string {
-	bytes := loadFile(filePath)
-	return string(bytes)
-}
 
 func TestAppMetadata(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -103,12 +41,12 @@ var _ = Describe("Application's Metadata", func() {
 
 	BeforeEach(func() {
 		meta = metadata.AppMetadata{"/tmp/appliance-app-metadata-tests"}
-		createDir(meta.RootPath)
+		CreateDir(meta.RootPath)
 		expectedAppPath = filepath.Join(meta.RootPath, appID)
 	})
 
 	AfterEach(func() {
-		cleanFiles()
+		CleanFiles()
 	})
 
 	When("applicationID is empty", func() {
@@ -133,7 +71,7 @@ var _ = Describe("Application's Metadata", func() {
 
 			Context("is not really a directory", func() {
 				It("returns an error", func() {
-					createFile(expectedAppPath, "")
+					CreateFile(expectedAppPath, "")
 
 					app, err := meta.Load(appID)
 					Expect(app).To(BeNil())
@@ -147,7 +85,7 @@ var _ = Describe("Application's Metadata", func() {
 		Describe("metadata.json", func() {
 			Context("does not exists", func() {
 				It("returns an error", func() {
-					createDir(expectedAppPath)
+					CreateDir(expectedAppPath)
 
 					app, err := meta.Load(appID)
 					Expect(app).To(BeNil())
@@ -160,8 +98,8 @@ var _ = Describe("Application's Metadata", func() {
 
 			Context("cannot be unmarshalled", func() {
 				It("returns an error", func() {
-					createDir(expectedAppPath)
-					createFile(
+					CreateDir(expectedAppPath)
+					CreateFile(
 						filepath.Join(expectedAppPath, "metadata.json"), "")
 
 					app, err := meta.Load(appID)
@@ -174,8 +112,8 @@ var _ = Describe("Application's Metadata", func() {
 
 			Context("is ok", func() {
 				It("returns an object and no error", func() {
-					createDir(expectedAppPath)
-					createFile(
+					CreateDir(expectedAppPath)
+					CreateFile(
 						filepath.Join(expectedAppPath, "metadata.json"),
 						`{"type": "DockerContainer"}`)
 
@@ -192,10 +130,10 @@ var _ = Describe("Application's Metadata", func() {
 	Describe("deployed file", func() {
 		When("exists", func() {
 			Specify("IsDeployed is true", func() {
-				createDir(expectedAppPath)
-				createFile(
+				CreateDir(expectedAppPath)
+				CreateFile(
 					filepath.Join(expectedAppPath, "deployed"), " ")
-				createFile(
+				CreateFile(
 					filepath.Join(expectedAppPath, "metadata.json"),
 					`{"type": "DockerContainer"}`)
 
@@ -209,8 +147,8 @@ var _ = Describe("Application's Metadata", func() {
 
 		When("does not exist", func() {
 			Specify("IsDeployed is false", func() {
-				createDir(expectedAppPath)
-				createFile(
+				CreateDir(expectedAppPath)
+				CreateFile(
 					filepath.Join(expectedAppPath, "metadata.json"),
 					`{"type": "DockerContainer"}`)
 
@@ -250,7 +188,7 @@ var _ = Describe("Application's Metadata", func() {
 				Expect(err).To(BeNil())
 				_, err = os.Stat(path.Join(deployedApp.Path, "metadata.json"))
 				Expect(os.IsNotExist(err)).To(BeFalse())
-				Expect(loadMetadataFile(path.Join(deployedApp.Path, "metadata.json"))).
+				Expect(LoadMetadataFile(path.Join(deployedApp.Path, "metadata.json"))).
 					To(Equal(deployedApp.AppData))
 			})
 
@@ -259,14 +197,14 @@ var _ = Describe("Application's Metadata", func() {
 				Expect(err).To(BeNil())
 				_, err = os.Stat(path.Join(deployedApp.Path, "metadata.json"))
 				Expect(os.IsNotExist(err)).To(BeFalse())
-				Expect(loadMetadataFile(path.Join(deployedApp.Path, "metadata.json"))).
+				Expect(LoadMetadataFile(path.Join(deployedApp.Path, "metadata.json"))).
 					To(Equal(deployedApp.AppData))
 
 				err = deployedApp.Save(false)
 				Expect(err).To(BeNil())
 				_, err = os.Stat(path.Join(deployedApp.Path, "metadata.json"))
 				Expect(os.IsNotExist(err)).To(BeFalse())
-				Expect(loadMetadataFile(path.Join(deployedApp.Path, "metadata.json"))).
+				Expect(LoadMetadataFile(path.Join(deployedApp.Path, "metadata.json"))).
 					To(Equal(deployedApp.AppData))
 			})
 		})
@@ -292,7 +230,7 @@ var _ = Describe("Application's Metadata", func() {
 			Expect(err).To(BeNil())
 			_, err = os.Stat(path.Join(deployedApp.Path, "deployed"))
 			Expect(os.IsNotExist(err)).To(BeFalse())
-			Expect(loadDeployedFile(path.Join(deployedApp.Path, "deployed"))).To(Equal(
+			Expect(LoadDeployedFile(path.Join(deployedApp.Path, "deployed"))).To(Equal(
 				appID + "\n"))
 		})
 
