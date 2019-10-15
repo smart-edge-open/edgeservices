@@ -267,7 +267,7 @@ The following actions must be complete prior to running OpenNESS Edge Node autom
 ## 7.2. Configure Controller connectivity
 Before configuring Edge Node server from automation scripts below (see chapter 7.3), modify its configuration files, so that automation scripts will be ready to accept incoming connections from Controller:
 1. Open file: <br>
-   `./scripts/ansible/deploy_server/vars/defaults.yml` <br> and  modify Controller IP address and port, like: <br> `enrollment_endpoint: "1.2.3.4:8081"`.
+   `./scripts/ansible/common/vars/defaults.yml` <br> and  modify Controller IP address and port, like: <br> `enrollment_endpoint: "1.2.3.4:8081"`.
 2. Copy Controller ROOT CA certificate from Controller using `docker cp edgecontroller_cce_1:/artifacts/certificates/ca/cert.pem` to local controller folder first and then copy it to the following folder: <br>`/etc/pki/tls/certs/controller-root-ca.pem` on the Edge node. 
 3. Now you are ready to to run automation scripts.
 

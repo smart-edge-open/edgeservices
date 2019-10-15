@@ -20,6 +20,8 @@
     when: kubernetes['enabled']
   - include_tasks: ../../common/tasks/os/disable_swap_permanently.yml
     when: kubernetes['enabled']
+  - include_tasks: ../../common/tasks/os/add_os_proxy_setting.yml
+    when: proxy_enable 
   - include_tasks: ../../common/tasks/yum/clean_all.yml
   - include_tasks: ../../common/tasks/yum/disable_plugins.yml
   - include_tasks: ../../common/tasks/yum/install_epel_package.yml
@@ -39,3 +41,5 @@
   - include_tasks: ../../common/tasks/yum/install_base_packages.yml
   - include_tasks: ../../common/tasks/kernelrt/remove_dev_package.yml
   - include_tasks: ../../common/tasks/kernelrt/install_dev_package.yml
+  - include_tasks: ../../common/tasks/docker/add_docker_proxy_setting.yml
+    when: proxy_enable

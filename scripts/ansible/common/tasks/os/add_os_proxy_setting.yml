@@ -1,0 +1,81 @@
+# Copyright 2019 Intel Corporation  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 {the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: Adding proxy to /etc/environment
+  block:
+    - name: http -> /etc/environment
+      lineinfile:
+        path: /etc/environment
+        state: present
+        line: "http_proxy={{proxy_http}}"
+      when: proxy_enable == true and proxy_http != "" 
+
+    - name: https -> /etc/environment
+      lineinfile:
+        path: /etc/environment
+        state: present
+        line: "https_proxy={{proxy_https}}"
+      when: proxy_enable == true and proxy_https != ""
+
+    - name: HTTP -> /etc/environment
+      lineinfile:
+        path: /etc/environment
+        state: present
+        line: "HTTP_PROXY={{proxy_http}}"
+      when: proxy_enable == true and proxy_http != ""
+
+    - name: HTTPS -> /etc/environment
+      lineinfile:
+        path: /etc/environment
+        state: present
+        line: "HTTPS_PROXY={{proxy_https}}"
+      when: proxy_enable == true and proxy_https != ""
+
+    - name: ftp -> /etc/environment
+      lineinfile:
+        path: /etc/environment
+        state: present
+        line: "ftp_proxy={{proxy_ftp}}"
+      when: proxy_enable == true and proxy_ftp != ""
+
+    - name: FTP -> /etc/environment
+      lineinfile:
+        path: /etc/environment
+        state: present
+        line: "FTP_PROXY={{proxy_ftp}}"
+      when: proxy_enable == true and proxy_ftp != ""
+
+    - name: no proxy -> /etc/environment
+      lineinfile:
+        path: /etc/environment
+        state: present
+        line: "no_proxy={{proxy_noproxy}}"
+      when: proxy_enable == true and proxy_noproxy != ""
+
+    - name: NO PROXY -> /etc/environment
+      lineinfile:
+        path: /etc/environment
+        state: present
+        line: "NO_PROXY={{proxy_noproxy}}"
+      when: proxy_enable == true and proxy_noproxy != ""
+
+
+- name: Adding to proxy to yum
+  lineinfile:
+    path: /etc/yum.conf
+    state: present
+    line: "proxy={{proxy_yum}}/"
+  when: proxy_enable == true and proxy_yum != ""
+
+

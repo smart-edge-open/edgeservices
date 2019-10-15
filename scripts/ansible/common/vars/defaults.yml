@@ -116,4 +116,5 @@ proxy_http: ""
 proxy_https: ""
 proxy_ftp: ""
 proxy_noproxy: "127.0.0.1,localhost"
+proxy_yum: ""
 
