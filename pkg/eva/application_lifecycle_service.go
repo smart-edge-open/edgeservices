@@ -28,6 +28,8 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/otcshare/edgenode/internal/wrappers"
 )
 
 const (
@@ -68,6 +70,12 @@ func (c *ContainerHandler) getMetadata() *metadata.DeployedApp {
 
 func (v *VMHandler) getMetadata() *metadata.DeployedApp {
 	return v.meta
+}
+
+// CreateLibvirtConnection stores function returning ConnectInterface
+var CreateLibvirtConnection = func(uri string) (wrappers.ConnectInterface,
+	error) {
+	return wrappers.NewConnect(uri)
 }
 
 // UpdateStatus updates a status
@@ -150,7 +158,7 @@ func (c ContainerHandler) RestartHandler(ctx context.Context,
 	return nil
 }
 
-func waitForDomStateChange(dom *libvirt.Domain, expected libvirt.DomainState,
+func waitForDomStateChange(dom wrappers.DomainInterface, expected libvirt.DomainState,
 	timeoutDuration time.Duration) (bool, error) {
 
 	tout := time.After(timeoutDuration)
@@ -176,7 +184,7 @@ func waitForDomStateChange(dom *libvirt.Domain, expected libvirt.DomainState,
 func (v VMHandler) StartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	conn, err := libvirt.NewConnect("qemu:///system")
+	conn, err := CreateLibvirtConnection("qemu:///system")
 	if err != nil {
 		return err
 	}
@@ -200,7 +208,7 @@ func (v VMHandler) StartHandler(ctx context.Context,
 func (v VMHandler) StopHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	conn, err := libvirt.NewConnect("qemu:///system")
+	conn, err := CreateLibvirtConnection("qemu:///system")
 	if err != nil {
 		return err
 	}
@@ -247,7 +255,7 @@ func (v VMHandler) StopHandler(ctx context.Context,
 func (v VMHandler) RestartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	conn, err := libvirt.NewConnect("qemu:///system")
+	conn, err := CreateLibvirtConnection("qemu:///system")
 	if err != nil {
 		return err
 	}
@@ -298,7 +306,7 @@ func (v VMHandler) RestartHandler(ctx context.Context,
 	return nil
 }
 
-func startVM(d *libvirt.Domain, timeout time.Duration, v VMHandler) error {
+func startVM(d wrappers.DomainInterface, timeout time.Duration, v VMHandler) error {
 	if err := d.Create(); err != nil {
 		return err
 	}

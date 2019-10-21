@@ -556,7 +556,7 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 	}
 
 	/* Now call the libvirt API. */
-	conn, err := libvirt.NewConnect("qemu:///system")
+	conn, err := CreateLibvirtConnection("qemu:///system")
 	if err != nil {
 		dapp.App.Status = pb.LifecycleStatus_ERROR
 		log.Errf("failed to create a libvirt client: %s", err.Error())
@@ -775,7 +775,7 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 func (s *DeploySrv) libvirtUndeploy(ctx context.Context,
 	dapp *metadata.DeployedApp) error {
 
-	conn, err := libvirt.NewConnect("qemu:///system")
+	conn, err := CreateLibvirtConnection("qemu:///system")
 	if err != nil {
 		return err
 	}

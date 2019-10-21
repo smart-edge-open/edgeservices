@@ -91,7 +91,7 @@ lint: edalibs
 	golangci-lint run
 
 test: edalibs
-	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor,edants
+	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor,edants,wrappers,stubs
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
