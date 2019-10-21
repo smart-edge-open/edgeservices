@@ -12,21 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package eva_test
+package wrappers
 
-import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	// . "github.com/otcshare/edgenode/pkg/eva"
-)
+import "net/http"
 
-var _ = Describe("AppidProvider", func() {
-	When("GetApplicationByIP is called", func() {
-		Context("with correct arguments", func() {
-			It("responds with no error", func() {
-				var err error
-				Expect(err).ToNot(HaveOccurred())
-			})
-		})
-	})
-})
+// HTTPClient is the interface that wraps Do method
+// Do sends an HTTP request and returns an HTTP response
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+// CreateHTTPClient creates http client
+var CreateHTTPClient = func() HTTPClient {
+	return http.DefaultClient
+}

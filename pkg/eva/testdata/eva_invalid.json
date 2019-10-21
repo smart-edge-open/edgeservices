@@ -1,0 +1,18 @@
+{
+  "HeartbeatInterval": "60s"
+  "Endpoint": "localhost:52102",
+  "EndpointInternal": "localhost:52103",
+  "MaxCores": 8,
+  "MaxAppMem": 2147483647,
+  "AppImageDir": "testdata/applications",
+  "AppStartTimeout": "10s",
+  "AppStopTimeout": "10s",
+  "AppRestartTimeout": "20s",
+  "CertsDirectory": "testdata/certs",
+  "KubernetesMode": false,
+  "VhostSocket": "/var/lib/appliance/nts/qemu/usvhost-1",
+  "DownloadTimeout": "10m",
+  "ControllerEndpoint": "127.0.0.1:8081",
+  "OpenvSwitch": true,
+  "OpenvSwitchBridge": "br0"
+}

@@ -12,21 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package eva_test
+package stubs
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	// . "github.com/otcshare/edgenode/pkg/eva"
+	"net/http"
+
+	"github.com/otcshare/edgenode/internal/wrappers"
 )
 
-var _ = Describe("AppidProvider", func() {
-	When("GetApplicationByIP is called", func() {
-		Context("with correct arguments", func() {
-			It("responds with no error", func() {
-				var err error
-				Expect(err).ToNot(HaveOccurred())
-			})
-		})
-	})
-})
+// HTTPCliStub stores HTTPClientStub
+var HTTPCliStub HTTPClientStub
+
+// HTTPClientStub struct implementation
+type HTTPClientStub struct {
+	HTTPResp http.Response
+	DoErr    error
+}
+
+// CreateHTTPClientStub returns stub implementing HTTPClient interface
+func CreateHTTPClientStub() wrappers.HTTPClient {
+	return &HTTPCliStub
+}
+
+// Do implements stub for corresponding method from HTTPClient
+func (hcs *HTTPClientStub) Do(req *http.Request) (*http.Response, error) {
+	return &hcs.HTTPResp, hcs.DoErr
+}

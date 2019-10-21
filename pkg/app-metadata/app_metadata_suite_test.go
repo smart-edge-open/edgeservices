@@ -188,7 +188,8 @@ var _ = Describe("Application's Metadata", func() {
 				Expect(err).To(BeNil())
 				_, err = os.Stat(path.Join(deployedApp.Path, "metadata.json"))
 				Expect(os.IsNotExist(err)).To(BeFalse())
-				Expect(LoadMetadataFile(path.Join(deployedApp.Path, "metadata.json"))).
+				Expect(LoadMetadataFile(path.Join(deployedApp.Path,
+					"metadata.json"))).
 					To(Equal(deployedApp.AppData))
 			})
 
@@ -197,14 +198,16 @@ var _ = Describe("Application's Metadata", func() {
 				Expect(err).To(BeNil())
 				_, err = os.Stat(path.Join(deployedApp.Path, "metadata.json"))
 				Expect(os.IsNotExist(err)).To(BeFalse())
-				Expect(LoadMetadataFile(path.Join(deployedApp.Path, "metadata.json"))).
+				Expect(LoadMetadataFile(path.Join(deployedApp.Path,
+					"metadata.json"))).
 					To(Equal(deployedApp.AppData))
 
 				err = deployedApp.Save(false)
 				Expect(err).To(BeNil())
 				_, err = os.Stat(path.Join(deployedApp.Path, "metadata.json"))
 				Expect(os.IsNotExist(err)).To(BeFalse())
-				Expect(LoadMetadataFile(path.Join(deployedApp.Path, "metadata.json"))).
+				Expect(LoadMetadataFile(path.Join(deployedApp.Path,
+					"metadata.json"))).
 					To(Equal(deployedApp.AppData))
 			})
 		})
@@ -230,8 +233,8 @@ var _ = Describe("Application's Metadata", func() {
 			Expect(err).To(BeNil())
 			_, err = os.Stat(path.Join(deployedApp.Path, "deployed"))
 			Expect(os.IsNotExist(err)).To(BeFalse())
-			Expect(LoadDeployedFile(path.Join(deployedApp.Path, "deployed"))).To(Equal(
-				appID + "\n"))
+			Expect(LoadDeployedFile(path.Join(deployedApp.Path,
+				"deployed"))).To(Equal(appID + "\n"))
 		})
 
 		Specify("when directory does not exist", func() {

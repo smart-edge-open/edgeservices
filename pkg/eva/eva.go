@@ -87,7 +87,11 @@ func runEva(ctx context.Context, cfg *Config) error {
 		return err
 	}
 	lis := &progutil.DialListener{RemoteAddr: addr, Name: "EVA"}
-	defer lis.Close()
+	defer func() {
+		if err1 := lis.Close(); err1 != nil {
+			log.Errf("Failed to close connection: %v", err1)
+		}
+	}()
 
 	server := grpc.NewServer(grpc.Creds(srvCreds))
 

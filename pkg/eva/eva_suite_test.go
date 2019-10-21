@@ -1,4 +1,4 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
+// Copyright 2019 Intel Corporation. All rights reserved
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,19 +25,20 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	log "github.com/otcshare/common/log"
+	"github.com/otcshare/common/proxy/progutil"
 	"github.com/otcshare/edgenode/internal/authtest"
 	"github.com/otcshare/edgenode/pkg/config"
 	"github.com/otcshare/edgenode/pkg/eva"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 var (
-	cfgFile            eva.Config
-	transportCreds     credentials.TransportCredentials
-	controllerEndpoint = "127.0.0.1:8081"
-	evaStartTimeout    = time.Duration(10) // Timeout in seconds for starting EVA
-	srvCtx             context.Context     // Context for EVA
-	srvCancel          context.CancelFunc
+	cfgFile         eva.Config
+	transportCreds  credentials.TransportCredentials
+	evaStartTimeout = time.Duration(10) // Starting EVA timeout in seconds
+	srvCtx          context.Context     // Context for EVA
+	srvCancel       context.CancelFunc
 )
 
 // It tak some time for EVA to start services
@@ -63,6 +64,26 @@ func waitTillEVAisReady(errorIndication chan error) error {
 	}
 }
 
+func prepareCredentials(certsDir string) {
+	if err := os.MkdirAll(certsDir, 0700); err != nil {
+
+		// In case directory for certificates cannot be created
+		// it is not possible to proceed with test.
+		Fail(fmt.Sprintf("Creating temp directory for certs failed: %v", err))
+	}
+
+	// Run enrollment stub and prepare transport credential
+	// In case of error it is not possible to proceed with test.
+
+	Expect(authtest.EnrollStub(certsDir)).ToNot(HaveOccurred())
+	var err error
+	transportCreds, err = authtest.ClientCredentialsStub()
+	_ = transportCreds
+	if err != nil {
+		Fail(fmt.Sprintf("Creating credentials failed: %v", err))
+	}
+}
+
 // runEVA set up test framework and starts Edge Virtualization Agent
 func runEVA(cfgFilePath string, stopIndication chan bool) error {
 	By("Starting EVA")
@@ -73,20 +94,7 @@ func runEVA(cfgFilePath string, stopIndication chan bool) error {
 		Fail(fmt.Sprintf("LoadJSONConfig() failed: %+v", err))
 	}
 
-	if err := os.MkdirAll(cfgFile.CertsDir, 0700); err != nil {
-		// In case directory for certificates cannot be created
-		// it is not possible to proceed with test.
-		Fail(fmt.Sprintf("Creating temp directory for certs failed: %v", err))
-	}
-
-	// Run enrollment stub and prepare transport credential
-	// In case of error it is not possible to proceed with test.
-	Expect(authtest.EnrollStub(cfgFile.CertsDir)).ToNot(HaveOccurred())
-	transportCreds, err := authtest.ClientCredentialsStub()
-	_ = transportCreds
-	if err != nil {
-		Fail(fmt.Sprintf("Creating credentials failed: %v", err))
-	}
+	prepareCredentials(cfgFile.CertsDir)
 
 	// Starting EVA in a go routine. stopIndication is used to send notice to
 	// stopEVA function.
@@ -102,7 +110,8 @@ func runEVA(cfgFilePath string, stopIndication chan bool) error {
 	}()
 
 	// Wait until EVA is ready before running tests
-	err = waitTillEVAisReady(srvErrChan)
+	err := waitTillEVAisReady(srvErrChan)
+
 	if err != nil {
 		return err
 	}
@@ -118,6 +127,33 @@ func stopEVA(stopIndication chan bool) {
 	<-stopIndication
 }
 
+// createConnection creates all necessary  contexts and connection to EVA
+// Following actions must be added in test to cancel timeout and close listener
+// and connection:
+// defer cancelTimeout()
+// defer prefaceLis.Close()
+// defer conn.Close()
+func createConnection() (*grpc.ClientConn, context.CancelFunc,
+	*progutil.PrefaceListener) {
+	lis, err := net.Listen("tcp", cfgFile.ControllerEndpoint)
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to create server: %v", err))
+	}
+	prefaceLis := progutil.NewPrefaceListener(lis)
+	go prefaceLis.Accept() // Only one connection is expected
+
+	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(),
+		10*time.Second)
+
+	conn, err := grpc.DialContext(ctxTimeout, "",
+		grpc.WithTransportCredentials(transportCreds), grpc.WithBlock(),
+		grpc.WithDialer(prefaceLis.DialEva))
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to dial EVA: %v", err))
+	}
+	return conn, cancelTimeout, prefaceLis
+}
+
 func TestEdgeVirtualizationAgent(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Edge Virtualization Agent Suite")
@@ -126,9 +162,10 @@ func TestEdgeVirtualizationAgent(t *testing.T) {
 var _ = BeforeSuite(func() {
 	log.SetOutput(GinkgoWriter)
 })
+
 var _ = AfterSuite(func() {
-	// Remove directory for certicates
+	// Clean directory for certicates
 	os.RemoveAll(cfgFile.CertsDir)
-	// Remove direcotry for applications' data
+	// Clean directory for applications' data
 	os.RemoveAll(cfgFile.AppImageDir)
 })

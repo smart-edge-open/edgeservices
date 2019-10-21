@@ -22,7 +22,7 @@ import (
 
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo"
 )
 
 var createdFiles []string
@@ -31,7 +31,7 @@ var createdFiles []string
 func CreateDir(path string) {
 	err := os.Mkdir(path, os.ModePerm)
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to create dir: %s because: %v",
+		ginkgo.Fail(fmt.Sprintf("Failed to create dir: %s because: %v",
 			path, err.Error()))
 	}
 
@@ -42,7 +42,7 @@ func CreateDir(path string) {
 func CreateFile(path, content string) {
 	err := ioutil.WriteFile(path, []byte(content), 0755)
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to create file: %s because: %v",
+		ginkgo.Fail(fmt.Sprintf("Failed to create file: %s because: %v",
 			path, err.Error()))
 	}
 
@@ -53,7 +53,7 @@ func CreateFile(path, content string) {
 func CleanFiles() {
 	for _, path := range createdFiles {
 		if err := os.RemoveAll(path); err != nil {
-			Fail(fmt.Sprintf("Failed to remove: %s because: %v",
+			ginkgo.Fail(fmt.Sprintf("Failed to remove: %s because: %v",
 				path, err.Error()))
 		}
 	}
@@ -61,13 +61,13 @@ func CleanFiles() {
 
 func loadFile(filePath string) []byte {
 	if filePath == "" {
-		Fail("Filepath parameter is empty")
+		ginkgo.Fail("Filepath parameter is empty")
 	}
 
 	bytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to read metadata file from: %s because: %v",
-			filePath, err))
+		ginkgo.Fail(fmt.Sprintf("Failed to read metadata file from: %s "+
+			"because: %v", filePath, err))
 	}
 
 	return bytes
@@ -79,7 +79,7 @@ func LoadMetadataFile(filePath string) metadata.AppData {
 	md := metadata.AppData{}
 	err := json.Unmarshal(bytes, &md)
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to unmarshal metadata: %v", err))
+		ginkgo.Fail(fmt.Sprintf("Failed to unmarshal metadata: %v", err))
 	}
 
 	return md

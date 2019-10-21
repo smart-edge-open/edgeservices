@@ -16,7 +16,7 @@ package stubs
 
 import (
 	libvirt "github.com/libvirt/libvirt-go"
-	. "github.com/otcshare/edgenode/internal/wrappers"
+	wrapp "github.com/otcshare/edgenode/internal/wrappers"
 )
 
 // ConnStub stores LibvirtConnectStub
@@ -29,7 +29,7 @@ var DomStub LibvirtDomainStub
 var NetStub LibvirtNetworkStub
 
 // CreateLibvirtConnectionStub returns stub implementing ConnectInterface
-func CreateLibvirtConnectionStub(uri string) (ConnectInterface, error) {
+func CreateLibvirtConnectionStub(uri string) (wrapp.ConnectInterface, error) {
 	return &ConnStub, ConnStub.ConnCreateErr
 }
 
@@ -42,7 +42,7 @@ type LibvirtConnectStub struct {
 	ConnDomDefXMLErr error
 	DomByName        LibvirtDomainStub
 	DomByNameErr     error
-	DomListAll       []DomainInterface
+	DomListAll       []wrapp.DomainInterface
 	DomListAllErr    error
 	NetByName        LibvirtNetworkStub
 	NetByNameErr     error
@@ -53,27 +53,30 @@ func (c *LibvirtConnectStub) Close() (int, error) {
 	return c.ConnCloseResult, c.ConnCloseErr
 }
 
-// LookupDomainByName implements stub for corresponding method from ConnectInterface
-func (c *LibvirtConnectStub) LookupDomainByName(id string) (DomainInterface,
-	error) {
+// LookupDomainByName implements stub for corresponding method from
+// ConnectInterface
+func (c *LibvirtConnectStub) LookupDomainByName(id string) (
+	wrapp.DomainInterface, error) {
 	return &c.DomByName, c.DomByNameErr
 }
 
 // ListAllDomains implements stub for corresponding method from ConnectInterface
 func (c *LibvirtConnectStub) ListAllDomains(
-	flag libvirt.ConnectListAllDomainsFlags) ([]DomainInterface, error) {
+	flag libvirt.ConnectListAllDomainsFlags) ([]wrapp.DomainInterface, error) {
 	return c.DomListAll, c.DomListAllErr
 }
 
-// LookupNetworkByName implements stub for corresponding method from ConnectInterface
-func (c *LibvirtConnectStub) LookupNetworkByName(name string) (NetworkInterface,
-	error) {
+// LookupNetworkByName implements stub for corresponding method from
+// ConnectInterface
+func (c *LibvirtConnectStub) LookupNetworkByName(name string) (
+	wrapp.NetworkInterface, error) {
 	return &c.NetByName, c.NetByNameErr
 }
 
-// DomainDefineXML implements stub for corresponding method from ConnectInterface
-func (c *LibvirtConnectStub) DomainDefineXML(xmlConfig string) (DomainInterface,
-	error) {
+// DomainDefineXML implements stub for corresponding method from
+// ConnectInterface
+func (c *LibvirtConnectStub) DomainDefineXML(xmlConfig string) (
+	wrapp.DomainInterface, error) {
 	return &c.ConnDomDefXML, c.ConnDomDefXMLErr
 }
 

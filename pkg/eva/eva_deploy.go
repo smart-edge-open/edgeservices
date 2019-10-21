@@ -35,9 +35,10 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
 
+	"github.com/otcshare/edgenode/internal/wrappers"
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 	pb "github.com/otcshare/edgenode/pkg/eva/pb"
 	"github.com/pkg/errors"
@@ -73,7 +74,7 @@ const (
 var httpMatcher = regexp.MustCompile("^http://.")
 var httpsMatcher = regexp.MustCompile("^https://.")
 
-// detectHDDL detects if HDDL is present and configured - checks if devices exist
+// detectHDDL detects if HDDL is present and configured: checks if devices exist
 func (s *DeploySrv) detectHDDL() {
 	var hddlPaths = []string{"/dev/ion", "/dev/myriad0"}
 
@@ -102,7 +103,8 @@ func downloadImage(ctx context.Context, url string,
 		}
 		request = request.WithContext(ctx)
 
-		client := http.DefaultClient
+		client := wrappers.CreateHTTPClient()
+
 		resp, err := client.Do(request)
 		if err != nil {
 			return err
@@ -241,7 +243,7 @@ func parseImageName(body io.Reader) (out string, hadTag bool, err error) {
 }
 
 func loadImage(ctx context.Context,
-	dapp *metadata.DeployedApp, docker *client.Client) error {
+	dapp *metadata.DeployedApp, docker wrappers.DockerClient) error {
 
 	/* NOTE: ImageLoad could read directly from our HTTP stream that's
 	 * downloading the image, thus removing the need for storing the image as
@@ -323,7 +325,7 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	}
 
 	/* Now call the docker API. */
-	docker, err := client.NewClientWithOpts(client.FromEnv)
+	docker, err := wrappers.CreateDockerClient()
 	if err != nil {
 		dapp.App.Status = pb.LifecycleStatus_ERROR
 		log.Errf("failed to create a docker client: %s", err.Error())
@@ -459,7 +461,7 @@ func isOVSBridgeCreated(o *ovs.Client, name string) (bool, error) {
 }
 
 // execOvsWithPath concatenates a path with rest of options to execute
-// ovs-vsctl with apropriate ovs db path
+// ovs-vsctl with appropriate ovs db path
 func execOvsWithPath(cmd string, args ...string) ([]byte, error) {
 	commands := append(
 		[]string{"--db=unix:" + ovsDbSocket}, args...)
@@ -577,7 +579,8 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 		OS: &libvirtxml.DomainOS{
 			Type: &libvirtxml.DomainOSType{Arch: "x86_64", Type: "hvm"},
 		},
-		Features: &libvirtxml.DomainFeatureList{ACPI: &libvirtxml.DomainFeature{}},
+		Features: &libvirtxml.DomainFeatureList{
+			ACPI: &libvirtxml.DomainFeature{}},
 
 		CPU: &libvirtxml.DomainCPU{
 			Mode: "host-passthrough",
@@ -744,7 +747,7 @@ func (s *DeploySrv) Redeploy(ctx context.Context,
 func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 	dapp *metadata.DeployedApp) error {
 
-	docker, err := client.NewClientWithOpts(client.FromEnv)
+	docker, err := wrappers.CreateDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "Failed to create a docker client")
 	}

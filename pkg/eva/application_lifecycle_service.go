@@ -19,17 +19,15 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/otcshare/edgenode/internal/wrappers"
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 	pb "github.com/otcshare/edgenode/pkg/eva/pb"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	libvirt "github.com/libvirt/libvirt-go"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/otcshare/edgenode/internal/wrappers"
 )
 
 const (
@@ -104,7 +102,7 @@ func updateStatus(m *metadata.DeployedApp,
 func (c ContainerHandler) StartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := wrappers.CreateDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}
@@ -124,7 +122,7 @@ func (c ContainerHandler) StartHandler(ctx context.Context,
 func (c ContainerHandler) StopHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := wrappers.CreateDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}
@@ -143,7 +141,7 @@ func (c ContainerHandler) StopHandler(ctx context.Context,
 func (c ContainerHandler) RestartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := wrappers.CreateDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}
