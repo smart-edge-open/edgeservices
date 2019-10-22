@@ -80,6 +80,13 @@ build-docker-hddl: hddllog
 	ls "${TMP_DIR}"
 	rm -rf "${TMP_DIR}"
 
+build-docker-biosfw:
+	cp build/biosfw/Dockerfile "${TMP_DIR}/Dockerfile_biosfw"
+	cp build/biosfw/biosfw.sh "${TMP_DIR}"
+	cp build/biosfw/syscfg_package.zip "${TMP_DIR}"
+	cd "${TMP_DIR}" && docker build -t openness-biosfw -f Dockerfile_biosfw .
+	rm -rf "${TMP_DIR}"
+
 run-docker:
 ifeq ($(KUBE_OVN_MODE), True)
 	VER=${VER} docker-compose up --no-build
@@ -103,6 +110,7 @@ help:
 	@echo "  clean                  to clean up build artifacts and docker"
 	@echo "  build-docker           to build the release docker image"
 	@echo "  build-docker-hddl      to build optional docker image for hddl-service"
+	@echo "  build-docker-biosfw    to build optional docker image for biosfw feature"
 	@echo "  run-docker             to start containers"
 	@echo "  lint                   to run linters and static analysis on the code"
 	@echo "  test                   to run unit tests"

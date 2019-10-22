@@ -23,3 +23,8 @@
     chdir: "{{ base_path }}"
   when: openvino['enabled']
   
+- name: Build biosfw image
+  shell: source /etc/profile && make build-docker-biosfw
+  args:
+    chdir: "{{ base_path }}"
+  when: biosfw['enabled']

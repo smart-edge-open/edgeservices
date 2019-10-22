@@ -73,6 +73,10 @@ openvino:
 #
 kube_ovn:
   enabled: false
+#
+# Enabling biosfw requires syscfg_package.zip to be present in build/biosfw/ directory
+biosfw:
+  enabled: false
 
 # Build configuration
 
@@ -117,4 +121,3 @@ proxy_https: ""
 proxy_ftp: ""
 proxy_noproxy: "127.0.0.1,localhost"
 proxy_yum: ""
-
