@@ -94,6 +94,15 @@ func runEVA(cfgFilePath string, stopIndication chan bool) error {
 		Fail(fmt.Sprintf("LoadJSONConfig() failed: %+v", err))
 	}
 
+	//waiting for config file
+	for start := time.Now(); time.Since(start) < 3*time.Second; {
+		if cfgFile.CertsDir != "" {
+			break
+		}
+	}
+	Expect(cfgFile.CertsDir).ToNot(Equal(""))
+	Expect(cfgFile.AppImageDir).ToNot(Equal(""))
+
 	prepareCredentials(cfgFile.CertsDir)
 
 	// Starting EVA in a go routine. stopIndication is used to send notice to

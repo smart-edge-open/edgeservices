@@ -43,6 +43,8 @@ var _ = Describe("EVA: DeployContainer", func() {
 		os.RemoveAll(cfgFile.CertsDir)
 		os.RemoveAll(cfgFile.AppImageDir)
 		metadatahelpers.CreateDir(cfgFile.AppImageDir)
+		stubs.HTTPCliStub = stubs.HTTPClientStub{}
+		stubs.DockerCliStub = stubs.DockerClientStub{}
 	})
 
 	AfterEach(func() {
@@ -200,6 +202,8 @@ var _ = Describe("EVA: Undeploy", func() {
 		os.RemoveAll(cfgFile.CertsDir)
 		os.RemoveAll(cfgFile.AppImageDir)
 		metadatahelpers.CreateDir(cfgFile.AppImageDir)
+		stubs.HTTPCliStub = stubs.HTTPClientStub{}
+		stubs.DockerCliStub = stubs.DockerClientStub{}
 	})
 
 	AfterEach(func() {

@@ -34,7 +34,8 @@ type networkWrapper struct {
 type ConnectInterface interface {
 	Close() (int, error)
 	LookupDomainByName(string) (DomainInterface, error)
-	ListAllDomains(libvirt.ConnectListAllDomainsFlags) ([]DomainInterface, error)
+	ListAllDomains(libvirt.ConnectListAllDomainsFlags) ([]DomainInterface,
+		error)
 	LookupNetworkByName(string) (NetworkInterface, error)
 	DomainDefineXML(string) (DomainInterface, error)
 }
@@ -69,13 +70,15 @@ func (c *connectWrapper) Close() (int, error) {
 }
 
 // LookupDomainByName wrapper for (*Connect) from libvirt-go
-func (c *connectWrapper) LookupDomainByName(id string) (DomainInterface, error) {
+func (c *connectWrapper) LookupDomainByName(id string) (DomainInterface,
+	error) {
 	d, err := c.conn.LookupDomainByName(id)
 	return &domainWrapper{d}, err
 }
 
 // ListAllDomains wrapper for (*Connect) from libvirt-go
-func (c *connectWrapper) ListAllDomains(flag libvirt.ConnectListAllDomainsFlags) ([]DomainInterface, error) {
+func (c *connectWrapper) ListAllDomains(
+	flag libvirt.ConnectListAllDomainsFlags) ([]DomainInterface, error) {
 	d, err := c.conn.ListAllDomains(flag)
 	var ret []DomainInterface
 	for _, libvirtDom := range d {
@@ -85,13 +88,15 @@ func (c *connectWrapper) ListAllDomains(flag libvirt.ConnectListAllDomainsFlags)
 }
 
 // LookupNetworkByName wrapper for (*Connect) from libvirt-go
-func (c *connectWrapper) LookupNetworkByName(name string) (NetworkInterface, error) {
+func (c *connectWrapper) LookupNetworkByName(name string) (
+	NetworkInterface, error) {
 	n, err := c.conn.LookupNetworkByName(name)
 	return &networkWrapper{n}, err
 }
 
 // DomainDefineXML wrapper for (*Connect) from libvirt-go
-func (c *connectWrapper) DomainDefineXML(xmlConfig string) (DomainInterface, error) {
+func (c *connectWrapper) DomainDefineXML(xmlConfig string) (
+	DomainInterface, error) {
 	d, err := c.conn.DomainDefineXML(xmlConfig)
 	return &domainWrapper{d}, err
 }
@@ -117,7 +122,8 @@ func (d *domainWrapper) GetName() (string, error) {
 }
 
 // GetXMLDesc wrapper for (*Domain) from libvirt-go
-func (d *domainWrapper) GetXMLDesc(flags libvirt.DomainXMLFlags) (string, error) {
+func (d *domainWrapper) GetXMLDesc(flags libvirt.DomainXMLFlags) (string,
+	error) {
 	return d.dom.GetXMLDesc(flags)
 }
 

@@ -779,6 +779,7 @@ func (s *DeploySrv) libvirtUndeploy(ctx context.Context,
 	dapp *metadata.DeployedApp) error {
 
 	conn, err := CreateLibvirtConnection("qemu:///system")
+
 	if err != nil {
 		return err
 	}
