@@ -30,6 +30,7 @@ import (
 	"github.com/otcshare/edgenode/internal/stubs"
 	"github.com/otcshare/edgenode/internal/wrappers"
 	evapb "github.com/otcshare/edgenode/pkg/eva/pb"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
 
@@ -101,6 +102,156 @@ var _ = Describe("EVA: DeployContainer", func() {
 				Expect(status.Status).To(Equal(evapb.LifecycleStatus_READY))
 			})
 		})
+		Context("with correct arguments and ImageLoad returns error", func() {
+			It("responds with error", func() {
+				body := ioutil.NopCloser(strings.NewReader("TEST IMAGE"))
+				stubs.HTTPCliStub.HTTPResp = http.Response{Status: "200 OK",
+					StatusCode: 200, Proto: "HTTP/1.1", ProtoMajor: 1,
+					ProtoMinor: 1, Body: body, ContentLength: 11}
+				body2 := ioutil.NopCloser(strings.NewReader(
+					`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23bf66` +
+						`3ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
+				stubs.DockerCliStub.ImLoadResp = types.ImageLoadResponse{
+					Body: body2, JSON: true}
+				stubs.DockerCliStub.ImLoadErr = errors.New("Image Load Failed")
+
+				wrappers.CreateHTTPClient = stubs.CreateHTTPClientStub
+				wrappers.CreateDockerClient = stubs.CreateDockerClientStub
+
+				// Create connection
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationDeploymentServiceClient(conn)
+
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				uri := evapb.Application_HttpUri{
+					HttpUri: &evapb.Application_HTTPSource{
+						HttpUri: "https://localhost/test_img.tar.gz"},
+				}
+				app := evapb.Application{Id: "test-app-deploy",
+					Cores: 2, Memory: 40, Source: &uri}
+
+				_, err := client.DeployContainer(ctx, &app,
+					grpc.WaitForReady(true))
+				Expect(err)
+
+				time.Sleep(100 * time.Millisecond)
+
+				// Verify status after deployment
+				appid := evapb.ApplicationID{Id: "test-app-deploy"}
+				alsClient := evapb.NewApplicationLifecycleServiceClient(conn)
+				status, err := alsClient.GetStatus(ctx, &appid,
+					grpc.WaitForReady(true))
+				Expect(err).ToNot(HaveOccurred())
+				Expect(status.Status).To(Equal(evapb.LifecycleStatus_ERROR))
+			})
+		})
+		Context("with correct arguments and ImageLoad responds with JSON=false",
+			func() {
+				It("responds with no error", func() {
+					body := ioutil.NopCloser(strings.NewReader("TEST IMAGE"))
+					stubs.HTTPCliStub.HTTPResp = http.Response{Status: "200 OK",
+						StatusCode: 200, Proto: "HTTP/1.1", ProtoMajor: 1,
+						ProtoMinor: 1, Body: body, ContentLength: 11}
+					body2 := ioutil.NopCloser(strings.NewReader(
+						`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23bf66` +
+							`3ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
+					stubs.DockerCliStub.ImLoadResp = types.ImageLoadResponse{
+						Body: body2, JSON: false}
+
+					wrappers.CreateHTTPClient = stubs.CreateHTTPClientStub
+					wrappers.CreateDockerClient = stubs.CreateDockerClientStub
+
+					// Create connection
+					conn, cancelTimeout, prefaceLis := createConnection()
+					defer cancelTimeout()
+					defer prefaceLis.Close()
+					defer conn.Close()
+
+					client := evapb.NewApplicationDeploymentServiceClient(conn)
+
+					ctx, cancel := context.WithTimeout(context.Background(),
+						10*time.Second)
+					defer cancel()
+
+					uri := evapb.Application_HttpUri{
+						HttpUri: &evapb.Application_HTTPSource{
+							HttpUri: "https://localhost/test_img.tar.gz"},
+					}
+					app := evapb.Application{Id: "test-app-deploy",
+						Cores: 2, Memory: 40, Source: &uri}
+
+					_, err := client.DeployContainer(ctx, &app,
+						grpc.WaitForReady(true))
+					Expect(err)
+
+					time.Sleep(100 * time.Millisecond)
+
+					// Verify status after deployment
+					appid := evapb.ApplicationID{Id: "test-app-deploy"}
+					alsClient := evapb.NewApplicationLifecycleServiceClient(conn)
+					status, err := alsClient.GetStatus(ctx, &appid,
+						grpc.WaitForReady(true))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(status.Status).To(Equal(evapb.LifecycleStatus_ERROR))
+				})
+			})
+		Context("with correct arguments and ContainerCreate responds error",
+			func() {
+				It("responds with no error", func() {
+					body := ioutil.NopCloser(strings.NewReader("TEST IMAGE"))
+					stubs.HTTPCliStub.HTTPResp = http.Response{Status: "200 OK",
+						StatusCode: 200, Proto: "HTTP/1.1", ProtoMajor: 1,
+						ProtoMinor: 1, Body: body, ContentLength: 11}
+					body2 := ioutil.NopCloser(strings.NewReader(
+						`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23bf66` +
+							`3ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
+					stubs.DockerCliStub.ImLoadResp = types.ImageLoadResponse{
+						Body: body2, JSON: true}
+					stubs.DockerCliStub.CCreateErr = errors.New("ContainerCreate Failed")
+					wrappers.CreateHTTPClient = stubs.CreateHTTPClientStub
+					wrappers.CreateDockerClient = stubs.CreateDockerClientStub
+
+					// Create connection
+					conn, cancelTimeout, prefaceLis := createConnection()
+					defer cancelTimeout()
+					defer prefaceLis.Close()
+					defer conn.Close()
+
+					client := evapb.NewApplicationDeploymentServiceClient(conn)
+
+					ctx, cancel := context.WithTimeout(context.Background(),
+						10*time.Second)
+					defer cancel()
+
+					uri := evapb.Application_HttpUri{
+						HttpUri: &evapb.Application_HTTPSource{
+							HttpUri: "https://localhost/test_img.tar.gz"},
+					}
+					app := evapb.Application{Id: "test-app-deploy",
+						Cores: 2, Memory: 40, Source: &uri}
+
+					_, err := client.DeployContainer(ctx, &app,
+						grpc.WaitForReady(true))
+					Expect(err)
+
+					time.Sleep(100 * time.Millisecond)
+
+					// Verify status after deployment
+					appid := evapb.ApplicationID{Id: "test-app-deploy"}
+					alsClient := evapb.NewApplicationLifecycleServiceClient(conn)
+					status, err := alsClient.GetStatus(ctx, &appid,
+						grpc.WaitForReady(true))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(status.Status).To(Equal(evapb.LifecycleStatus_ERROR))
+				})
+			})
 	})
 })
 
