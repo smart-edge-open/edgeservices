@@ -20,4 +20,5 @@
     - /var/lib/appliance/nts
     - /var/lib/appliance/edgednssvr
     - /var/lib/appliance/certs
+    - /var/lib/appliance/applications
     - /run/edgedns.sock
