@@ -88,17 +88,19 @@ func RequestCredentials(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isIPValid, err := validateAppIP(host, eaaCtx.cfg.InternalEndpoint)
-	if err != nil {
-		log.Errf(fName+"IP address validation failed: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	if eaaCtx.cfg.ValidationEndpoint != "" {
+		isIPValid, err := validateAppIP(host, eaaCtx.cfg.ValidationEndpoint)
+		if err != nil {
+			log.Errf(fName+"IP address validation failed: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	if !isIPValid {
-		log.Info(fName + "IP address invalid")
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+		if !isIPValid {
+			log.Info(fName + "IP address invalid")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 	}
 
 	cert, err := SignCSR(identity.Csr, eaaCtx)

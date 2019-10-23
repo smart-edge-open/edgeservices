@@ -18,6 +18,7 @@
   when: openvino['enabled']
 - include_tasks: ../../../deploy_server/tasks/docker/up_edgednssvr.yml
 - include_tasks: ../../../deploy_server/tasks/docker/up_nts.yml
+- include_tasks: ../../../deploy_server/tasks/docker/up_eaa.yml
 - include_tasks: ../../../deploy_server/tasks/docker/up_appliance.yml
 - include_tasks: ../../../deploy_server/tasks/docker/get_containers_ids.yml
 

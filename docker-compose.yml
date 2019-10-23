@@ -24,8 +24,7 @@ services:
     ports:
      - "42101:42101"
      - "42102:42102"
-     - "192.168.122.1:443:443"
-     - "192.168.122.1:80:80"
+     - "192.168.122.1:42103:42103"
     volumes:
      - "/etc/pki/tls/certs:/host_certs"
      - "/proc/1/ns:/var/host_ns:ro"
@@ -40,6 +39,42 @@ services:
      - "/usr/local/var/run/openvswitch:/usr/local/var/run/openvswitch"
     environment:
      - SYSLOG_ADDR=syslog.community.appliance.mec
+    network_mode: bridge
+  
+  nts:
+    container_name: nts
+    build:
+      context: .
+      dockerfile: "Dockerfile_nts"
+    image: "nts:${VER}"
+    privileged: true
+    volumes:
+     - "/dev/hugepages:/hugepages"
+     - "/var/lib/appliance/nts:/var/lib/appliance/nts"
+     - "/var/run/docker/netns:/var/run/docker/netns"
+     - "/var/run:/var/run"
+     - "/proc/1/ns:/var/host_ns"
+     - "/sys/class/net:/var/host_net_devices"
+    environment:
+     - NTS_SOCKET0_MEM=${NTS_MEM_MB_S0}
+     - NTS_SOCKET1_MEM=${NTS_MEM_MB_S1}
+     - OVS_BRIDGE_NAME=${OVS_BRIDGE_NAME}
+     - OVS_ENABLED=${OVSE}
+    network_mode: host
+
+  eaa:
+    build:
+      context: .
+      dockerfile: "Dockerfile_eaa"
+    image: "eaa:${VER}"
+    privileged: true
+    ports:
+     - "192.168.122.1:443:443"
+     - "192.168.122.1:80:80"
+    volumes:
+     - "/sys/devices:/devices"
+     - "/var/lib/appliance/certs:/root/certs"
+     - "/var/lib/appliance/configs:/root/configs"
     network_mode: bridge
 
   edgednssvr:

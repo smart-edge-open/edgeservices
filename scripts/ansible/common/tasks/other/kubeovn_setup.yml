@@ -34,5 +34,5 @@
   register: result
   until: result.failed == false
   retries: 5
-  delay: 30
+  delay: 60
 

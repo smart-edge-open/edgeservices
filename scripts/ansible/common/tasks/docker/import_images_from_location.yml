@@ -17,6 +17,13 @@
     name: appliance
     #tag: 1.0
     load_path: "{{ docker_image_import_location_path }}/appliance.docker"
+  when: not kube_ovn['enabled']
+
+- name: Import Docker EAA image from defined location
+  docker_image:
+    name: eaa
+    #tag: 1.0
+    load_path: "{{ docker_image_import_location_path }}/eaa.docker"
 
 - name: Import Docker hddlservice image from defined location
   docker_image:

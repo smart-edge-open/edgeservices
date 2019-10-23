@@ -22,11 +22,19 @@ BUILD_DIR ?=dist
 
 VER:=1.0
 
-build: edalibs appliance edgedns nts
+ifeq ($(KUBE_OVN_MODE), True)
+build: eaa edgedns
+else
+build: edalibs appliance eaa edgedns nts
+endif
 
 appliance:
 	mkdir -p "${BUILD_DIR}"
 	GOOS=linux go build -o "${BUILD_DIR}/appliance" ./cmd/appliance
+
+eaa:
+	mkdir -p "${BUILD_DIR}"
+	GOOS=linux go build -o "${BUILD_DIR}/eaa" ./cmd/eaa
 
 edgedns:
 	mkdir -p "${BUILD_DIR}"
@@ -48,17 +56,19 @@ clean:
 	make clean -C internal/nts/eda_libs
 
 build-docker: build
+	cp docker-compose.yml "${TMP_DIR}"
+	cp build/eaa/Dockerfile "${TMP_DIR}/Dockerfile_eaa"
+	cp build/eaa/entrypoint_eaa.sh "${TMP_DIR}"
+	cp "${BUILD_DIR}/eaa" "${TMP_DIR}"
+	cp build/edgednssvr/Dockerfile "${TMP_DIR}/Dockerfile_edgednssvr"
+	cp "${BUILD_DIR}/edgednssvr" "${TMP_DIR}"
+ifeq ($(KUBE_OVN_MODE), True)
+	cd "${TMP_DIR}" && VER=${VER} docker-compose build eaa edgednssvr syslog-ng
+else
 	cp build/appliance/Dockerfile "${TMP_DIR}/Dockerfile_appliance"
 	cp build/appliance/entrypoint.sh "${TMP_DIR}"
 	cp /opt/dpdk-18.11.2/usertools/dpdk-devbind.py "${TMP_DIR}"
 	cp "${BUILD_DIR}/appliance" "${TMP_DIR}"
-	cp build/edgednssvr/Dockerfile "${TMP_DIR}/Dockerfile_edgednssvr"
-	cp "${BUILD_DIR}/edgednssvr" "${TMP_DIR}"
-	cp docker-compose.yml "${TMP_DIR}"
-ifeq ($(KUBE_OVN_MODE), True)
-	cd "${TMP_DIR}" && VER=${VER} docker-compose build
-else
-	cp docker-compose.nts.yml "${TMP_DIR}"
 	mkdir -p "${TMP_DIR}/nts"
 	cp internal/nts/build/nes-daemon "${TMP_DIR}/nts"
 	cp internal/nts/kni_docker_daemon.py "${TMP_DIR}/nts"
@@ -66,7 +76,7 @@ else
 	cp internal/nts/entrypoint.sh "${TMP_DIR}/nts"
 	cp internal/nts/build/libnes_api_shared.so "${TMP_DIR}/nts"
 	cp internal/nts/Dockerfile "${TMP_DIR}/Dockerfile_nts"
-	cd "${TMP_DIR}" && VER=${VER} docker-compose -f docker-compose.yml -f docker-compose.nts.yml build
+	cd "${TMP_DIR}" && VER=${VER} docker-compose build appliance nts eaa edgednssvr syslog-ng
 endif	
 	ls "${TMP_DIR}"
 	rm -rf "${TMP_DIR}"
@@ -88,10 +98,8 @@ build-docker-biosfw:
 	rm -rf "${TMP_DIR}"
 
 run-docker:
-ifeq ($(KUBE_OVN_MODE), True)
-	VER=${VER} docker-compose up --no-build
-else
-	VER=${VER} docker-compose -f docker-compose.yml -f docker-compose.nts.yml up --no-build
+ifeq ($(KUBE_OVN_MODE), False)
+	VER=${VER} docker-compose up appliance nts eaa edgednssvr syslog-ng --no-build
 endif
 
 lint: edalibs
@@ -102,8 +110,9 @@ test: edalibs
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
-	@echo "  build                  to build the appliance application, edgedns server and NTS"
+	@echo "  build                  to build the appliance application, EAA, edgedns server and NTS"
 	@echo "  appliance              to build the appliance application"
+	@echo "  eaa                    to build the EAA"
 	@echo "  edgedns                to build the edgedns server"
 	@echo "  nts                    to build the NTS"
 	@echo "  hddllog                to build the log supporting hddl service"

@@ -21,6 +21,9 @@
 - name: Add firewall rules for Docker containers traffic (eaa https)
   shell: firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 0 -i virbr0 -s 192.168.122.0/24 -d 192.168.122.1 -p udp --dport 514 -j ACCEPT
 
+- name: Add firewall rules for Docker containers traffic (eva)
+  shell: firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 0 -i virbr0 -s 192.168.122.0/24 -d 192.168.122.1 -p udp --dport 42103 -j ACCEPT
+
 - name: Reload firewall rules
   shell: firewall-cmd --reload 
   changed_when: false

@@ -71,7 +71,7 @@ type EAATestSuiteConfig struct {
 	Dir                 string `json:"Dir"`
 	TLSEndpoint         string `json:"TlsEndpoint"`
 	OpenEndpoint        string `json:"OpenEndpoint"`
-	InternalEndpoint    string `json:"InternalEndpoint"`
+	ValidationEndpoint  string `json:"ValidationEndpoint"`
 	ApplianceTimeoutSec int    `json:"Timeout"`
 }
 
@@ -163,7 +163,7 @@ func (*FakeIPAppLookupServiceServerImpl) GetApplicationByIP(
 
 func fakeAppidProvider() error {
 
-	lApp, err := net.Listen("tcp", cfg.InternalEndpoint)
+	lApp, err := net.Listen("tcp", cfg.ValidationEndpoint)
 	if err != nil {
 		log.Errf("net.Listen error: %+v", err)
 		return err
@@ -175,7 +175,7 @@ func fakeAppidProvider() error {
 		&ipAppLookupService)
 
 	go func() {
-		log.Infof("Fake internal serving on %s", cfg.InternalEndpoint)
+		log.Infof("Fake internal serving on %s", cfg.ValidationEndpoint)
 		err = serverApp.Serve(lApp)
 		if err != nil {
 			log.Errf("Failed grpcServe(): %v", err)
@@ -217,7 +217,7 @@ func generateConfigs() {
 	eaaCfg := []byte(`{
 		"TlsEndpoint": "` + cfg.TLSEndpoint + `",
 		"OpenEndpoint": "` + cfg.OpenEndpoint + `",
-		"InternalEndpoint": "` + cfg.InternalEndpoint + `",
+		"ValidationEndpoint": "` + cfg.ValidationEndpoint + `",
 		"Certs": {
 			"CaRootKeyPath": "` + tempConfCaRootKeyPath + `",
 			"CaRootPath": "` + tempConfCaRootPath + `",

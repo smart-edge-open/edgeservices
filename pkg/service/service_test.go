@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package service
 
 import (
 	"context"
@@ -74,17 +74,17 @@ var _ = Describe("runServices", func() {
 
 	BeforeEach(func() {
 		controlAgent = fakeAgent{}
-		cfg.Services = make(map[string]string)
+		Cfg.Services = make(map[string]string)
 		funcName := runtime.FuncForPC(
 			reflect.ValueOf(controlRun).Pointer()).Name()
 		srvName := funcName[:strings.LastIndex(funcName, ".")]
-		cfg.Services[srvName] = "config.json"
+		Cfg.Services[srvName] = "config.json"
 	})
 
 	Describe("Starts an Agent that will fail", func() {
 		It("Will return failure and context cancellation will be issued",
 			func() {
-				Expect(runServices([]ServiceStartFunction{failingRun,
+				Expect(RunServices([]ServiceStartFunction{failingRun,
 					successfulRun, controlRun})).Should(BeFalse())
 				Expect(controlAgent.ContextCancelled).Should(BeTrue())
 				Expect(controlAgent.EndedWork).Should(BeFalse())
@@ -95,7 +95,7 @@ var _ = Describe("runServices", func() {
 	Describe("Starts an Agent that will succeed", func() {
 		It("Will return success and other agents will finish work normally",
 			func() {
-				Expect(runServices([]ServiceStartFunction{successfulRun,
+				Expect(RunServices([]ServiceStartFunction{successfulRun,
 					controlRun})).Should(BeTrue())
 				Expect(controlAgent.EndedWork).Should(BeTrue())
 				Expect(controlAgent.ContextCancelled).Should(BeFalse())

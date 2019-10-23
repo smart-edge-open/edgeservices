@@ -27,10 +27,15 @@
   register: cmd
 - set_fact: docker_nts_container_id="{{ cmd.stdout }}"
 
+- name: Get EAA container ID
+  shell: "docker ps -aqf name={{ docker_eaa_container_name }}"
+  register: cmd
+- set_fact: docker_eaa_container_id="{{ cmd.stdout }}"
+
 - name: Get appliance container ID
   shell: "docker ps -aqf name={{ docker_appliance_container_name }}"
   register: cmd
 - set_fact: docker_appliance_container_id="{{ cmd.stdout }}"
 
 - debug:
-    msg: "Containers IDs: syslog={{ docker_syslog_ng_container_id }} edgednssvr={{ docker_edgednssvr_container_id }} nts={{ docker_nts_container_id }} appliance={{ docker_appliance_container_id }}"
+    msg: "Containers IDs: syslog={{ docker_syslog_ng_container_id }} edgednssvr={{ docker_edgednssvr_container_id }} nts={{ docker_nts_container_id }} eaa={{ docker_eaa_container_id }} appliance={{ docker_appliance_container_id }}"

@@ -40,7 +40,7 @@
     block: |
       strict-order
       except-interface=lo
-      address=/eaa.community.appliance.mec/syslog.community.appliance.mec/192.168.122.1
+      address=/eaa.community.appliance.mec/eva.community.appliance.mec/syslog.community.appliance.mec/192.168.122.1
 
 - name: Enable dnsmasq service
   systemd:

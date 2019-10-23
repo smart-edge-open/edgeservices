@@ -39,6 +39,9 @@
             <hostname>eaa.community.appliance.mec</hostname>
           </host>
           <host ip="192.168.122.1">
+            <hostname>eva.community.appliance.mec</hostname>
+          </host>
+          <host ip="192.168.122.1">
             <hostname>syslog.community.appliance.mec</hostname>
           </host>
           <host ip="192.168.122.128">

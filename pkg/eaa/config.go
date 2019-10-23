@@ -26,9 +26,9 @@ type CertsInfo struct {
 
 // Config describes EAA JSON config file
 type Config struct {
-	TLSEndpoint       string        `json:"TlsEndpoint"`
-	OpenEndpoint      string        `json:"OpenEndpoint"`
-	InternalEndpoint  string        `json:"InternalEndpoint"`
-	HeartbeatInterval util.Duration `json:"HeartbeatInterval"`
-	Certs             CertsInfo     `json:"Certs"`
+	TLSEndpoint        string        `json:"TlsEndpoint"`
+	OpenEndpoint       string        `json:"OpenEndpoint"`
+	ValidationEndpoint string        `json:"ValidationEndpoint"`
+	HeartbeatInterval  util.Duration `json:"HeartbeatInterval"`
+	Certs              CertsInfo     `json:"Certs"`
 }

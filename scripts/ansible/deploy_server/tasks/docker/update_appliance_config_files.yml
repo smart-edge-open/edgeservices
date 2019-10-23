@@ -20,3 +20,7 @@
 
 - name: Update ELA config file
   shell: jq ".ControllerEndpoint=\"{{ enrollment_endpoint }}\"" /var/lib/appliance/configs/ela.json | sponge /var/lib/appliance/configs/ela.json
+
+- name: Update EAA config file
+  shell: jq ".ValidationEndpoint=\"\"" /var/lib/appliance/configs/eaa.json | sponge /var/lib/appliance/configs/eaa.json
+  when: kube_ovn['enabled']
