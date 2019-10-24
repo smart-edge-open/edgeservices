@@ -161,16 +161,31 @@
  - Grub EFI support
  - Minor updates and bugfixes
 
-## [0.4.4] - 2019-10-23
- - Single point configuration
- - Fixed ELA UT
+## [0.5.0] - 2019-10-22
+### Features
+ - BIOSFW: Support for remote changing BIOS settings on nodes in Kubernetes cluster
+### Changes
+ - Ansible: Single point of configuration
+ - Unit tests: Fixes in ELA
+ - Unit tests: Coverage improvement in EDA and app_metadata packages
  - Makefile: removed proxy in UT
- - Ansible proxy handle
- - Libvirt-go wrapper
- - Expose EdgeDNS to OnPrem apps
- - Added BIOSFW feature: Support for remote changing BIOS settings on nodes in Kubernetes cluster
- - Remove applications folder after Docker reinstall
+ - Ansible: proxy handle
+ - Code: Added wrapper for libvirt-go
 
-## [0.4.5] - 2019-10-23
- - Stand Alone EAA: EAA will now work as a separate container rather than a part of Appliance in OnPrem mode
- - Stand Alone EAA: EAA will now work as a separate pod in Kube-OVN mode
+## [0.6.0] - 2019-10-22
+### Features
+ - Expose EdgeDNS to OnPrem apps
+
+## [0.7.0] - 2019-10-23
+### Features
+ - Stand-alone EAA: EAA will now work as a separate container rather than a part of Appliance in OnPrem mode
+ - Stand-alone EAA: EAA will now work as a separate pod in Kube-OVN mode
+### Changes
+ - Ansible: Remove applications folder after Docker reinstall
+ - Unit tests: Coverage improvement in EVA package
+ 
+## [0.7.1] - 2019-10-24
+### Changes
+ - Ansible: Fixed docker-compose up
+ - Ansible: Updated Kubernetes version to 1.16.2 and openvswitch to 2.11.4
+ 
