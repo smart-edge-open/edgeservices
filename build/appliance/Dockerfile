@@ -18,7 +18,7 @@ RUN yum install -y libvirt-devel \
         pciutils which \
         unbound openssl \
     && yum clean all
-RUN rpm -ivh https://github.com/alauda/ovs/releases/download/v2.11.1-1/openvswitch-2.11.1-1.el7.x86_64.rpm
+RUN rpm -ivh https://github.com/alauda/ovs/releases/download/v2.11.4-1/openvswitch-2.11.4-1.el7.x86_64.rpm
 
 WORKDIR /root/
 

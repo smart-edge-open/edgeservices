@@ -14,7 +14,7 @@
 
 - name: Installing OVS tools
   yum:
-    name: "unbound,https://github.com/alauda/ovs/releases/download/v2.11.1-1/openvswitch-2.11.1-1.el7.x86_64.rpm"
+    name: "unbound,https://github.com/alauda/ovs/releases/download/v2.11.4-1/openvswitch-2.11.4-1.el7.x86_64.rpm"
     
 - debug:
     msg: "EdgeNode apps image build finished. Ensure that OpenNess with Kube-OVN is configured on edgecontroller"
