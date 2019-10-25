@@ -29,6 +29,7 @@ import (
 	"github.com/otcshare/edgenode/pkg/eva"
 	evapb "github.com/otcshare/edgenode/pkg/eva/pb"
 	"google.golang.org/grpc"
+	"errors"
 )
 
 var _ = Describe("ApplicationLifecycleService", func() {
@@ -70,6 +71,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 		})
 	})
 
+	//docker test cases
 	When("GetStatus is called", func() {
 		Context("with -testpp- application deployed", func() {
 			It("responds with no error", func() {
@@ -223,10 +225,10 @@ var _ = Describe("ApplicationLifecycleService", func() {
 		})
 	})
 
+	//libvirt test cases
 	When("Start is called", func() {
 		Context("with -testpp- VM application deployed", func() {
 			It("responds with no error", func() {
-
 				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
 
 				stubs.DomStub.DomState = libvirt.DOMAIN_RUNNING
@@ -239,7 +241,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
 				metadatahelpers.CreateFile(
 					filepath.Join(expectedAppPath, "metadata.json"),
-					`{"Type": "LibvritDomain","App":{"id":"testapp",
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":2}}`)
 
 				conn, cancelTimeout, prefaceLis := createConnection()
@@ -265,6 +267,134 @@ var _ = Describe("ApplicationLifecycleService", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(status.Status).To(Equal(evapb.LifecycleStatus_RUNNING))
 			})
+
+			It("responds with connection create error", func() {		
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.ConnStub.ConnCreateErr = errors.New("Conn create error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_RUNNING
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":2}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, close := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer close()
+				
+				cmd := evapb.LifecycleCommand{Id: "testapp", Cmd: evapb.LifecycleCommand_START}
+				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)			
+			})
+
+			It("responds with connection close error", func() {		
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.ConnStub.ConnCloseErr = errors.New("Conn close error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_RUNNING
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":2}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, close := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer close()
+				
+				cmd := evapb.LifecycleCommand{Id: "testapp", Cmd: evapb.LifecycleCommand_START}
+				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)			
+			})
+
+			It("responds with LookupDomainByName error", func() {
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.ConnStub.DomByNameErr = errors.New("LookupDomainByName error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_RUNNING
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":2}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, close := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer close()
+				
+				cmd := evapb.LifecycleCommand{Id: "testapp", Cmd: evapb.LifecycleCommand_START}
+				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)			
+			})
+
+			It("responds with application type identification failed", func() {
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_RUNNING
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":2}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, close := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer close()
+				
+				//command without parameters
+				cmd := evapb.LifecycleCommand{} 
+				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)	
+			})
 		})
 	})
 
@@ -283,7 +413,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
 				metadatahelpers.CreateFile(
 					filepath.Join(expectedAppPath, "metadata.json"),
-					`{"Type": "LibvritDomain","App":{"id":"testapp",
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout, prefaceLis := createConnection()
@@ -309,6 +439,209 @@ var _ = Describe("ApplicationLifecycleService", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(status.Status).To(Equal(evapb.LifecycleStatus_STOPPED))
 			})
+
+			It("responds with connection create error", func() {
+			
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.ConnStub.ConnCreateErr = errors.New("Conn create error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
+					Cmd: evapb.LifecycleCommand_STOP}
+				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
+
+			It("responds with connection close error", func() {
+
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.ConnStub.ConnCloseErr = errors.New("Conn close error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
+					Cmd: evapb.LifecycleCommand_STOP}
+				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
+
+			It("responds with LookupDomainByName error", func() {
+
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.ConnStub.DomByNameErr = errors.New("LookupDomainByName error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
+					Cmd: evapb.LifecycleCommand_STOP}
+				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
+
+			It("responds with get state error", func() {
+
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.DomStub.DomStateErr = errors.New("GetState error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
+					Cmd: evapb.LifecycleCommand_STOP}
+				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
+
+			It("responds with shutdown error", func() {
+
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.DomStub.DomShutdownErr = errors.New("Shutdown error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
+					Cmd: evapb.LifecycleCommand_STOP}
+				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
+
+			It("responds with application type identification failed", func() {
+
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				//command without parameters
+				cmd := evapb.LifecycleCommand{} 
+				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
 		})
 	})
 
@@ -327,7 +660,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
 				metadatahelpers.CreateFile(
 					filepath.Join(expectedAppPath, "metadata.json"),
-					`{"Type": "LibvritDomain","App":{"id":"testapp",
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout, prefaceLis := createConnection()
@@ -353,6 +686,171 @@ var _ = Describe("ApplicationLifecycleService", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(status.Status).To(Equal(evapb.LifecycleStatus_RUNNING))
 			})
+
+			It("responds with connection create error", func() {
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.ConnStub.ConnCreateErr = errors.New("Conn create error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
+					Cmd: evapb.LifecycleCommand_RESTART}
+				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
+
+			It("responds with connection close error", func() {
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.ConnStub.ConnCloseErr = errors.New("Conn close error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
+					Cmd: evapb.LifecycleCommand_RESTART}
+				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
+
+			It("responds with LookupDomainByName error", func() {
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.ConnStub.DomByNameErr = errors.New("LookupDomainByName error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
+					Cmd: evapb.LifecycleCommand_RESTART}
+				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
+
+			It("responds with get state error", func() {
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+				stubs.DomStub.DomStateErr = errors.New("GetState error")
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
+					Cmd: evapb.LifecycleCommand_RESTART}
+				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
+
+			It("responds with application type identification failed", func() {
+				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
+
+				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
+				stubs.ConnStub.DomByName = stubs.DomStub
+
+				expectedAppPath := filepath.Join(cfgFile.AppImageDir,
+					"testapp")
+				metadatahelpers.CreateDir(expectedAppPath)
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "deployed"), "testapp\n")
+				metadatahelpers.CreateFile(
+					filepath.Join(expectedAppPath, "metadata.json"),
+					`{"Type": "LibvirtDomain","App":{"id":"testapp",
+					"name":"testapp","status":4}}`)
+
+				conn, cancelTimeout, prefaceLis := createConnection()
+				defer cancelTimeout()
+				defer prefaceLis.Close()
+				defer conn.Close()
+
+				client := evapb.NewApplicationLifecycleServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				//command without parameters
+				cmd := evapb.LifecycleCommand{} 
+				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
+				Expect(err)
+			})
 		})
 	})
+	
 })
