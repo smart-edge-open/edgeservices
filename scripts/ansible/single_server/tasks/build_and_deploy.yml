@@ -27,6 +27,8 @@
   - include_tasks: ../../common/tasks/docker/remove_images_and_containers.yml
   - include_tasks: ../../common/tasks/libvirt/remove_all_vms.yml
   - include_tasks: ../../common/tasks/build/binaries.yml
+  - include_tasks: ../../common/tasks/plugins/download_plugins.yml
+    when: sriov['enabled']
   - include_tasks: ../../common/tasks/docker/build_images.yml
   - include_tasks: ../../common/tasks/docker/save_images.yml
   - include_tasks: ../../build_server/tasks/docker/print_docker_images_location.yml

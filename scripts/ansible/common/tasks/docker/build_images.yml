@@ -22,7 +22,19 @@
   args:
     chdir: "{{ base_path }}"
   when: openvino['enabled']
-  
+
+- name: Build SRIOV CNI image
+  shell: source /etc/profile && docker build -t sriov-cni -f ./Dockerfile .
+  args:
+    chdir: "{{ sriov_cni_downloaddir }}"
+  when: sriov['enabled']
+
+- name: Build SRIOV device plugin image
+  shell: source /etc/profile && make image
+  args:
+    chdir: "{{ sriov_dev_plugin_downloaddir }}"
+  when: sriov['enabled']
+
 - name: Build biosfw image
   shell: source /etc/profile && make build-docker-biosfw
   args:

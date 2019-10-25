@@ -38,6 +38,18 @@
   shell: docker save nts -o "{{ docker_images_save_path }}/nts.docker"
   when: not kube_ovn['enabled']
 
+- name: Export sriov-cni image to filesystem
+  shell: docker save sriov-cni -o "{{ docker_images_save_path }}/sriovcni.docker"
+  when: sriov['enabled']
+
+- name: Export sriov-device-plugin image to filesystem
+  shell: docker save nfvpe/sriov-device-plugin -o "{{ docker_images_save_path }}/sriovdeviceplugin.docker"
+  when: sriov['enabled'] and not vc_fec['enabled']
+
+- name: Export sriov-device-plugin for VC FEC image to filesystem
+  shell: docker save nfvpe/sriov-device-plugin-fec -o "{{ docker_images_save_path }}/sriovdeviceplugin.docker"
+  when: sriov['enabled'] and vc_fec['enabled']
+
 - name: Export nts image to filesystem
   shell: docker save openness-biosfw -o "{{ docker_images_save_path }}/openness-biosfw.docker"
   when: biosfw['enabled']

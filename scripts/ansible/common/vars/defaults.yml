@@ -78,6 +78,28 @@ kube_ovn:
 biosfw:
   enabled: false
 
+# Enabling SRIOV (image build)
+sriov_cni_url: "https://github.com/intel/sriov-cni"
+sriov_cni_downloaddir : "/temp/sriov_cni"
+sriov_cni_commit: "c9e13c3643e4f7b5b4cd5169a8879ed894b1a07a"
+
+sriov_dev_plugin_url: "https://github.com/intel/sriov-network-device-plugin"
+sriov_dev_plugin_downloaddir: "/temp/sriov_dev_plugin"
+sriov:
+  enabled: false
+
+# Enabling VC-FEC support (image build and SRIOV device creation/binding)
+vc_fec_dev_plugin_commit: "bf28fdc3e2d9dd2edcc4f0bceb58448ac9317696"
+vc_fec_patch_path: "{{ base_path }}/vc/VC_FEC_SRIOV_DEV_PLUGIN_NODE.patch"
+vc_fec:
+  enabled: false
+vc_vendor_id: "1172"
+vc_vf_device_id: "5050"
+vc_pf_device_id: "5052"
+vc_vf_number: "2"
+vc_fec_vf:
+  enabled: false
+
 # Build configuration
 
 docker_images_save_path: "{{ base_path }}/dist/"

@@ -1,0 +1,29 @@
+# Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: Check if VC FEC device is connected and get PCI address of devices.
+  shell: lspci | grep {{ vc_pf_device_id }} | awk '{print $1;}'
+  register: pci_address
+  
+- name: Bind VC PF to IGB UIO.
+  shell: echo "{{ vc_vendor_id }} {{ vc_pf_device_id }}" | sudo tee /sys/bus/pci/drivers/igb_uio/new_id
+  
+- name: Create SRIOV VFs
+  shell: "echo {{ vc_vf_number }} | sudo tee /sys/bus/pci/devices/0000:{{ item }}/max_vfs"
+  with_items:
+    - "{{ pci_address.stdout_lines }}"
+  
+- name: Bind VC VFs to IGB_UIO
+  shell: echo "{{ vc_vendor_id }} {{ vc_vf_device_id }}" | sudo tee /sys/bus/pci/drivers/igb_uio/new_id
+ 
