@@ -29,7 +29,7 @@ import (
 
 	"github.com/kata-containers/runtime/virtcontainers/pkg/nsenter"
 
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 	"github.com/pkg/errors"
 )
 

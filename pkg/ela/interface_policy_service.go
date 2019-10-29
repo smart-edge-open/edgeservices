@@ -18,8 +18,8 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/otcshare/edgenode/pkg/ela/helpers"
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	"github.com/open-ness/edgenode/pkg/ela/helpers"
+	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 )
 
 // InterfacePolicyService describes interface policy service

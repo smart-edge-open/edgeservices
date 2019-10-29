@@ -18,7 +18,7 @@ import (
 	"context"
 	"time"
 
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

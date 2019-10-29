@@ -24,15 +24,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otcshare/common/proxy/progutil"
-	"github.com/otcshare/edgenode/internal/authtest"
-	"github.com/otcshare/edgenode/pkg/config"
-	"github.com/otcshare/edgenode/pkg/eva"
-	pb "github.com/otcshare/edgenode/pkg/eva/pb"
+	"github.com/open-ness/common/proxy/progutil"
+	"github.com/open-ness/edgenode/internal/authtest"
+	"github.com/open-ness/edgenode/pkg/config"
+	"github.com/open-ness/edgenode/pkg/eva"
+	pb "github.com/open-ness/edgenode/pkg/eva/pb"
 
 	"log/syslog"
 
-	logger "github.com/otcshare/common/log"
+	logger "github.com/open-ness/common/log"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

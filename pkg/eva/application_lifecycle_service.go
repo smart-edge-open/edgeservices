@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
-	pb "github.com/otcshare/edgenode/pkg/eva/pb"
+	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
+	pb "github.com/open-ness/edgenode/pkg/eva/pb"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"

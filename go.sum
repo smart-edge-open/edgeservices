@@ -79,14 +79,6 @@ github.com/opencontainers/go-digest v1.0.0-rc1 h1:WzifXhOVOEOuFYOJAW6aQqW0TooG2i
 github.com/opencontainers/go-digest v1.0.0-rc1/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
 github.com/opencontainers/image-spec v1.0.1 h1:JMemWkRwHx4Zj+fVxWoMCFm/8sYGGrUVojFA6h/TRcI=
 github.com/opencontainers/image-spec v1.0.1/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zMzWCbyJoFRP3s7yZA0=
-github.com/otcshare/common/log v0.0.0-20190819124907-99dcb8b50ed8 h1:B+7EfOKdvEVfemAtsnXYmqKQs4d8Iyz8qq5QeX4K1U4=
-github.com/otcshare/common/log v0.0.0-20190819124907-99dcb8b50ed8/go.mod h1:30kZGx52RercaMNsH35keYVwwh2KCNXBnXTAdm2XPfM=
-github.com/otcshare/common/log v0.0.0-20190820113043-69a7d2cb754d h1:l4B6VmM114uBHogbn7KiRh60JUcrUlaF1wA2RJrjJnQ=
-github.com/otcshare/common/log v0.0.0-20190820113043-69a7d2cb754d/go.mod h1:30kZGx52RercaMNsH35keYVwwh2KCNXBnXTAdm2XPfM=
-github.com/otcshare/common/proxy v0.0.0-20190820113043-69a7d2cb754d h1:x3AKivXRROFCHCX2dyD5EdjhTohD1Cr1wIzMKh6QjYU=
-github.com/otcshare/common/proxy v0.0.0-20190820113043-69a7d2cb754d/go.mod h1:a8/L/jNAu5ssj3elXyZ024lEWxl5gagqdgU6Gd/lHnA=
-github.com/otcshare/common/proxy v0.0.0-20190913124203-6b0465a8542e h1:l7V8yBB9tC12qTusxFPyKPOKhiW+b2JnwzlBaueL9iw=
-github.com/otcshare/common/proxy v0.0.0-20190913124203-6b0465a8542e/go.mod h1:bDxJjrhfrdTGmImnw4Obs7yf9ni3Df9C8znsZvPDlfM=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

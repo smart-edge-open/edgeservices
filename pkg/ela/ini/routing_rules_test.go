@@ -18,8 +18,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/otcshare/edgenode/pkg/ela/ini"
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	. "github.com/open-ness/edgenode/pkg/ela/ini"
+	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 )
 
 var _ = Describe("Route string", func() {

@@ -23,9 +23,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	log "github.com/otcshare/common/log"
-	"github.com/otcshare/edgenode/internal/authtest"
-	"github.com/otcshare/edgenode/pkg/ela"
+	log "github.com/open-ness/common/log"
+	"github.com/open-ness/edgenode/internal/authtest"
+	"github.com/open-ness/edgenode/pkg/ela"
 	"google.golang.org/grpc/credentials"
 )
 

@@ -20,11 +20,11 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/otcshare/edgenode/pkg/ela/helpers"
+	"github.com/open-ness/edgenode/pkg/ela/helpers"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/otcshare/common/log"
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	"github.com/open-ness/common/log"
+	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

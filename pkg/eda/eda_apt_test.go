@@ -22,9 +22,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	log "github.com/otcshare/common/log"
-	"github.com/otcshare/edgenode/pkg/eda"
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	log "github.com/open-ness/common/log"
+	"github.com/open-ness/edgenode/pkg/eda"
+	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

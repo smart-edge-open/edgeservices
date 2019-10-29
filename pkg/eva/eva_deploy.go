@@ -38,8 +38,8 @@ import (
 	"github.com/docker/docker/client"
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
 
-	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
-	pb "github.com/otcshare/edgenode/pkg/eva/pb"
+	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
+	pb "github.com/open-ness/edgenode/pkg/eva/pb"
 	"github.com/pkg/errors"
 
 	"google.golang.org/grpc/codes"

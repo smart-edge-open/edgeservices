@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/otcshare/edgenode/pkg/ela/helpers"
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	"github.com/open-ness/edgenode/pkg/ela/helpers"
+	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
