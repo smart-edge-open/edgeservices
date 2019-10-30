@@ -37,6 +37,7 @@ require (
 	github.com/miekg/dns v1.1.8
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
+	github.com/open-ness/common v0.0.0-20190816164108-8111a5a9fabc
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/open-ness/common/log v0.0.0-20191030124530-f3b0c431ec77
