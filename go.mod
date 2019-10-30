@@ -39,8 +39,8 @@ require (
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
-	github.com/open-ness/common/log v0.0.0-20190820113043-69a7d2cb754d
-	github.com/open-ness/common/proxy v0.0.0-20190913124203-6b0465a8542e
+	github.com/open-ness/common/log v0.0.0-20191030124530-f3b0c431ec77
+	github.com/open-ness/common/proxy v0.0.0-20191030124530-f3b0c431ec77
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
