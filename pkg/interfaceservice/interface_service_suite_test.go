@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubeovn_test
+package interfaceservice_test
 
 import (
 	"context"
@@ -26,17 +26,16 @@ import (
 	. "github.com/onsi/gomega"
 	log "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/internal/authtest"
-	"github.com/otcshare/edgenode/pkg/ela"
+	"github.com/otcshare/edgenode/pkg/interfaceservice"
 	"google.golang.org/grpc/credentials"
 )
 
 var (
-	elaTestEndpoint    = "localhost:42201"
-	transportCreds     credentials.TransportCredentials
-	controllerEndpoint = "127.0.0.1:8081"
+	testEndpoint   = "localhost:42201"
+	transportCreds credentials.TransportCredentials
 )
 
-func TestKubeovn(t *testing.T) {
+func TestInterfaceService(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	// Generate certs
@@ -48,22 +47,20 @@ func TestKubeovn(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Write ELA's config
-	err = ioutil.WriteFile("ela.json", []byte(fmt.Sprintf(`
+	err = ioutil.WriteFile("interfaceservice.json", []byte(fmt.Sprintf(`
 	{
 		"endpoint": "%s",
-		"certsDirectory": "%s",
-		"KubeOVNMode": true,
-		"ControllerEndpoint": "%s"
-	}`, elaTestEndpoint, certsDir, controllerEndpoint)), os.FileMode(0644))
+		"certsDirectory": "%s"
+	}`, testEndpoint, certsDir)), os.FileMode(0644))
 	Expect(err).NotTo(HaveOccurred())
 
-	// Set up ELA server
+	// Set up InterfaceService server
 	srvErrChan := make(chan error)
 	srvCtx, srvCancel := context.WithCancel(context.Background())
 	go func() {
-		err := ela.Run(srvCtx, "ela.json")
+		err := interfaceservice.Run(srvCtx, "interfaceservice.json")
 		if err != nil {
-			log.Errf("ela.Run exited with error: %+v", err)
+			log.Errf("interfaceservice.Run exited with error: %+v", err)
 		}
 		srvErrChan <- err
 	}()
@@ -72,15 +69,14 @@ func TestKubeovn(t *testing.T) {
 		<-srvErrChan
 	}()
 
-	//waiting for ela.json
+	//waiting for interfaceservice.json
 	for start := time.Now(); time.Since(start) < 3*time.Second; {
-		if ela.Config.ControllerEndpoint != "" {
+		if interfaceservice.Config.Endpoint != "" {
 			break
 		}
 	}
-	Expect(ela.Config.ControllerEndpoint).ToNot(Equal(""))
-
-	RunSpecs(t, "kube-ovn mode ELA suite")
+	Expect(interfaceservice.Config.Endpoint).ToNot(Equal(""))
+	RunSpecs(t, "InterfaceService test suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -88,5 +84,5 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	os.Remove("ela.json")
+	os.Remove("interfaceservice.json")
 })

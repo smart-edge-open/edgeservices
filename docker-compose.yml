@@ -110,3 +110,16 @@ services:
     ports:
       - "192.168.122.1:514:514/udp"
     network_mode: bridge
+
+  interfaceservice:
+    container_name: interfaceservice
+    build:
+      context: .
+      dockerfile: "Dockerfile_interfaceservice"
+    image: "interfaceservice:${VER}"
+    privileged: true
+    volumes:
+     - "/var/lib/appliance/configs:/root/configs"
+     - "/var/lib/appliance/certs:/root/certs"
+     - "/var/run:/var/run"
+    network_mode: host

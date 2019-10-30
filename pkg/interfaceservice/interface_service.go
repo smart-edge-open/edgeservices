@@ -1,4 +1,4 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
+// Copyright 2019 Intel Corporation. All rights reserved
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ela
+package interfaceservice
 
 import (
 	"context"
@@ -25,7 +25,6 @@ import (
 	logger "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/pkg/config"
 
-	"github.com/otcshare/common/proxy/progutil"
 	"github.com/otcshare/edgenode/pkg/auth"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/otcshare/edgenode/pkg/util"
@@ -36,19 +35,13 @@ import (
 
 // Configuration describes JSON configuration
 type Configuration struct {
-	Endpoint           string        `json:"Endpoint"`
-	HeartbeatInterval  util.Duration `json:"HeartbeatInterval"`
-	EDAEndpoint        string        `json:"EdaEndpoint"`
-	NtsConfigPath      string        `json:"NtsConfigPath"`
-	CertsDir           string        `json:"CertsDirectory"`
-	DNSIP              string        `json:"DnsIP"`
-	PCIBlacklist       []string      `json:"PCIBlacklist"`
-	InterfaceMTU       uint16        `json:"InterfaceMTU"`
-	ControllerEndpoint string        `json:"ControllerEndpoint"`
+	Endpoint          string        `json:"Endpoint"`
+	HeartbeatInterval util.Duration `json:"HeartbeatInterval"`
+	CertsDir          string        `json:"CertsDirectory"`
 }
 
 var (
-	log = logger.DefaultLogger.WithField("ela", nil)
+	log = logger.DefaultLogger.WithField("interface-service", nil)
 	// Config instantiate a configuration
 	Config Configuration
 )
@@ -81,34 +74,17 @@ func runServer(ctx context.Context) error {
 		ClientCAs:    certPool,
 	})
 
+	lis, err := net.Listen("tcp", Config.Endpoint)
+
 	if err != nil {
 		log.Errf("net.Listen error: %+v", err)
 		return err
 	}
 
-	addr, err := net.ResolveTCPAddr("tcp", Config.ControllerEndpoint)
-	if err != nil {
-		log.Errf("Failed to resolve the controller address: %v", err)
-		return err
-	}
-	lis := &progutil.DialListener{RemoteAddr: addr, Name: "ELA"}
-	defer lis.Close()
-
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
-
-	applicationPolicyService := ApplicationPolicyServiceServerImpl{}
-	pb.RegisterApplicationPolicyServiceServer(grpcServer,
-		&applicationPolicyService)
 
 	interfaceService := InterfaceService{}
 	pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
-
-	interfacePolicyService := InterfacePolicyService{}
-	pb.RegisterInterfacePolicyServiceServer(grpcServer,
-		&interfacePolicyService)
-
-	dnsService := DNSServiceServer{}
-	pb.RegisterDNSServiceServer(grpcServer, &dnsService)
 
 	go func() {
 		<-ctx.Done()
@@ -121,7 +97,6 @@ func runServer(ctx context.Context) error {
 	log.Infof("Serving on: %s", Config.Endpoint)
 
 	util.Heartbeat(ctx, Config.HeartbeatInterval, func() {
-		// TODO: implementation of modules checking
 		log.Info("Heartbeat")
 	})
 
@@ -133,7 +108,7 @@ func runServer(ctx context.Context) error {
 	return err
 }
 
-// Run function runs a Edge Lifecycle Agent
+// Run function runs a Interface Service
 func Run(ctx context.Context, cfgPath string) error {
 	log.Infof("Starting with config: '%s'", cfgPath)
 

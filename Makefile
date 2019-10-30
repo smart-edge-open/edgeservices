@@ -16,14 +16,14 @@
 
 export GO111MODULE = on
 
-.PHONY: build appliance edgedns clean build-docker lint test help build-docker-hddl hddllog 
+.PHONY: build appliance eaa interfaceservice edgedns clean build-docker lint test help build-docker-hddl hddllog 
 TMP_DIR:=$(shell mktemp -d)
 BUILD_DIR ?=dist
 
 VER:=1.0
 
 ifeq ($(KUBE_OVN_MODE), True)
-build: eaa edgedns
+build: eaa interfaceservice edgedns
 else
 build: edalibs appliance eaa edgedns nts
 endif
@@ -35,6 +35,10 @@ appliance:
 eaa:
 	mkdir -p "${BUILD_DIR}"
 	GOOS=linux go build -o "${BUILD_DIR}/eaa" ./cmd/eaa
+
+interfaceservice:
+	mkdir -p "${BUILD_DIR}"
+	GOOS=linux go build -o "${BUILD_DIR}/interfaceservice" ./cmd/interfaceservice
 
 edgedns:
 	mkdir -p "${BUILD_DIR}"
@@ -63,7 +67,10 @@ build-docker: build
 	cp build/edgednssvr/Dockerfile "${TMP_DIR}/Dockerfile_edgednssvr"
 	cp "${BUILD_DIR}/edgednssvr" "${TMP_DIR}"
 ifeq ($(KUBE_OVN_MODE), True)
-	cd "${TMP_DIR}" && VER=${VER} docker-compose build eaa edgednssvr syslog-ng
+	cp build/interfaceservice/Dockerfile "${TMP_DIR}/Dockerfile_interfaceservice"
+	cp build/interfaceservice/entrypoint_interfaceservice.sh "${TMP_DIR}"
+	cp "${BUILD_DIR}/interfaceservice" "${TMP_DIR}"
+	cd "${TMP_DIR}" && VER=${VER} docker-compose build eaa interfaceservice edgednssvr syslog-ng
 else
 	cp build/appliance/Dockerfile "${TMP_DIR}/Dockerfile_appliance"
 	cp build/appliance/entrypoint.sh "${TMP_DIR}"
@@ -112,6 +119,7 @@ help:
 	@echo "Please use \`make <target>\` where <target> is one of"
 	@echo "  build                  to build the appliance application, EAA, edgedns server and NTS"
 	@echo "  appliance              to build the appliance application"
+	@echo "  interfaceservice       to build the interfaceservice"
 	@echo "  eaa                    to build the EAA"
 	@echo "  edgedns                to build the edgedns server"
 	@echo "  nts                    to build the NTS"

@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubeovn_test
+package interfaceservice_test
 
 import (
 	"context"
-	"net"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -25,9 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
-	"github.com/otcshare/common/proxy/progutil"
-	"github.com/otcshare/edgenode/pkg/ela"
-	k "github.com/otcshare/edgenode/pkg/ela/kubeovn"
+	k "github.com/otcshare/edgenode/pkg/interfaceservice"
 
 	h "github.com/otcshare/edgenode/pkg/ela/helpers"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
@@ -108,15 +105,9 @@ var _ = Describe("InterfaceService", func() {
 	})
 
 	Describe("GetAll", func() {
-		elaGetAll := func() (*pb.NetworkInterfaces, error) {
-
-			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
-			prefaceLis := progutil.NewPrefaceListener(lis)
-			defer prefaceLis.Close()
-			go prefaceLis.Accept() // we only expect 1 connection
-
-			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
+		interfaceServiceGetAll := func() (*pb.NetworkInterfaces, error) {
+			conn, err := grpc.Dial(testEndpoint,
+				grpc.WithTransportCredentials(transportCreds))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -132,7 +123,7 @@ var _ = Describe("InterfaceService", func() {
 			It("should return all the interfaces", func() {
 				vsctlMock.AddResult("eth2\neth3", nil)
 
-				ifs, err := elaGetAll()
+				ifs, err := interfaceServiceGetAll()
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
 				Expect(vsctlMock.ReceivedArgs[0]).
 					To(Equal([]string{"list-ports", "br-local"}))
@@ -162,7 +153,7 @@ var _ = Describe("InterfaceService", func() {
 			It("all interfaces should be with kernel driver", func() {
 				vsctlMock.AddResult("", nil)
 
-				ifs, err := elaGetAll()
+				ifs, err := interfaceServiceGetAll()
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
 				Expect(vsctlMock.ReceivedArgs[0]).
 					To(Equal([]string{"list-ports", "br-local"}))
@@ -195,7 +186,7 @@ var _ = Describe("InterfaceService", func() {
 					return nil, errors.New("failed to exec lspci command")
 				}
 
-				ifs, err := elaGetAll()
+				ifs, err := interfaceServiceGetAll()
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(0))
 				Expect(err).To(HaveOccurred())
 				Expect(ifs).To(BeNil())
@@ -209,7 +200,7 @@ var _ = Describe("InterfaceService", func() {
 			It("should return an error", func() {
 				vsctlMock.AddResult("", errors.New("command not found"))
 
-				ifs, err := elaGetAll()
+				ifs, err := interfaceServiceGetAll()
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
 				Expect(vsctlMock.ReceivedArgs[0]).
 					To(Equal([]string{"list-ports", "br-local"}))
@@ -221,13 +212,9 @@ var _ = Describe("InterfaceService", func() {
 	})
 
 	Describe("Get", func() {
-		elaGet := func(pci string) (*pb.NetworkInterface, error) {
-			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
-			prefaceLis := progutil.NewPrefaceListener(lis)
-			defer prefaceLis.Close()
-			go prefaceLis.Accept() // we only expect 1 connection
-			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
+		interfaceServiceGet := func(pci string) (*pb.NetworkInterface, error) {
+			conn, err := grpc.Dial(testEndpoint,
+				grpc.WithTransportCredentials(transportCreds))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -245,7 +232,7 @@ var _ = Describe("InterfaceService", func() {
 				vsctlMock.AddResult("eth2\neth3", nil)
 				vsctlMock.AddResult("eth2\neth3", nil)
 
-				iface, err := elaGet("0000:00:00.0")
+				iface, err := interfaceServiceGet("0000:00:00.0")
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
 				Expect(vsctlMock.ReceivedArgs[0]).
 					To(Equal([]string{"list-ports", "br-local"}))
@@ -256,7 +243,7 @@ var _ = Describe("InterfaceService", func() {
 
 				vsctlMock.Reset()
 
-				iface, err = elaGet("0000:00:00.2")
+				iface, err = interfaceServiceGet("0000:00:00.2")
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
 				Expect(vsctlMock.ReceivedArgs[0]).
 					To(Equal([]string{"list-ports", "br-local"}))
@@ -275,7 +262,7 @@ var _ = Describe("InterfaceService", func() {
 					return nil, errors.New("failed to exec lspci command")
 				}
 
-				ifs, err := elaGet("0000:00:00.0")
+				ifs, err := interfaceServiceGet("0000:00:00.0")
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(0))
 				Expect(err).To(HaveOccurred())
 				Expect(ifs).To(BeNil())
@@ -287,7 +274,7 @@ var _ = Describe("InterfaceService", func() {
 
 		Context("given ID is empty", func() {
 			It("should return an error", func() {
-				ifs, err := elaGet("")
+				ifs, err := interfaceServiceGet("")
 				Expect(vsctlMock.ReceivedArgs).To(HaveLen(0))
 				Expect(err).To(HaveOccurred())
 				Expect(ifs).To(BeNil())
@@ -297,13 +284,9 @@ var _ = Describe("InterfaceService", func() {
 	})
 
 	Describe("BulkUpdate", func() {
-		elaBulkUpdate := func(ifs *pb.NetworkInterfaces) error {
-			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
-			prefaceLis := progutil.NewPrefaceListener(lis)
-			defer prefaceLis.Close()
-			go prefaceLis.Accept() // we only expect 1 connection
-			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
+		interfaceServiceBulkUpdate := func(ifs *pb.NetworkInterfaces) error {
+			conn, err := grpc.Dial(testEndpoint,
+				grpc.WithTransportCredentials(transportCreds))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -320,7 +303,7 @@ var _ = Describe("InterfaceService", func() {
 			When("given NetworkInterfaces is invalid", func() {
 				It("should return error", func() {
 					By("testing if Driver is either KERNEL or USERSPACE")
-					err := elaBulkUpdate(&pb.NetworkInterfaces{
+					err := interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
 						NetworkInterfaces: []*pb.NetworkInterface{
 							{
 								Driver: 3,
@@ -331,7 +314,7 @@ var _ = Describe("InterfaceService", func() {
 						"Driver is expected to be KERNEL or USERSPACE"))
 
 					By("testing if Type is NONE")
-					err = elaBulkUpdate(&pb.NetworkInterfaces{
+					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
 						NetworkInterfaces: []*pb.NetworkInterface{
 							{
 								Type: pb.NetworkInterface_BIDIRECTIONAL,
@@ -341,7 +324,7 @@ var _ = Describe("InterfaceService", func() {
 					Expect(err.Error()).To(ContainSubstring(
 						"Type is expected to be NONE"))
 
-					err = elaBulkUpdate(&pb.NetworkInterfaces{
+					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
 						NetworkInterfaces: []*pb.NetworkInterface{
 							{
 								Type: pb.NetworkInterface_UPSTREAM,
@@ -351,7 +334,7 @@ var _ = Describe("InterfaceService", func() {
 					Expect(err.Error()).To(ContainSubstring(
 						"Type is expected to be NONE"))
 
-					err = elaBulkUpdate(&pb.NetworkInterfaces{
+					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
 						NetworkInterfaces: []*pb.NetworkInterface{
 							{
 								Type: pb.NetworkInterface_DOWNSTREAM,
@@ -361,7 +344,7 @@ var _ = Describe("InterfaceService", func() {
 					Expect(err.Error()).To(ContainSubstring(
 						"Type is expected to be NONE"))
 
-					err = elaBulkUpdate(&pb.NetworkInterfaces{
+					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
 						NetworkInterfaces: []*pb.NetworkInterface{
 							{
 								Type: pb.NetworkInterface_BREAKOUT,
@@ -372,7 +355,7 @@ var _ = Describe("InterfaceService", func() {
 						"Type is expected to be NONE"))
 
 					By("testing if Vlan is set")
-					err = elaBulkUpdate(&pb.NetworkInterfaces{
+					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
 						NetworkInterfaces: []*pb.NetworkInterface{
 							{
 								Vlan: 1,
@@ -383,7 +366,7 @@ var _ = Describe("InterfaceService", func() {
 						"Vlan is not supported"))
 
 					By("testing if Zones are set")
-					err = elaBulkUpdate(&pb.NetworkInterfaces{
+					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
 						NetworkInterfaces: []*pb.NetworkInterface{
 							{
 								Zones: []string{""},
@@ -394,7 +377,7 @@ var _ = Describe("InterfaceService", func() {
 						"Zones are not supported"))
 
 					By("testing if FallbackInterface is set")
-					err = elaBulkUpdate(&pb.NetworkInterfaces{
+					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
 						NetworkInterfaces: []*pb.NetworkInterface{
 							{
 								FallbackInterface: "0000:00:00.5",
@@ -414,7 +397,7 @@ var _ = Describe("InterfaceService", func() {
 				vsctlMock.AddResult("", nil)           // add-port br-local eth1
 				vsctlMock.AddResult("", nil)           // del-port br-local eth2
 
-				err := elaBulkUpdate(&pb.NetworkInterfaces{
+				err := interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
 					NetworkInterfaces: []*pb.NetworkInterface{
 						{
 							Id:     "0000:00:00.0",
@@ -450,13 +433,9 @@ var _ = Describe("InterfaceService", func() {
 	})
 
 	Describe("Update", func() {
-		elaUpdate := func(iface *pb.NetworkInterface) error {
-			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
-			prefaceLis := progutil.NewPrefaceListener(lis)
-			defer prefaceLis.Close()
-			go prefaceLis.Accept() // we only expect 1 connection
-			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
+		interfaceServiceUpdate := func(iface *pb.NetworkInterface) error {
+			conn, err := grpc.Dial(testEndpoint,
+				grpc.WithTransportCredentials(transportCreds))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -477,7 +456,7 @@ var _ = Describe("InterfaceService", func() {
 					vsctlMock.AddResult("",          // del-port br-local eth0
 						errors.New("failed to delete port"))
 
-					err := elaUpdate(&pb.NetworkInterface{
+					err := interfaceServiceUpdate(&pb.NetworkInterface{
 						Id:     "0000:00:00.0",
 						Driver: pb.NetworkInterface_KERNEL,
 					})
@@ -499,7 +478,7 @@ var _ = Describe("InterfaceService", func() {
 					vsctlMock.AddResult("",      // add-port br-local eth0
 						errors.New("failed to add port"))
 
-					err = elaUpdate(&pb.NetworkInterface{
+					err = interfaceServiceUpdate(&pb.NetworkInterface{
 						Id:     "0000:00:00.0",
 						Driver: pb.NetworkInterface_USERSPACE,
 					})
@@ -512,7 +491,8 @@ var _ = Describe("InterfaceService", func() {
 					Expect(vsctlMock.ReceivedArgs[0]).
 						To(Equal([]string{"list-ports", "br-local"}))
 					Expect(vsctlMock.ReceivedArgs[1]).To(Equal(
-						[]string{"--may-exist", "add-port", "br-local", "eth0"}))
+						[]string{"--may-exist", "add-port", "br-local",
+							"eth0"}))
 				})
 			})
 		})

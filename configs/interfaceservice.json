@@ -1,0 +1,5 @@
+{
+    "Endpoint": ":42101",
+    "HeartbeatInterval": "60s",
+    "CertsDirectory": "certs"
+}

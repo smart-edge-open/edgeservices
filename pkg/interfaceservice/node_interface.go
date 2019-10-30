@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubeovn
+package interfaceservice
 
 import (
 	"bytes"
@@ -23,7 +23,6 @@ import (
 	"github.com/otcshare/edgenode/pkg/ela/helpers"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/otcshare/common/log"
 	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
