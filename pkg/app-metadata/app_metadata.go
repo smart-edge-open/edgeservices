@@ -21,9 +21,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/pkg/errors"
+	logger "github.com/open-ness/common/log"
 	pb "github.com/open-ness/edgenode/pkg/eva/pb"
-	logger "github.com/open-ness/common"
+	"github.com/pkg/errors"
 )
 
 var log = logger.DefaultLogger.WithField("meta", nil)

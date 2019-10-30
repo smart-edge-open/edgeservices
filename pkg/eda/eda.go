@@ -18,10 +18,10 @@ import (
 	"context"
 	"net"
 
+	logger "github.com/open-ness/common/log"
 	"github.com/open-ness/edgenode/pkg/config"
 	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 	"github.com/open-ness/edgenode/pkg/util"
-	logger "github.com/open-ness/common"
 	"google.golang.org/grpc"
 )
 

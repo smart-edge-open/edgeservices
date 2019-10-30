@@ -16,19 +16,20 @@ package eda_test
 
 import (
 	"context"
+	"net"
+	"testing"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	log "github.com/open-ness/common/log"
 	"github.com/open-ness/edgenode/pkg/eda"
 	pb "github.com/open-ness/edgenode/pkg/ela/pb"
-	"github.com/open-ness/common"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/status"
-	"net"
-	"testing"
-	"time"
 )
 
 func TestEdgeDataPlaneAgent(t *testing.T) {

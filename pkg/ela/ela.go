@@ -22,25 +22,31 @@ import (
 	"net"
 	"path/filepath"
 
+	logger "github.com/open-ness/common/log"
 	"github.com/open-ness/edgenode/pkg/config"
-	logger "github.com/open-ness/common"
+	"github.com/open-ness/edgenode/pkg/ela/kubeovn"
 
-	"github.com/pkg/errors"
+	"github.com/open-ness/common/proxy/progutil"
 	"github.com/open-ness/edgenode/pkg/auth"
 	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 	"github.com/open-ness/edgenode/pkg/util"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 // Configuration describes JSON configuration
 type Configuration struct {
-	Endpoint          string        `json:"Endpoint"`
-	HeartbeatInterval util.Duration `json:"HeartbeatInterval"`
-	EDAEndpoint       string        `json:"EdaEndpoint"`
-	NtsConfigPath     string        `json:"NtsConfigPath"`
-	CertsDir          string        `json:"CertsDirectory"`
-	DNSIP             string        `json:"DnsIP"`
+	Endpoint           string        `json:"Endpoint"`
+	HeartbeatInterval  util.Duration `json:"HeartbeatInterval"`
+	EDAEndpoint        string        `json:"EdaEndpoint"`
+	NtsConfigPath      string        `json:"NtsConfigPath"`
+	CertsDir           string        `json:"CertsDirectory"`
+	DNSIP              string        `json:"DnsIP"`
+	PCIBlacklist       []string      `json:"PCIBlacklist"`
+	KubeOVNMode        bool          `json:"KubeOVNMode"`
+	InterfaceMTU       uint16        `json:"InterfaceMTU"`
+	ControllerEndpoint string        `json:"ControllerEndpoint"`
 }
 
 var (
@@ -77,25 +83,42 @@ func runServer(ctx context.Context) error {
 		ClientCAs:    certPool,
 	})
 
-	lis, err := net.Listen("tcp", Config.Endpoint)
-
 	if err != nil {
 		log.Errf("net.Listen error: %+v", err)
 		return err
 	}
-	grpcServer := grpc.NewServer(grpc.Creds(creds))
-	applicationPolicyService := ApplicationPolicyServiceServerImpl{}
-	pb.RegisterApplicationPolicyServiceServer(grpcServer,
-		&applicationPolicyService)
 
-	interfacePolicyService := InterfacePolicyService{}
-	pb.RegisterInterfacePolicyServiceServer(grpcServer, &interfacePolicyService)
+	addr, err := net.ResolveTCPAddr("tcp", Config.ControllerEndpoint)
+	if err != nil {
+		log.Errf("Failed to resolve the controller address: %v", err)
+		return err
+	}
+	lis := &progutil.DialListener{RemoteAddr: addr, Name: "ELA"}
+	defer lis.Close()
+
+	grpcServer := grpc.NewServer(grpc.Creds(creds))
+
+	if Config.KubeOVNMode {
+		log.Info("kube-ovn mode")
+		// No ApplicationPolicyService in kube-ovn mode
+
+		interfaceService := kubeovn.InterfaceService{}
+		pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
+	} else {
+		applicationPolicyService := ApplicationPolicyServiceServerImpl{}
+		pb.RegisterApplicationPolicyServiceServer(grpcServer,
+			&applicationPolicyService)
+
+		interfaceService := InterfaceService{}
+		pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
+
+		interfacePolicyService := InterfacePolicyService{}
+		pb.RegisterInterfacePolicyServiceServer(grpcServer,
+			&interfacePolicyService)
+	}
 
 	dnsService := DNSServiceServer{}
 	pb.RegisterDNSServiceServer(grpcServer, &dnsService)
-
-	interfaceService := InterfaceService{}
-	pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
 
 	go func() {
 		<-ctx.Done()

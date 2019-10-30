@@ -162,6 +162,8 @@ int init_eth_port(uint8_t port_num, uint8_t queue_num)
 	if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE)
 		port_conf.txmode.offloads |= DEV_TX_OFFLOAD_MBUF_FAST_FREE;
 
+	port_conf.txmode.offloads |= DEV_TX_OFFLOAD_MULTI_SEGS;
+
 	if ((retval = rte_eth_dev_configure(port_num,
 			rx_queues_cnt, tx_queues_cnt, &port_conf)) != 0) {
 		NES_LOG(ERR, "rte_eth_dev_configure failed(return code: %d)", retval);

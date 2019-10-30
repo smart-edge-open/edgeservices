@@ -30,6 +30,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	// contextDurationAddition is a duration added to timeouts to make sure
+	// context does not end before libvirt/docker timeouts
+	contextDurationAddition = 2 * time.Second
+)
+
 // ApplicationLifecycleServiceServer describers
 // application lifecycle service server
 type ApplicationLifecycleServiceServer struct {
@@ -337,15 +343,21 @@ func (s *ApplicationLifecycleServiceServer) Start(ctx context.Context,
 			l.Id)
 	}
 
-	err = d.StartHandler(ctx, s.cfg.AppStartTimeout.Duration)
-	if err != nil {
-		log.Errf("Start failed because: %+v", err)
-		return nil,
-			errors.Wrapf(err, "failed to handle Start for app with ID: %s",
-				l.Id)
-	}
+	go func() {
+		startCtx, cancel := context.WithTimeout(context.Background(),
+			s.cfg.AppStartTimeout.Duration+contextDurationAddition)
+		defer cancel()
 
-	_ = d.UpdateStatus(pb.LifecycleStatus_RUNNING)
+		if err := d.StartHandler(startCtx,
+			s.cfg.AppStartTimeout.Duration); err != nil {
+
+			log.Errf("Start(%s) failed because: %+v", metadata.App.Id, err)
+			_ = d.UpdateStatus(pb.LifecycleStatus_ERROR)
+			return
+		}
+
+		_ = d.UpdateStatus(pb.LifecycleStatus_RUNNING)
+	}()
 
 	return &empty.Empty{}, nil
 }
@@ -378,15 +390,21 @@ func (s *ApplicationLifecycleServiceServer) Stop(ctx context.Context,
 			l.Id)
 	}
 
-	err = d.StopHandler(ctx, s.cfg.AppStopTimeout.Duration)
-	if err != nil {
-		log.Errf("Stop failed because: %+v", err)
-		return nil,
-			errors.Wrapf(err, "failed to handle Stop for app with ID: %s",
-				l.Id)
-	}
+	go func() {
+		stopCtx, cancel := context.WithTimeout(context.Background(),
+			s.cfg.AppStopTimeout.Duration+contextDurationAddition)
+		defer cancel()
 
-	_ = d.UpdateStatus(pb.LifecycleStatus_STOPPED)
+		if err := d.StopHandler(stopCtx,
+			s.cfg.AppStopTimeout.Duration); err != nil {
+
+			log.Errf("Stop(%s) failed because: %+v", metadata.App.Id, err)
+			_ = d.UpdateStatus(pb.LifecycleStatus_ERROR)
+			return
+		}
+
+		_ = d.UpdateStatus(pb.LifecycleStatus_STOPPED)
+	}()
 
 	return &empty.Empty{}, nil
 }
@@ -419,16 +437,20 @@ func (s *ApplicationLifecycleServiceServer) Restart(ctx context.Context,
 			l.Id)
 	}
 
-	err = d.RestartHandler(ctx, s.cfg.AppRestartTimeout.Duration)
-	if err != nil {
-		log.Errf("Restart failed because: %+v",
-			err)
-		return nil,
-			errors.Wrapf(err, "failed to handle Restart for app with ID: %s",
-				l.Id)
-	}
+	go func() {
+		restartCtx, cancel := context.WithTimeout(context.Background(),
+			s.cfg.AppRestartTimeout.Duration+contextDurationAddition)
+		defer cancel()
 
-	_ = d.UpdateStatus(pb.LifecycleStatus_RUNNING)
+		err := d.RestartHandler(restartCtx, s.cfg.AppRestartTimeout.Duration)
+		if err != nil {
+			log.Errf("Restart(%s) failed because: %+v", metadata.App.Id, err)
+			_ = d.UpdateStatus(pb.LifecycleStatus_ERROR)
+			return
+		}
+
+		_ = d.UpdateStatus(pb.LifecycleStatus_RUNNING)
+	}()
 
 	return &empty.Empty{}, nil
 }
@@ -442,6 +464,7 @@ func (s *ApplicationLifecycleServiceServer) GetStatus(ctx context.Context,
 		return nil, status.Errorf(codes.NotFound, "App %v not found: %v",
 			app.Id, err)
 	}
+	log.Debugf("GetStatus(%v): returnig %v", app.Id, dapp.App.Status)
 
 	return &pb.LifecycleStatus{Status: dapp.App.Status}, nil
 }

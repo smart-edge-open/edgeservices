@@ -22,8 +22,8 @@ import (
 	"net/http"
 	"time"
 
+	pb "github.com/open-ness/edgenode/pkg/eva/internal_pb"
 	"github.com/pkg/errors"
-	"github.com/open-ness/edgenode/pkg/eva/internal_pb"
 	"google.golang.org/grpc"
 )
 

@@ -26,10 +26,10 @@ import (
 	"syscall"
 	"time"
 
+	logger "github.com/open-ness/common/log"
 	"github.com/open-ness/edgenode/pkg/auth"
 	"github.com/open-ness/edgenode/pkg/config"
 	"github.com/open-ness/edgenode/pkg/util"
-	logger "github.com/open-ness/common"
 
 	// Imports required to run agents
 	"github.com/open-ness/edgenode/pkg/eaa"

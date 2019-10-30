@@ -210,6 +210,7 @@ type Port struct {
 	EgressPortID     string           `ini:"-"`
 	MAC              string           `ini:"mac,omitempty"`
 	LBPMAC           string           `ini:"lbp-mac,omitempty"`
+	MTU              uint16           `ini:"MTU,omitempty"`
 
 	Routes []string `ini:"route,omitempty,allowshadow" delim:"|"`
 }

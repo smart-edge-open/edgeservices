@@ -609,14 +609,14 @@ gtpu_head_t *nts_packet_flow_encap_gtpu(struct rte_mbuf *mbuf,
 	struct outer_ip_pkt_head * outer_ip_pkt_header;
 	struct ether_hdr * eth_header;
 	uint16_t pkt_len, vlan_len;
+	const size_t gtpu_tunnel_len = sizeof (struct ipv4_hdr) +
+		sizeof (struct udp_hdr) +
+		sizeof (gtpuHdr_t);
 
 	if (NTS_ENCAP_VLAN_FLAG & encap_data->encap_flag) {
 		vlan_len = sizeof(struct vlan_hdr);
 		pkt_header = (gtpu_head_t *)rte_pktmbuf_prepend(mbuf,
-				vlan_len +
-				sizeof (struct ipv4_hdr) +
-				sizeof (struct udp_hdr) +
-				sizeof (gtpuHdr_t));
+				vlan_len + gtpu_tunnel_len);
 		if (NULL == pkt_header)
 			return NULL;
 
@@ -628,10 +628,7 @@ gtpu_head_t *nts_packet_flow_encap_gtpu(struct rte_mbuf *mbuf,
 			&pkt_header->gtpu_vlan.outer_ipv4_hdr;
 	} else {
 		vlan_len = 0;
-		pkt_header = (gtpu_head_t *)rte_pktmbuf_prepend(mbuf,
-				sizeof (struct ipv4_hdr) +
-				sizeof (struct udp_hdr) +
-				sizeof (gtpuHdr_t));
+		pkt_header = (gtpu_head_t *)rte_pktmbuf_prepend(mbuf, gtpu_tunnel_len);
 		if (NULL == pkt_header)
 			return NULL;
 
@@ -641,6 +638,8 @@ gtpu_head_t *nts_packet_flow_encap_gtpu(struct rte_mbuf *mbuf,
 			&pkt_header->gtpu_no_vlan.outer_ipv4_hdr;
 	}
 
+	// Increase l3_len to avoid any offload issues
+	mbuf->l3_len += gtpu_tunnel_len;
 	pkt_len = mbuf->pkt_len;
 
 	ether_addr_copy(&encap_data->dst_mac_addrs, &eth_header->d_addr);
@@ -836,6 +835,7 @@ nts_edit_decap(nts_route_entry_t *self, struct rte_mbuf *src_mbuf,
 	__attribute__((unused)) int is_upstream, void *ptr) {
 #ifndef MIRROR
 	routing_params_t *params = ptr;
+	struct ipv4_hdr *ip_hdr;
 	struct ether_hdr *eth_hdr = rte_pktmbuf_mtod(src_mbuf, struct ether_hdr *);
 	uint16_t adj_len = (uint16_t)((uint8_t *)params->inner_ipv4_hdr - (uint8_t *)(eth_hdr + 1));
 	rte_memcpy((uint8_t *)params->inner_ipv4_hdr - sizeof(struct ether_hdr),
@@ -846,6 +846,11 @@ nts_edit_decap(nts_route_entry_t *self, struct rte_mbuf *src_mbuf,
 
 	ether_addr_copy(&self->mac_addr,&eth_hdr->d_addr);
 	eth_hdr->ether_type = rte_cpu_to_be_16(ETHER_TYPE_IPv4);
+	if (unlikely(src_mbuf->ol_flags & PKT_TX_IP_CKSUM)) {
+		ip_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
+		ip_hdr->hdr_checksum = 0;
+	}
+
 	return self->dst_ring->enq(self->dst_ring, src_mbuf);
 #else
 	routing_params_t *params = ptr;

@@ -17,10 +17,10 @@
 #!/bin/sh
 set -e
 
-export RTE_SDK=/opt/dpdk-18.08
+export RTE_SDK=/opt/dpdk-18.11.2
 export RTE_TARGET=x86_64-native-linuxapp-gcc
 
-dpdk_name=dpdk-18.08
+dpdk_name=dpdk-18.11.2
 dpdk_url=http://fast.dpdk.org/rel/${dpdk_name}.tar.xz
 
 export NES_SERVER_CONF=$(pwd)/nes.cfg

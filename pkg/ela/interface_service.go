@@ -20,6 +20,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/open-ness/edgenode/pkg/ela/helpers"
+	"github.com/open-ness/edgenode/pkg/ela/ini"
 	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,7 +29,7 @@ import (
 
 var (
 	// GetInterfaces stores gets Interfaces functionality
-	GetInterfaces func() (*pb.NetworkInterfaces, error) = GetNetworkInterfaces
+	GetInterfaces func() (*pb.NetworkInterfaces, error) = getNetworkInterfaces
 
 	// NTSConfigurationHandler is a NTS configuration handler
 	NTSConfigurationHandler = configureNTS
@@ -48,7 +50,7 @@ func (*InterfaceService) BulkUpdate(ctx context.Context,
 	networkInterfaces *pb.NetworkInterfaces) (*empty.Empty, error) {
 	log.Info("InterfaceService BulkUpdate: received request")
 
-	if err := ValidateNetworkInterfaces(networkInterfaces); err != nil {
+	if err := helpers.ValidateNetworkInterfaces(networkInterfaces); err != nil {
 		log.Errf("InterfaceService BulkUpdate: invalid NetworkInterface: %v",
 			err)
 
@@ -105,4 +107,78 @@ func (*InterfaceService) Get(ctx context.Context,
 
 	log.Infof("InterfaceService Get: Interface with ID=%s not found", id.Id)
 	return nil, status.Error(codes.NotFound, "interface not found")
+}
+
+// IsPCIportBlacklisted checks if a pci port is blacklisted and cannot be used
+// by controller to set up connection.
+func IsPCIportBlacklisted(pci string) bool {
+	for _, port := range Config.PCIBlacklist {
+		if port == pci {
+			return true
+		}
+	}
+	return false
+}
+
+// getNetworkDevices provides a list of network devices
+// including those bound to DPDK driver
+func getNetworkDevices() ([]helpers.NetworkDevice, error) {
+	devs, err := helpers.GetNetworkPCIs()
+	if err != nil {
+		return nil, err
+	}
+
+	err = fillMACAddrForDPDKDevs(devs)
+	if err != nil {
+		return nil, err
+	}
+
+	err = helpers.FillMACAddrForKernelDevs(devs)
+	if err != nil {
+		return nil, err
+	}
+
+	return devs, nil
+}
+
+func fillMACAddrForDPDKDevs(devs []helpers.NetworkDevice) error {
+	ntsCfg, err := ini.NtsConfigFromFile(Config.NtsConfigPath)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to read NTS config")
+	}
+
+	for _, port := range ntsCfg.Ports {
+		for idx := range devs {
+			if devs[idx].PCI == port.PciAddress {
+				devs[idx].MAC = port.MAC
+				devs[idx].Description = port.Description
+				devs[idx].FallbackInterface = port.EgressPortID
+
+				dir, _ := ini.InterfaceTypeFromTrafficDirection(
+					port.TrafficDirection)
+
+				devs[idx].Direction = dir
+				devs[idx].Driver = pb.NetworkInterface_USERSPACE
+			}
+		}
+	}
+
+	return nil
+}
+
+func getNetworkInterfaces() (*pb.NetworkInterfaces, error) {
+	devs, err := getNetworkDevices()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to obtain network devices")
+	}
+
+	filteredDevices := make([]helpers.NetworkDevice, 0)
+	for _, dev := range devs {
+		if !IsPCIportBlacklisted(dev.PCI) {
+			filteredDevices = append(filteredDevices, dev)
+		}
+	}
+
+	return helpers.ToNetworkInterfaces(filteredDevices), nil
 }

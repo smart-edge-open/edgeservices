@@ -37,6 +37,8 @@ Section 9 - Change Log
 | QEMU               |Quick Emulator; open source emulator for hardware virtualization                   |
 | RPM                | RPM Package Manager                                                               |
 | VM                 | Virtual Machine                                                                   |
+| OpenVINO           | The OpenVINO™ toolkit is a comprehensive toolkit for quickly developing deep neural networks and visual inference applications across heterogeneous Intel® platforms                                          |
+| HDDL plugin        | OpenVINO™ plugin for inference of neural networks on Intel® Vision Accelerator Design with Intel® Movidius™ VPUs which is designed for use cases that require large throughput of deep learning inference.                                               |
 # 2. Software overview
 
 OpenNESS Edge Node uses a set of open source applications and framework, both inside the product and during installation/deployment process.
@@ -77,6 +79,16 @@ The latest version checked and used is 1.12.4 (installed automatically).
 
 ### 2.2.5. Ansible
 Ansible is an automation platform used for configuring the operating system, installing packages and additional software, and resolving all package/software dependencies automatically, without user interaction.
+
+### 2.2.6. OVS (Open vSwitch)
+Multilayer virtual switch to enable massive network automation through programmatic extension. 
+Distributed under the open source Apache 2.0 license.
+
+### 2.2.7. OVN (Open Virtual Network) 
+System to support virtual network abstraction.
+
+### 2.2.8. Kubernetes
+An open-source system for automating deployment, scaling, and management of containerized applications.
 
 It will be installed automatically by the first automation script being ran on hardware with newly installed CentOS operating system.
 
@@ -131,6 +143,13 @@ The OpenNESS Edge Node product has been tested using the following hardware spec
 |                  | (Symmetrical design) LBG integrated                                                        |
 | NIC on board     | Intel® Ethernet Controller I210 (for management)                                           |
 | Other card       | 2x PCIe* Riser cards                                                                       |
+
+- Optional: Support for Intel® Vision Accelerator Design with Intel® Movidius™ VPUs - HDDL-R8 card is provided. To be used with applications using Intel® Distribution of OpenVINO™ Toolkit and its HDDL plugin.
+
+|                  |                                                                                            |
+|------------------|--------------------------------------------------------------------------------------------|
+| HDDL-R8 PCI card | Mustang-V100-MX8                                                              |
+
 
 # 5. Hardware setup
 There are no special requirements for setting up hardware compared to a typical network server setup, except modifying BIOS settings and making sure the server is able to reach the internet (required to download other packages during server software setup).
@@ -252,8 +271,87 @@ Before configuring Edge Node server from automation scripts below (see chapter 7
 2. Copy Controller ROOT CA certificate from Controller using `docker cp edgecontroller_cce_1:/artifacts/certificates/ca/cert.pem` to local controller folder first and then copy it to the following folder: <br>`/etc/pki/tls/certs/controller-root-ca.pem` on the Edge node. 
 3. Now you are ready to to run automation scripts.
 
+## 7.3. Deployment modes
 
-## 7.3. Run automation scripts
+Edgenode supports 5 modes in which it will run. It covers both networking settings (OVS/non-OVS) and application deployment mode (Kubernetes, Docker). Operator needs to set required flags manually, before running Edgenode automation scripts described later.
+
+Additionally support for Intel® Vision Accelerator Design with Intel® Movidius™ VPUs (HDDL-R8 PCI card) can be enabled for 'Native Mode' and 'Native IAC mode'.
+
+To enable one of required modes described below, a set of configuration flags has been provided in the following configuration file: `./scripts/ansible/common/vars/defaults.yml`
+
+By default, Edgenode will be installed in the first listed mode - Native, non-IAC mode.
+
+Inter-app communication (IAC) uses OVS-DPDK dateplane for additional communication between applications.
+
+### 7.3.1. Native mode
+This is the default mode (default configuration provided).
+Applications running in Docker containers and qemu images. No Kubernetes or OVS/OVN support.
+
+### 7.3.2. Native IAC mode
+Applications running in Docker containers, with OVS support.  
+`ovs_ports` is a list of network interfaces ID's on which communication between Docker containers will take place.
+
+Example:  
+`ovs_ports: ["0000:02:00.1","0000:02:00.0"]`
+
+Flags to set:
+```
+ovs:
+  enabled: true
+  ovs_ports: []
+```
+ 
+### 7.3.3. Kubernetes mode
+This mode installs Kubernetes which manages applications in Docker containers on Edge Node.
+It requires Controller to be already up and running in the same mode.
+`kubernetes_join` field shall contain the output of running command `kubeadm join` on Controller side. Paste the whole output you receive on screen there, starting from "kubeadm join" string. If the output has more than one line, merge it into one line before changing this `kubernetes_join` field.
+
+Example:  
+ `kubernetes_join: "kubeadm join 1.2.3.4:6443 --token evigqr.d3cdpam24jscdga1 --discovery-token-ca-cert-hash sha256:910fabdd99f5a83e52aba7a6faddfc2d08dd7834465845c9bc986ad703b0618d"`
+
+Flags to set:  
+```
+kubernetes:
+  enabled: true
+kubernetes_join: <output from Controller>
+```
+### 7.3.4. Kubernetes IAC mode
+Kubernetest mode with IAC mode (OVS). Both `kubernetes_join` and `ovs_ports` are mandatory.
+
+Flags to set:  
+```
+kubernetes:
+  enabled: true  
+kubernetes_join: <output from Controller>
+ovs:
+  enabled: true
+  ovs_ports: []
+```
+
+### 7.3.5. Kube-OVN 
+OVN-based Network Virtualization with Kubernetes.
+Apart from below configuration flags to set, an additional configuration needs to be done on Controller side. Refer to Controler guide on setting Kube-OVN mode.
+
+Flags to set:  
+```
+kubernetes:
+  enabled: true
+kubernetes_join: <output from Controller>  
+kube_ovn:
+  enabled: true
+```
+
+### 7.3.6. Support for Intel® Vision Accelerator Design with Intel® Movidius™ VPUs
+OpenVino Applications deployed on EdgeNode can be accelerated with Intel® Vision Accelerator Design with Intel® Movidius™ VPUs HDDL card.
+It requires a HDDL PCI card plugged in into the platform. It is only supported for 'Native Mode' and 'Native IAC Mode' and any prerequisites needed for either of the modes must be completed before enabling support for HDDL.
+
+Flags to set:  
+```
+openvino:
+  enabled: true
+```
+
+## 7.4. Run automation scripts
 Automation scripts are located in the repository subfolder `./scripts/ansible/single_server`:
 - 01_setup_server.sh
 - 02_install_tools.sh

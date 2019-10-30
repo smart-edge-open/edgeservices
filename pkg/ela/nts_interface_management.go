@@ -21,9 +21,9 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/open-ness/edgenode/pkg/ela/ini"
 	pb "github.com/open-ness/edgenode/pkg/ela/pb"
+	"github.com/pkg/errors"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -101,7 +101,7 @@ OUTER:
 }
 
 func (data *InterfacesData) getDevicesToUnbind() ([]string, error) {
-	nis, err := GetNetworkInterfaces()
+	nis, err := GetInterfaces()
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +191,7 @@ func makeAndSaveNtsConfig(data map[string]interfaceData,
 	cfg := ntsConfigTemplate
 
 	for pci, d := range data {
-		port := ini.Port{}
+		port := ini.Port{MTU: Config.InterfaceMTU}
 		if err := port.UpdateFromTrafficPolicy(d.TrafficPolicy); err != nil {
 			return errors.Wrapf(err,
 				"failed to create port from traffic policy (pci: %s)", pci)

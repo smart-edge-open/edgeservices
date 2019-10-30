@@ -4,5 +4,9 @@
     "EdaEndpoint": ":50051",
     "NtsConfigPath": "/var/lib/appliance/nts/nts.cfg",
     "CertsDirectory": "certs",
-    "DnsIP": "53.53.53.53"
+    "DnsIP": "53.53.53.53",
+    "PCIBlacklist": [],
+    "InterfaceMTU": 1500,
+    "KubeOVNMode": false,
+    "ControllerEndpoint": "1.2.3.4:8081"
 }

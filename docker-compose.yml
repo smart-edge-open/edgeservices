@@ -37,6 +37,9 @@ services:
      - "/var/lib/appliance/certs:/root/certs"
      - "/var/lib/appliance/configs:/root/configs"
      - "/var/lib/appliance/applications:/var/lib/appliance/applications"
+     - "/usr/local/var/run/openvswitch:/usr/local/var/run/openvswitch"
+    environment:
+     - SYSLOG_ADDR=syslog.community.appliance.mec
     network_mode: bridge
 
   edgednssvr:
@@ -56,25 +59,6 @@ services:
      - DNS_FWDR=8.8.8.8
      - LOCAL_SYSLOG=192.168.122.1:514
     network_mode: bridge
-
-  nts:
-    container_name: nts
-    build:
-      context: .
-      dockerfile: "Dockerfile_nts"
-    image: "nts:${VER}"
-    privileged: true
-    volumes:
-     - "/dev/hugepages:/hugepages"
-     - "/var/lib/appliance/nts:/var/lib/appliance/nts"
-     - "/var/run/docker/netns:/var/run/docker/netns"
-     - "/var/run:/var/run"
-     - "/proc/1/ns:/var/host_ns"
-     - "/sys/class/net:/var/host_net_devices"
-    environment:
-     - NTS_SOCKET0_MEM=${NTS_MEM_MB_S0}
-     - NTS_SOCKET1_MEM=${NTS_MEM_MB_S1}
-    network_mode: host
 
   syslog-ng:
     image:  balabit/syslog-ng:3.19.1

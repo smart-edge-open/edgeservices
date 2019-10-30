@@ -22,8 +22,8 @@ import (
 	edgedns "github.com/open-ness/edgenode/pkg/edgedns"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	logger "github.com/open-ness/common/log"
 	"github.com/open-ness/edgenode/pkg/edgedns/pb"
-	logger "github.com/open-ness/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

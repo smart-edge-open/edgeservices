@@ -48,7 +48,7 @@ import (
 	"github.com/open-ness/edgenode/pkg/eaa"
 	evapb "github.com/open-ness/edgenode/pkg/eva/internal_pb"
 
-	"github.com/open-ness/common"
+	"github.com/open-ness/common/log"
 )
 
 // EaaCommonName Common Name that EAA uses for TLS connection

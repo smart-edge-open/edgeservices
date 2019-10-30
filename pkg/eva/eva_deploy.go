@@ -22,7 +22,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
+	"path"
 	"path/filepath"
+	"time"
 
 	"math"
 	"regexp"
@@ -35,24 +38,54 @@ import (
 	"github.com/docker/docker/client"
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
 
-	"github.com/pkg/errors"
 	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
 	pb "github.com/open-ness/edgenode/pkg/eva/pb"
+	"github.com/pkg/errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	libvirt "github.com/libvirt/libvirt-go"
+
+	"github.com/digitalocean/go-openvswitch/ovs"
+	"github.com/digitalocean/go-openvswitch/ovsdb"
 )
 
 // DeploySrv describes deplyment
 type DeploySrv struct {
-	cfg  *Config
-	meta *metadata.AppMetadata
+	cfg    *Config
+	meta   *metadata.AppMetadata
+	hddlIn bool
 }
+
+const (
+	// InterfaceTypeDpdk defines ovs interface type used to set a port up
+	interfaceTypeDpdk ovs.InterfaceType = "dpdkvhostuserclient"
+
+	// ovsDbSocket defines a path, where ovs db socket persist
+	ovsDbSocket = "/usr/local/var/run/openvswitch/db.sock"
+
+	// ovsPath defines a path to ovs tmp folder, where all port sockers are
+	// placed into
+	ovsPath = "/tmp/openvswitch"
+)
 
 var httpMatcher = regexp.MustCompile("^http://.")
 var httpsMatcher = regexp.MustCompile("^https://.")
+
+// detectHDDL detects if HDDL is present and configured - checks if devices exist
+func (s *DeploySrv) detectHDDL() {
+	var hddlPaths = []string{"/dev/ion", "/dev/myriad0"}
+
+	for _, d := range hddlPaths {
+		if _, err := os.Stat(filepath.Clean(d)); os.IsNotExist(err) {
+			s.hddlIn = false
+			break
+		} else {
+			s.hddlIn = true
+		}
+	}
+}
 
 func downloadImage(ctx context.Context, url string,
 	target string) error {
@@ -114,14 +147,18 @@ func downloadImage(ctx context.Context, url string,
 	return err
 }
 
-func (s *DeploySrv) checkDeployPreconditions(dapp *metadata.DeployedApp) error {
-	c := s.cfg
-
-	app2, err := s.meta.Load(dapp.App.Id)
+func (s *DeploySrv) checkIfAppNotDeployed(id string) error {
+	app2, err := s.meta.Load(id)
 	if err == nil && app2.IsDeployed {
 		return status.Errorf(codes.AlreadyExists, "app %s already deployed",
-			dapp.App.Id)
+			id)
 	}
+
+	return nil
+}
+
+func (s *DeploySrv) checkDeployPreconditions(dapp *metadata.DeployedApp) error {
+	c := s.cfg
 
 	if dapp.App.Cores <= 0 {
 		return fmt.Errorf("Cores value incorrect: %v", dapp.App.Cores)
@@ -248,6 +285,10 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 
 	dapp := s.meta.NewDeployedApp(metadata.Container, pbapp)
 
+	if err := s.checkIfAppNotDeployed(dapp.App.Id); err != nil {
+		return nil, err
+	}
+
 	if err := s.checkDeployPreconditions(dapp); err != nil {
 		return nil, errors.Wrap(err, "preconditions unfulfilled")
 	}
@@ -309,14 +350,28 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	}
 
 	// Now create a container out of the image
+	devIon := container.DeviceMapping{
+		PathOnHost:        "/dev/ion",
+		PathInContainer:   "/dev/ion",
+		CgroupPermissions: "rmw",
+	}
+	var hddlDevices []container.DeviceMapping
+	var hddlBinds []string
+	if s.hddlIn {
+		hddlDevices = []container.DeviceMapping{devIon}
+		hddlBinds = []string{"/var/tmp:/var/tmp"}
+	}
+	nanoCPUs := int64(dapp.App.Cores) * 1e9 // convert CPUs to NanoCPUs
 	resources := container.Resources{
-		Memory:    int64(dapp.App.Memory) * 1024 * 1024,
-		CPUShares: int64(dapp.App.Cores),
+		Memory:   int64(dapp.App.Memory) * 1024 * 1024,
+		NanoCPUs: nanoCPUs,
+		Devices:  hddlDevices,
 	}
 	respCreate, err := docker.ContainerCreate(ctx,
 		&container.Config{Image: dapp.App.Id},
 		&container.HostConfig{
 			Resources: resources,
+			Binds:     hddlBinds,
 			CapAdd:    []string{"NET_ADMIN"}},
 		nil, dapp.App.Id)
 
@@ -341,6 +396,11 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	pbapp *pb.Application) (*empty.Empty, error) {
 
 	dapp := s.meta.NewDeployedApp(metadata.VM, pbapp)
+
+	if err := s.checkIfAppNotDeployed(dapp.App.Id); err != nil {
+		return nil, err
+	}
+
 	if err := s.checkDeployPreconditions(dapp); err != nil {
 		return nil, errors.Wrap(err, "preconditions unfulfilled")
 	}
@@ -357,6 +417,127 @@ func (s *DeploySrv) DeployVM(ctx context.Context,
 	}()
 
 	return &empty.Empty{}, nil
+}
+
+type updateDPDKVHostPath struct {
+	PortName  string
+	VHostPath string
+}
+
+func (u updateDPDKVHostPath) MarshalJSON() ([]byte, error) {
+	// Following command must be reproduced in go:
+	//   ovsdb-client -v transact '["Open_vSwitch", { "op": "update", "table":
+	//   "Interface", "where": [["name", "==", "PORT"]], "row": {"options":
+	//   ["map", [["vhost-server-path", "SOCK_PATH"]]]}}]'
+	// Command performs an UPDATE query against ovs database. In table
+	// "Interface" it changes "options" row to
+	// "vhost-server-path:/path/vhost.sock" where "name" is specified name of
+	// ovs interface.
+	return []byte(fmt.Sprintf("{\"op\": \"update\", \"table\": \"Interface\","+
+		" \"where\": [[\"name\", \"==\", \"%s\"]], "+
+		"\"row\": {\"options\": "+
+		"[\"map\", [[\"vhost-server-path\", \"%s\"]]]}}",
+		u.PortName, u.VHostPath)), nil
+}
+
+// isOVSBridgeCreated checks whether the bridge given already exists
+func isOVSBridgeCreated(o *ovs.Client, name string) (bool, error) {
+
+	bridges, err := o.VSwitch.ListBridges()
+	if err != nil {
+		log.Errf("Couldn't list OVS bridges: %+v", err.Error())
+		return false, err
+	}
+
+	for _, b := range bridges {
+		if b == name {
+			return true, nil // Found!
+		}
+	}
+
+	return false, nil
+}
+
+// execOvsWithPath concatenates a path with rest of options to execute
+// ovs-vsctl with apropriate ovs db path
+func execOvsWithPath(cmd string, args ...string) ([]byte, error) {
+	commands := append(
+		[]string{"--db=unix:" + ovsDbSocket}, args...)
+	return exec.Command(cmd, commands...).CombinedOutput()
+}
+
+// newOvs creates OVS Client with changed ovs-vsctl database path
+func newOvs() *ovs.Client {
+	return ovs.New(ovs.Exec(execOvsWithPath))
+}
+
+func addOVSPort(bridgeName string, id string) error {
+	var (
+		o               = newOvs()
+		portName        = bridgeName + "-" + id
+		vHostSocketPath = path.Join(ovsPath, portName+".sock")
+		err             error
+	)
+
+	isBrCreated, err := isOVSBridgeCreated(o, bridgeName)
+	if err != nil {
+		return errors.Wrap(err, "Couldn't check status of bridge: "+bridgeName)
+	}
+	if !isBrCreated {
+		return errors.Wrap(err, "There is no OVS bridge: "+bridgeName)
+	}
+
+	// The port may or may not already exist no need to check that
+	err = o.VSwitch.AddPort(bridgeName, portName)
+	if err != nil {
+		return errors.Wrapf(err, "Couldn't attach OVS port %s ", portName)
+	}
+
+	// Set type to dpdkvhostuserclient
+	if err = o.VSwitch.Set.Interface(portName,
+		ovs.InterfaceOptions{Type: interfaceTypeDpdk}); err != nil {
+		return errors.Wrapf(err, "Couldn't set interface dpdk type")
+	}
+
+	// Set option:'vhost-server-path' by making a transaction against ovsdb
+	db, err := ovsdb.Dial("unix", ovsDbSocket)
+	if err != nil {
+		return errors.Wrap(err, "Failed to connect to ovsdb")
+	}
+	defer func() {
+		if err = db.Close(); err != nil {
+			log.Warning("Couldn't cloense db socket")
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = db.Transact(ctx, "Open_vSwitch",
+		[]ovsdb.TransactOp{updateDPDKVHostPath{
+			PortName:  portName,
+			VHostPath: vHostSocketPath}})
+	if err != nil {
+		return errors.Wrapf(err, "db.Transact() failure")
+	}
+
+	return nil
+}
+
+func removeOVSPort(bridgeName string, id string) error {
+	var (
+		o        = newOvs()
+		portName = bridgeName + "-" + id
+		err      error
+	)
+
+	// The port may or may not already exist no need to check that
+	err = o.VSwitch.DeletePort(bridgeName, portName)
+	if err != nil {
+		return errors.Wrapf(err, "Couldn't remove OVS port %s ", portName)
+	}
+
+	return nil
 }
 
 func (s *DeploySrv) syncDeployVM(ctx context.Context,
@@ -396,6 +577,7 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 		OS: &libvirtxml.DomainOS{
 			Type: &libvirtxml.DomainOSType{Arch: "x86_64", Type: "hvm"},
 		},
+		Features: &libvirtxml.DomainFeatureList{ACPI: &libvirtxml.DomainFeature{}},
 
 		CPU: &libvirtxml.DomainCPU{
 			Mode: "host-passthrough",
@@ -457,6 +639,27 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 				},
 			},
 		},
+	}
+
+	if s.cfg.OpenvSwitch {
+		domcfg.Devices.Interfaces = append(domcfg.Devices.Interfaces,
+			libvirtxml.DomainInterface{
+				Source: &libvirtxml.DomainInterfaceSource{
+					VHostUser: &libvirtxml.DomainChardevSource{
+						UNIX: &libvirtxml.DomainChardevSourceUNIX{
+							Path: path.Join(ovsPath, s.cfg.OpenvSwitchBridge+
+								"-"+dapp.App.Id+".sock"),
+							Mode: "server",
+						},
+					},
+				},
+				Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
+			},
+		)
+		if err = addOVSPort(s.cfg.OpenvSwitchBridge, dapp.App.Id); err != nil {
+			log.Errf("failed to add port to OVS: %+v", err)
+			return
+		}
 	}
 
 	xmldoc, err := domcfg.Marshal()
@@ -569,7 +772,8 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 	return dapp.SetUndeployed()
 }
 
-func libvirtUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
+func (s *DeploySrv) libvirtUndeploy(ctx context.Context,
+	dapp *metadata.DeployedApp) error {
 
 	conn, err := libvirt.NewConnect("qemu:///system")
 	if err != nil {
@@ -606,6 +810,13 @@ func libvirtUndeploy(ctx context.Context, dapp *metadata.DeployedApp) error {
 	}
 	log.Infof("Domain (VM) '%v' undefined", dapp.App.Id)
 
+	if s.cfg.OpenvSwitch {
+		if err = removeOVSPort(s.cfg.OpenvSwitchBridge,
+			dapp.App.Id); err != nil {
+			log.Errf("Undeploy(%v) failed: %+v", dapp.App.Id, err)
+		}
+	}
+
 	return dapp.SetUndeployed()
 }
 
@@ -617,7 +828,7 @@ func (s *DeploySrv) syncUndeploy(ctx context.Context,
 	case metadata.Container:
 		err = s.dockerUndeploy(ctx, dapp)
 	case metadata.VM:
-		err = libvirtUndeploy(ctx, dapp)
+		err = s.libvirtUndeploy(ctx, dapp)
 	default:
 		log.Errf("Undeploy(%s): not supported application type: %v",
 			dapp.App.Id, dapp.Type)
@@ -662,8 +873,9 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 	if !dapp.IsDeployed {
 		log.Debugf("Undeploing not deployed app (%v)", app.Id)
 
-		if os.Remove(dapp.Path) == nil {
-			log.Debugf("Deleted metadata directory of %v", app.Id)
+		if err := os.RemoveAll(dapp.Path); err != nil {
+			log.Debugf("Failed to delete metadata directory of %v because: %+v",
+				app.Id, err)
 		}
 
 		return &empty.Empty{}, nil

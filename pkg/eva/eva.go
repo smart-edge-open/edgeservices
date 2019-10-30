@@ -24,7 +24,8 @@ import (
 	"os"
 	"path/filepath"
 
-	logger "github.com/open-ness/common"
+	logger "github.com/open-ness/common/log"
+	"github.com/open-ness/common/proxy/progutil"
 	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
 	"github.com/open-ness/edgenode/pkg/auth"
 	"github.com/open-ness/edgenode/pkg/config"
@@ -52,10 +53,12 @@ type Config struct {
 	AppStopTimeout     util.Duration `json:"AppStopTimeout"`
 	AppRestartTimeout  util.Duration `json:"AppRestartTimeout"`
 	CertsDir           string        `json:"CertsDirectory"`
-	KubernetesMode     bool          `json:"KubernetesMode"`
 	VhostSocket        string        `json:"VhostSocket"`
 	DownloadTimeout    util.Duration `json:"DownloadTimeout"`
 	ControllerEndpoint string        `json:"ControllerEndpoint"`
+	OpenvSwitchBridge  string        `json:"OpenvSwitchBridge"`
+	OpenvSwitch        bool          `json:"OpenvSwitch"`
+	KubernetesMode     bool          `json:"KubernetesMode"`
 }
 
 // Wait for cancellation event and then stop the server from other goroutine
@@ -78,17 +81,21 @@ func runEva(ctx context.Context, cfg *Config) error {
 		return err
 	}
 
-	lis, err := net.Listen("tcp", cfg.Endpoint)
+	addr, err := net.ResolveTCPAddr("tcp", cfg.ControllerEndpoint)
 	if err != nil {
-		log.Errf("Failed tcp listen on %s: %v", cfg.Endpoint, err)
+		log.Errf("Failed to resolve the controller address: %v", err)
 		return err
 	}
+	lis := &progutil.DialListener{RemoteAddr: addr, Name: "EVA"}
+	defer lis.Close()
 
 	server := grpc.NewServer(grpc.Creds(srvCreds))
 
 	/* Register our interfaces. */
 	metadata := metadata.AppMetadata{RootPath: cfg.AppImageDir}
-	adss := DeploySrv{cfg, &metadata}
+	adss := DeploySrv{cfg, &metadata, false}
+	// Sets a flag to detect if HDDL card is set up and configured
+	adss.detectHDDL()
 	evapb.RegisterApplicationDeploymentServiceServer(server, &adss)
 	alss := ApplicationLifecycleServiceServer{cfg, &metadata}
 	evapb.RegisterApplicationLifecycleServiceServer(server, &alss)
@@ -202,6 +209,9 @@ func prepareServerCreds(cfg *Config) (credentials.TransportCredentials, error) {
 }
 
 func sanitizeConfig(cfg *Config) error {
+	if cfg.ControllerEndpoint == "" {
+		return fmt.Errorf("ControllerEndpoint is not set")
+	}
 	if cfg.MaxCores <= 0 {
 		return fmt.Errorf("MaxCores value invalid: %d", cfg.MaxCores)
 	}

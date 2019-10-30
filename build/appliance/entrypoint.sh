@@ -19,6 +19,7 @@ ctrl_dest_path="/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
 
 check_if_cert_added() {
     python - << END
+import sys
 bundle = open('${ctrl_dest_path}').read()
 ctrl_cert = open('${ctrl_cert_path}').read()
 if not ctrl_cert in bundle:
@@ -36,7 +37,7 @@ else
     msg="Controller's Root CA not found. Put it into: /etc/pki/tls/certs/controller-root-ca.pem"
     echo "${msg}"
     logger \
-        --server syslog.community.appliance.mec \
+        --server ${SYSLOG_ADDR} \
         --tag "${BASENAME}" \
         "${msg}"
 fi

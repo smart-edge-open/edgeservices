@@ -127,7 +127,9 @@ def nes_connect(nes_context):
         _LOG.critical("NES config file {} does not exist".format(nes_context.cfg_path))
         return False
 
-    config = configparser.ConfigParser()
+    # Use ConfigParser with `strict` disabled as nes config file
+    # might contain duplicated keys(route) that are not used here
+    config = configparser.ConfigParser(strict = False)
     config.read(nes_context.cfg_path)
     try:
         unix_sock_path.value = config['NES_SERVER']['ctrl_socket']

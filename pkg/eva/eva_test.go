@@ -17,19 +17,22 @@ package eva_test
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/open-ness/common/proxy/progutil"
 	"github.com/open-ness/edgenode/internal/authtest"
 	"github.com/open-ness/edgenode/pkg/config"
 	"github.com/open-ness/edgenode/pkg/eva"
 	pb "github.com/open-ness/edgenode/pkg/eva/pb"
 
-	logger "github.com/open-ness/common"
 	"log/syslog"
+
+	logger "github.com/open-ness/common/log"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -80,6 +83,7 @@ func TestEva(t *testing.T) {
 
 	wg.Add(1)
 	go func() {
+		// We're running Eva in a separate goroutine (thread)
 		err := eva.Run(ctx, mainCfgFile)
 		wg.Done()
 		if err != nil {
@@ -90,8 +94,16 @@ func TestEva(t *testing.T) {
 	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(),
 		10*time.Second)
 	defer cancelTimeout()
-	conn, err := grpc.DialContext(ctxTimeout, cfg.Endpoint,
-		grpc.WithTransportCredentials(transportCreds), grpc.WithBlock())
+
+	lis, err := net.Listen("tcp", cfg.ControllerEndpoint)
+	prefaceLis := progutil.NewPrefaceListener(lis)
+	defer prefaceLis.Close()
+	go prefaceLis.Accept() // we only expect 1 connection
+
+	// Then connecting to it from this thread
+	conn, err := grpc.DialContext(ctxTimeout, "",
+		grpc.WithTransportCredentials(transportCreds), grpc.WithBlock(),
+		grpc.WithDialer(prefaceLis.DialEva))
 
 	if err != nil {
 		t.Errorf("failed to dial EVA: %v", err)

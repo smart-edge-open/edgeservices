@@ -13,7 +13,7 @@
 # limitations under the License.
 
 - name: Remove GRUB_CMDLINE_LINUX_DEFAULT grub variable
-  shell: sed '/^GRUB_CMDLINE_LINUX_DEFAULT=.*/d'
+  shell: sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=.*/d' /etc/default/grub
   args:
     warn: false
 
@@ -24,4 +24,4 @@
     insertafter: EOF
 
 - name: Regenerate grub.cfg 
-  shell: grub2-mkconfig -o /boot/grub2/grub.cfg 
+  shell: "grub2-mkconfig -o {{ grub_file_path }}" 

@@ -16,7 +16,14 @@
 # Logs will be saved to folder: <appliance-ce_repository/scripts/ansible/logs/
 
 currdir=${PWD##*/} 
-BASE_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
+
+if [ -z "$1" ]
+then
+    BASE_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
+else
+    BASE_PATH="$1"
+fi
+
 [ -d ${BASE_PATH}/../logs ] || mkdir  ${BASE_PATH}/../logs
 FILENAME="`date +%Y-%m-%d_%H-%M-%S_ansible.log`"
 

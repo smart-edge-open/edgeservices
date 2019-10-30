@@ -50,5 +50,10 @@ exec /root/kni_docker_daemon.py \
     --config /var/lib/appliance/nts/nts.cfg &
 kni_pid="$!"
 
+exec /root/ovs_docker_daemon.py \
+    --bridge ${OVS_BRIDGE_NAME} \
+    --enable ${OVS_ENABLED} &
+ovs_pid="$!"
+
 wait $nts_pid
 

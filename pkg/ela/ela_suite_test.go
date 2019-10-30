@@ -21,18 +21,20 @@ import (
 	"os"
 	"testing"
 
+	log "github.com/open-ness/common/log"
 	"github.com/open-ness/edgenode/internal/authtest"
 	"github.com/open-ness/edgenode/pkg/ela"
-	"github.com/open-ness/common"
 	"google.golang.org/grpc/credentials"
+
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var (
-	elaTestEndpoint = "localhost:42101"
 	transportCreds  credentials.TransportCredentials
+	controllerEndpoint = "127.0.0.1:8081"
 )
 
 func TestEdgeLifecycleAgent(t *testing.T) {
@@ -45,9 +47,9 @@ func TestEdgeLifecycleAgent(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	err = ioutil.WriteFile("ela.json", []byte(fmt.Sprintf(`
 	{
-		"endpoint": "%s",
-		"certsDirectory": "%s"
-	}`, elaTestEndpoint, certsDir)), os.FileMode(0644))
+		"certsDirectory": "%s",
+		"ControllerEndpoint": "%s"
+	}`, certsDir, controllerEndpoint)), os.FileMode(0644))
 	Expect(err).NotTo(HaveOccurred())
 
 	srvErrChan := make(chan error)
@@ -63,6 +65,14 @@ func TestEdgeLifecycleAgent(t *testing.T) {
 		srvCancel()
 		<-srvErrChan
 	}()
+	
+	//waiting for ela.json
+	for start := time.Now(); time.Since(start) < 3*time.Second; {
+		if ela.Config.ControllerEndpoint != "" {
+			break
+		}	
+	}
+	Expect(ela.Config.ControllerEndpoint).ToNot(Equal(""))
 
 	RunSpecs(t, "Edge Life Cycle Agent suite")
 }
@@ -72,4 +82,5 @@ var _ = BeforeSuite(func() {
 })
 var _ = AfterSuite(func() {
 	os.Remove("ela.json")
+    os.Remove("edgedns_test.sock")
 })

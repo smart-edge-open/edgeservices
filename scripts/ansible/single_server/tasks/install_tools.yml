@@ -32,7 +32,22 @@
   - include_tasks: ../../common/tasks/os/reload_udev.yml
   - include_tasks: ../../common/tasks/sets/reinstall_dpdk.yml
   - include_tasks: ../../common/tasks/dpdk/enable_load_modules_at_boot.yml
+  - include_tasks: ../../deploy_server/tasks/ovs/stop_ovs_if_exist.yml
+  - include_tasks: ../../deploy_server/tasks/ovs/wait_until_uio_pci_generic_module_removed.yml
   - include_tasks: ../../common/tasks/dpdk/unload_modules.yml
   - include_tasks: ../../common/tasks/dpdk/load_modules.yml
+  - include_tasks: ../../deploy_server/tasks/ovs/check_if_set.yml
+  - include_tasks: ../../deploy_server/tasks/ovs/set_eva_config.yml
+  - include_tasks: ../../deploy_server/tasks/ovs/ovs.yml
+    when: ovs['enabled']
+  - include_tasks: ../../deploy_server/tasks/openvino/check_if_set.yml
+  - include_tasks: ../../deploy_server/tasks/openvino/openvino.yml  
+    when: openvino['enabled']
+  - include_tasks: ../../common/tasks/kubernetes/check_if_set.yml
+  - include_tasks: ../../common/tasks/kubernetes/install.yml
+    when: kubernetes['enabled']
+  - include_tasks: ../../common/tasks/kubernetes/configure.yml
+    when: kubernetes['enabled']
   - include_tasks: ../../common/tasks/go/download_if_missing.yml
   - include_tasks: ../../common/tasks/other/script_success.yml
+

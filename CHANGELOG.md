@@ -113,3 +113,13 @@
  - Wait for default cert key file with size greater than zero
  - ELA - accept variable column count in lspci output
  - Kubernetes integration changes
+ - Fix core allocation for docker containers
+ - Blacklisting PCI ports added to ELA
+ - Changed DPDK version from 18.08 to 18.11.2
+ - Added support for inter app communication using OVS-dpdk
+ - ELA: InterfaceService for kube-ovn mode
+ - Fix IP fragmentation handling
+ - Fix duplicated entries error in kni_docker_daemon.py
+ - Fix TCP checksum offloading for GTP-U encapsulated packets
+ - Decrease allocated 2MB hugepages count to 5000(10GB)
+ - Enable ACPI for deployed VMs

@@ -15,6 +15,8 @@
 package ela_test
 
 import (
+	"net"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -23,6 +25,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/open-ness/common/proxy/progutil"
 	"github.com/open-ness/edgenode/pkg/ela"
 	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 	"google.golang.org/grpc"
@@ -58,8 +61,15 @@ var _ = Describe("gRPC InterfaceService", func() {
 
 	Describe("GetAll method", func() {
 		Specify("will respond", func() {
-			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
+
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+			go prefaceLis.Accept() // we only expect 1 connection
+
+			// Then connecting to it from this thread
+			conn, err := grpc.Dial("",
+				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -89,8 +99,15 @@ var _ = Describe("gRPC InterfaceService", func() {
 
 	Describe("Get method", func() {
 		get := func(id string) (*pb.NetworkInterface, error) {
-			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
+
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+			go prefaceLis.Accept() // we only expect 1 connection
+
+			// Then connecting to it from this thread
+			conn, err := grpc.Dial("",
+				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 
@@ -173,8 +190,14 @@ var _ = Describe("gRPC InterfaceService", func() {
 	Describe("BulkUpdate method", func() {
 		bulkUpdate := func(networkInterfaces *pb.NetworkInterfaces) error {
 
-			conn, err := grpc.Dial(elaTestEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+			go prefaceLis.Accept() // we only expect 1 connection
+
+			// Then connecting to it from this thread
+			conn, err := grpc.Dial("",
+				grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ela
+package helpers
 
 import (
 	"bytes"
@@ -29,14 +29,14 @@ import (
 
 	"github.com/kata-containers/runtime/virtcontainers/pkg/nsenter"
 
-	"github.com/pkg/errors"
-	"github.com/open-ness/edgenode/pkg/ela/ini"
 	pb "github.com/open-ness/edgenode/pkg/ela/pb"
+	"github.com/pkg/errors"
 )
 
 // NetworkDevice contains data for network device
 type NetworkDevice struct {
 	PCI               string
+	Name              string
 	Manufacturer      string
 	MAC               string
 	Description       string
@@ -45,7 +45,9 @@ type NetworkDevice struct {
 	Direction         pb.NetworkInterface_InterfaceType
 }
 
-func getNetworkPCIs() ([]NetworkDevice, error) {
+// GetNetworkPCIs returns slice of NetworkDevices with filled PCI,
+// Manufacturer and Description
+func GetNetworkPCIs() ([]NetworkDevice, error) {
 
 	// #nosec G204 - called with lspci
 	cmd := exec.Command("command", "-v", "lspci")
@@ -96,7 +98,9 @@ func getNetworkPCIs() ([]NetworkDevice, error) {
 	return devs, nil
 }
 
-func fillMACAddrForKernelDevs(devs []NetworkDevice) error {
+// FillMACAddrForKernelDevs updates network devices bound to kernel driver
+// with MAC address
+func FillMACAddrForKernelDevs(devs []NetworkDevice) error {
 	var ifs []net.Interface
 	var ifsErr error
 
@@ -139,6 +143,7 @@ func fillMACAddrForKernelDevs(devs []NetworkDevice) error {
 		for idx := range devs {
 			if devs[idx].PCI == pci {
 				devs[idx].MAC = iface.HardwareAddr.String()
+				devs[idx].Name = iface.Name
 				devs[idx].Description = fmt.Sprintf("[%s] %s", iface.Name,
 					devs[idx].Description)
 				devs[idx].Driver = pb.NetworkInterface_KERNEL
@@ -147,52 +152,6 @@ func fillMACAddrForKernelDevs(devs []NetworkDevice) error {
 	}
 
 	return nil
-}
-
-func fillMACAddrForDPDKDevs(devs []NetworkDevice) error {
-	ntsCfg, err := ini.NtsConfigFromFile(Config.NtsConfigPath)
-
-	if err != nil {
-		return errors.Wrap(err, "failed to read NTS config")
-	}
-
-	for _, port := range ntsCfg.Ports {
-		for idx := range devs {
-			if devs[idx].PCI == port.PciAddress {
-				devs[idx].MAC = port.MAC
-				devs[idx].Description = port.Description
-				devs[idx].FallbackInterface = port.EgressPortID
-
-				dir, _ := ini.InterfaceTypeFromTrafficDirection(
-					port.TrafficDirection)
-
-				devs[idx].Direction = dir
-				devs[idx].Driver = pb.NetworkInterface_USERSPACE
-			}
-		}
-	}
-
-	return nil
-}
-
-// GetNetworkDevices gets network devices
-func GetNetworkDevices() ([]NetworkDevice, error) {
-	devs, err := getNetworkPCIs()
-	if err != nil {
-		return nil, err
-	}
-
-	err = fillMACAddrForDPDKDevs(devs)
-	if err != nil {
-		return nil, err
-	}
-
-	err = fillMACAddrForKernelDevs(devs)
-	if err != nil {
-		return nil, err
-	}
-
-	return devs, nil
 }
 
 // ToNetworkInterface converts a device to an interface
@@ -208,13 +167,8 @@ func (dev *NetworkDevice) ToNetworkInterface() *pb.NetworkInterface {
 	return iface
 }
 
-// GetNetworkInterfaces gets network interfaces
-func GetNetworkInterfaces() (*pb.NetworkInterfaces, error) {
-	devs, err := GetNetworkDevices()
-	if err != nil {
-		return nil, err
-	}
-
+// ToNetworkInterfaces transforms slice of NetworkDevice into NetworkInterfaces
+func ToNetworkInterfaces(devs []NetworkDevice) *pb.NetworkInterfaces {
 	ifaces := &pb.NetworkInterfaces{}
 	ifaces.NetworkInterfaces = make([]*pb.NetworkInterface, 0)
 
@@ -223,5 +177,5 @@ func GetNetworkInterfaces() (*pb.NetworkInterfaces, error) {
 			dev.ToNetworkInterface())
 	}
 
-	return ifaces, nil
+	return ifaces
 }

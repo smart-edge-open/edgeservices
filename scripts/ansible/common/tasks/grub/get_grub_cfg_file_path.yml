@@ -1,0 +1,32 @@
+# Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+- set_fact:
+    grub_file_path: "/boot/grub2/grub.cfg"
+
+- name: Check if EFI is being used on host
+  stat:
+    path: /sys/firmware/efi
+  register: efi_sys_dir
+
+- debug:
+    msg: "EFI detected"
+  when: efi_sys_dir.stat.exists and efi_sys_dir.stat.isdir == true
+
+- set_fact:
+    grub_file_path: "/boot/efi/EFI/centos/grub.cfg"
+  when: efi_sys_dir.stat.exists and efi_sys_dir.stat.isdir == true
+
+- debug:
+    msg: "grub.cfg file path set to: {{ grub_file_path }}"
