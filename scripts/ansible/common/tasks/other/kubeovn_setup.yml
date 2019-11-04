@@ -12,10 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- name: Installing OVS tools
+- name: Remove openvswitch package
   yum:
-    name: "unbound,https://github.com/alauda/ovs/releases/download/v2.11.4-1/openvswitch-2.11.4-1.el7.x86_64.rpm"
-    
+    name: openvswitch
+    state: absent
+
+- name: Installing OVS tools (url)
+  shell: yum install -y https://github.com/alauda/ovs/releases/download/v2.11.4-1/openvswitch-2.11.4-1.el7.x86_64.rpm
+
+- name: Installing OVS tools (yum)
+  yum:
+    name: unbound
+
 - debug:
     msg: "EdgeNode apps image build finished. Ensure that OpenNess with Kube-OVN is configured on edgecontroller"
 
