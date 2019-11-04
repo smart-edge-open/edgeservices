@@ -35,22 +35,28 @@ import (
 	"github.com/otcshare/edgenode/pkg/eva"
 )
 
-var _ = Describe("EVA docker tests", func() {
+
+var _ = Describe("EVA: Docker tests", func() {
+
 	stopInd := make(chan bool)
 
 	BeforeEach(func() {
 		err := runEVA("testdata/eva.json", stopInd)
 		Expect(err).ToNot(HaveOccurred())
-		// Clean directories
-		os.RemoveAll(cfgFile.CertsDir)
-		os.RemoveAll(cfgFile.AppImageDir)
-		metadatahelpers.CreateDir(cfgFile.AppImageDir)
+	
 		stubs.HTTPCliStub = stubs.HTTPClientStub{}
 		stubs.DockerCliStub = stubs.DockerClientStub{}
 	})
 
 	AfterEach(func() {
 		stopEVA(stopInd)
+
+		// Clean directories
+		err2 := os.RemoveAll(cfgFile.CertsDir)
+		Expect(err2).ToNot(HaveOccurred())
+		err2 = os.RemoveAll(cfgFile.AppImageDir)
+		Expect(err2).ToNot(HaveOccurred())
+			
 	})
 
 	When("DeployContainer is called", func() {
@@ -70,9 +76,8 @@ var _ = Describe("EVA docker tests", func() {
 				wrappers.CreateDockerClient = stubs.CreateDockerClientStub
 
 				// Create connection
-				conn, cancelTimeout, prefaceLis := createConnection()
-				defer cancelTimeout()
-				defer prefaceLis.Close()
+				conn, cancelTimeout := createConnection()
+				defer cancelTimeout()	
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -120,9 +125,8 @@ var _ = Describe("EVA docker tests", func() {
 				wrappers.CreateDockerClient = stubs.CreateDockerClientStub
 
 				// Create connection
-				conn, cancelTimeout, prefaceLis := createConnection()
-				defer cancelTimeout()
-				defer prefaceLis.Close()
+				conn, cancelTimeout := createConnection()
+				defer cancelTimeout()	
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -170,9 +174,8 @@ var _ = Describe("EVA docker tests", func() {
 					wrappers.CreateDockerClient = stubs.CreateDockerClientStub
 
 					// Create connection
-					conn, cancelTimeout, prefaceLis := createConnection()
+					conn, cancelTimeout := createConnection()
 					defer cancelTimeout()
-					defer prefaceLis.Close()
 					defer conn.Close()
 
 					client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -220,9 +223,8 @@ var _ = Describe("EVA docker tests", func() {
 					wrappers.CreateDockerClient = stubs.CreateDockerClientStub
 
 					// Create connection
-					conn, cancelTimeout, prefaceLis := createConnection()
+					conn, cancelTimeout := createConnection()
 					defer cancelTimeout()
-					defer prefaceLis.Close()
 					defer conn.Close()
 
 					client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -289,9 +291,8 @@ var _ = Describe("EVA docker tests", func() {
 					"TEST IMAGE")
 
 				// Create connection
-				conn, cancelTimeout, prefaceLis := createConnection()
-				defer cancelTimeout()
-				defer prefaceLis.Close()
+				conn, cancelTimeout := createConnection()
+				defer cancelTimeout()			
 				defer conn.Close()
 
 				uri := evapb.Application_HttpUri{
@@ -350,9 +351,8 @@ var _ = Describe("EVA docker tests", func() {
 					"TEST IMAGE")
 
 				// Create connection
-				conn, cancelTimeout, prefaceLis := createConnection()
-				defer cancelTimeout()
-				defer prefaceLis.Close()
+				conn, cancelTimeout := createConnection()
+				defer cancelTimeout()				
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -409,9 +409,8 @@ var _ = Describe("EVA Libvirt tests", func() {
 					ProtoMinor: 1, Body: body, ContentLength: 11}
 
 				// Create connection
-				conn, cancelTimeout, prefaceLis := createConnection()
-				defer cancelTimeout()
-				defer prefaceLis.Close()
+				conn, cancelTimeout := createConnection()
+				defer cancelTimeout()				
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -471,9 +470,8 @@ var _ = Describe("EVA Libvirt tests", func() {
 					"TEST IMAGE")
 
 				// Create connection
-				conn, cancelTimeout, prefaceLis := createConnection()
+				conn, cancelTimeout := createConnection()
 				defer cancelTimeout()
-				defer prefaceLis.Close()
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -525,9 +523,8 @@ var _ = Describe("EVA Libvirt tests", func() {
 					"TEST IMAGE")
 
 				// Create connection
-				conn, cancelTimeout, prefaceLis := createConnection()
-				defer cancelTimeout()
-				defer prefaceLis.Close()
+				conn, cancelTimeout := createConnection()
+				defer cancelTimeout()				
 				defer conn.Close()
 
 				uri := evapb.Application_HttpUri{
@@ -560,6 +557,5 @@ var _ = Describe("EVA Libvirt tests", func() {
 			})
 		})
 	})
-
 })
 

@@ -39,6 +39,7 @@ var (
 	evaStartTimeout = time.Duration(10) // Starting EVA timeout in seconds
 	srvCtx          context.Context     // Context for EVA
 	srvCancel       context.CancelFunc
+	prefaceLis		*progutil.PrefaceListener
 )
 
 // It tak some time for EVA to start services
@@ -142,15 +143,8 @@ func stopEVA(stopIndication chan bool) {
 // defer cancelTimeout()
 // defer prefaceLis.Close()
 // defer conn.Close()
-func createConnection() (*grpc.ClientConn, context.CancelFunc,
-	*progutil.PrefaceListener) {
-	lis, err := net.Listen("tcp", cfgFile.ControllerEndpoint)
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to create server: %v", err))
-	}
-	prefaceLis := progutil.NewPrefaceListener(lis)
-	go prefaceLis.Accept() // Only one connection is expected
-
+func createConnection() (*grpc.ClientConn, context.CancelFunc) {
+	
 	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(),
 		10*time.Second)
 
@@ -160,7 +154,7 @@ func createConnection() (*grpc.ClientConn, context.CancelFunc,
 	if err != nil {
 		Fail(fmt.Sprintf("Failed to dial EVA: %v", err))
 	}
-	return conn, cancelTimeout, prefaceLis
+	return conn, cancelTimeout
 }
 
 func TestEdgeVirtualizationAgent(t *testing.T) {
@@ -170,6 +164,14 @@ func TestEdgeVirtualizationAgent(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	log.SetOutput(GinkgoWriter)
+	
+	lis, err := net.Listen("tcp", "127.0.0.1:8081")
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to create server: %v", err))
+	}
+	prefaceLis = progutil.NewPrefaceListener(lis)
+	go prefaceLis.Accept() // Only one connection is expected
+
 })
 
 var _ = AfterSuite(func() {
@@ -177,4 +179,5 @@ var _ = AfterSuite(func() {
 	os.RemoveAll(cfgFile.CertsDir)
 	// Clean directory for applications' data
 	os.RemoveAll(cfgFile.AppImageDir)
+	prefaceLis.Close()
 })
