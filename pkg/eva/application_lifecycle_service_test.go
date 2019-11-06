@@ -292,7 +292,8 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					10*time.Second)
 				defer close()
 				
-				cmd := evapb.LifecycleCommand{Id: "testapp", Cmd: evapb.LifecycleCommand_START}
+				cmd := evapb.LifecycleCommand{Id: "testapp", 
+					Cmd: evapb.LifecycleCommand_START}
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)			
 			})
@@ -323,14 +324,16 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					10*time.Second)
 				defer close()
 				
-				cmd := evapb.LifecycleCommand{Id: "testapp", Cmd: evapb.LifecycleCommand_START}
+				cmd := evapb.LifecycleCommand{Id: "testapp", 
+					Cmd: evapb.LifecycleCommand_START}
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)			
 			})
 
 			It("responds with LookupDomainByName error", func() {
 				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
-				stubs.ConnStub.DomByNameErr = errors.New("LookupDomainByName error")
+				stubs.ConnStub.DomByNameErr = 
+					errors.New("LookupDomainByName error")
 
 				stubs.DomStub.DomState = libvirt.DOMAIN_RUNNING
 				stubs.ConnStub.DomByName = stubs.DomStub
@@ -354,7 +357,8 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					10*time.Second)
 				defer close()
 				
-				cmd := evapb.LifecycleCommand{Id: "testapp", Cmd: evapb.LifecycleCommand_START}
+				cmd := evapb.LifecycleCommand{Id: "testapp", 
+					Cmd: evapb.LifecycleCommand_START}
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)			
 			})
@@ -502,7 +506,8 @@ var _ = Describe("ApplicationLifecycleService", func() {
 			It("responds with LookupDomainByName error", func() {
 
 				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
-				stubs.ConnStub.DomByNameErr = errors.New("LookupDomainByName error")
+				stubs.ConnStub.DomByNameErr = 
+					errors.New("LookupDomainByName error")
 
 				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
 				stubs.ConnStub.DomByName = stubs.DomStub
@@ -738,7 +743,8 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 			It("responds with LookupDomainByName error", func() {
 				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
-				stubs.ConnStub.DomByNameErr = errors.New("LookupDomainByName error")
+				stubs.ConnStub.DomByNameErr = 
+					errors.New("LookupDomainByName error")
 
 				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
 				stubs.ConnStub.DomByName = stubs.DomStub

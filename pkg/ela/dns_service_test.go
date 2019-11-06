@@ -91,8 +91,11 @@ var _ = Describe("DnsService gRPC Server", func() {
 				defer prefaceLis.Close()
 				go prefaceLis.Accept() // we only expect 1 connection
 
+				// OP-1742: ContextDialler not supported by Gateway
+				//nolint:staticcheck
 				conn, err := grpc.Dial("",
-					grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
+					grpc.WithTransportCredentials(transportCreds), 
+					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 
@@ -116,8 +119,11 @@ var _ = Describe("DnsService gRPC Server", func() {
 				defer prefaceLis.Close()
 				go prefaceLis.Accept() // we only expect 1 connection
 
+				// OP-1742: ContextDialler not supported by Gateway
+				//nolint:staticcheck
 				conn, err := grpc.Dial("",
-					grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
+					grpc.WithTransportCredentials(transportCreds), 
+					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 
@@ -145,8 +151,11 @@ var _ = Describe("DnsService gRPC Server", func() {
 				defer prefaceLis.Close()
 				go prefaceLis.Accept() // we only expect 1 connection
 
+				// OP-1742: ContextDialler not supported by Gateway
+				//nolint:staticcheck
 				conn, err := grpc.Dial("",
-					grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
+					grpc.WithTransportCredentials(transportCreds), 
+					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 

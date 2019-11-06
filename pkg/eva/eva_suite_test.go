@@ -148,6 +148,8 @@ func createConnection() (*grpc.ClientConn, context.CancelFunc) {
 	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(),
 		10*time.Second)
 
+	// OP-1742: ContextDialler not supported by Gateway
+	//nolint:staticcheck
 	conn, err := grpc.DialContext(ctxTimeout, "",
 		grpc.WithTransportCredentials(transportCreds), grpc.WithBlock(),
 		grpc.WithDialer(prefaceLis.DialEva))

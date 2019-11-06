@@ -165,8 +165,8 @@ var _ = Describe("EVA: Docker tests", func() {
 						StatusCode: 200, Proto: "HTTP/1.1", ProtoMajor: 1,
 						ProtoMinor: 1, Body: body, ContentLength: 11}
 					body2 := ioutil.NopCloser(strings.NewReader(
-						`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23bf66` +
-							`3ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
+						`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23`+
+						`bf663ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
 					stubs.DockerCliStub.ImLoadResp = types.ImageLoadResponse{
 						Body: body2, JSON: false}
 
@@ -199,7 +199,8 @@ var _ = Describe("EVA: Docker tests", func() {
 
 					// Verify status after deployment
 					appid := evapb.ApplicationID{Id: "test-app-deploy"}
-					alsClient := evapb.NewApplicationLifecycleServiceClient(conn)
+					alsClient := 
+						evapb.NewApplicationLifecycleServiceClient(conn)
 					status, err := alsClient.GetStatus(ctx, &appid,
 						grpc.WaitForReady(true))
 					Expect(err).ToNot(HaveOccurred())
@@ -214,11 +215,12 @@ var _ = Describe("EVA: Docker tests", func() {
 						StatusCode: 200, Proto: "HTTP/1.1", ProtoMajor: 1,
 						ProtoMinor: 1, Body: body, ContentLength: 11}
 					body2 := ioutil.NopCloser(strings.NewReader(
-						`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23bf66` +
-							`3ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
+						`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23`+
+						`bf663ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
 					stubs.DockerCliStub.ImLoadResp = types.ImageLoadResponse{
 						Body: body2, JSON: true}
-					stubs.DockerCliStub.CCreateErr = errors.New("ContainerCreate Failed")
+					stubs.DockerCliStub.CCreateErr = 
+						errors.New("ContainerCreate Failed")
 					wrappers.CreateHTTPClient = stubs.CreateHTTPClientStub
 					wrappers.CreateDockerClient = stubs.CreateDockerClientStub
 
@@ -248,7 +250,8 @@ var _ = Describe("EVA: Docker tests", func() {
 
 					// Verify status after deployment
 					appid := evapb.ApplicationID{Id: "test-app-deploy"}
-					alsClient := evapb.NewApplicationLifecycleServiceClient(conn)
+					alsClient := 
+						evapb.NewApplicationLifecycleServiceClient(conn)
 					status, err := alsClient.GetStatus(ctx, &appid,
 						grpc.WaitForReady(true))
 					Expect(err).ToNot(HaveOccurred())

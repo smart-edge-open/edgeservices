@@ -69,6 +69,8 @@ var _ = Describe("Application Policy gRPC Server", func() {
 			go prefaceLis.Accept() // we only expect 1 connection
 
 			// Then connecting to it from this thread
+			// OP-1742: ContextDialler not supported by Gateway
+			//nolint:staticcheck
 			conn, err := grpc.Dial("",
 				grpc.WithTransportCredentials(transportCreds),
 				grpc.WithDialer(prefaceLis.DialEla))

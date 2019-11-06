@@ -18,7 +18,6 @@ import (
 	libvirt "github.com/libvirt/libvirt-go"
 )
 
-type wrapper struct{}
 type connectWrapper struct {
 	conn *libvirt.Connect
 }
