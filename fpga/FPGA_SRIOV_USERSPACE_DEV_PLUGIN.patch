@@ -1,4 +1,4 @@
-# Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
+# Copyright 2019 Intel Corporation. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -116,15 +116,3 @@ diff -Naur sriov-network-device-plugin/cmd/sriovdp/manager.go sriov-fec-plugin/c
  			}
  		}
  	}
-diff -Naur sriov-network-device-plugin/Makefile sriov-fec-plugin/Makefile
---- sriov-network-device-plugin/Makefile	2019-10-23 20:38:01.645086012 +0100
-+++ sriov-fec-plugin/Makefile	2019-10-23 20:37:47.249086679 +0100
-@@ -21,7 +21,7 @@
- # Docker
- IMAGEDIR=$(BASE)/images
- DOCKERFILE=$(CURDIR)/images/Dockerfile
--TAG=nfvpe/sriov-device-plugin
-+TAG=nfvpe/sriov-device-plugin-fec
- # Accept proxy settings for docker 
- DOCKERARGS=
- ifdef HTTP_PROXY

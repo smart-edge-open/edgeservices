@@ -44,11 +44,11 @@
 
 - name: Export sriov-device-plugin image to filesystem
   shell: docker save nfvpe/sriov-device-plugin -o "{{ docker_images_save_path }}/sriovdeviceplugin.docker"
-  when: sriov['enabled'] and not vc_fec['enabled']
+  when: sriov['enabled']
 
-- name: Export sriov-device-plugin for VC FEC image to filesystem
-  shell: docker save nfvpe/sriov-device-plugin-fec -o "{{ docker_images_save_path }}/sriovdeviceplugin.docker"
-  when: sriov['enabled'] and vc_fec['enabled']
+- name: Export FPGA config for FPGA SRIOV image to filesystem
+  shell: docker save fpga-config-utility -o "{{ docker_images_save_path }}/fpgaconfig.docker"
+  when: fpga_sriov_userspace['enabled'] and fpga_dir.stat.exists
 
 - name: Export nts image to filesystem
   shell: docker save openness-biosfw -o "{{ docker_images_save_path }}/openness-biosfw.docker"

@@ -16,7 +16,7 @@
 
 export GO111MODULE = on
 
-.PHONY: build appliance eaa interfaceservice edgedns clean build-docker lint test help build-docker-hddl hddllog 
+.PHONY: build appliance eaa interfaceservice edgedns clean build-docker lint test help build-docker-hddl hddllog build-docker-fpga-cfg
 TMP_DIR:=$(shell mktemp -d)
 BUILD_DIR ?=dist
 
@@ -104,6 +104,12 @@ build-docker-biosfw:
 	cd "${TMP_DIR}" && docker build -t openness-biosfw -f Dockerfile_biosfw .
 	rm -rf "${TMP_DIR}"
 
+build-docker-fpga-cfg:
+	cp build/fpga_config/Dockerfile "${TMP_DIR}/Dockerfile_fpga"
+	cp -r build/fpga_config/bbdev_config_service "${TMP_DIR}"
+	cd "${TMP_DIR}" && docker build -t fpga-config-utility:1.0 -f Dockerfile_fpga .
+	rm -rf "${TMP_DIR}"
+
 run-docker:
 ifeq ($(KUBE_OVN_MODE), False)
 	VER=${VER} docker-compose up appliance nts eaa edgednssvr syslog-ng --no-build
@@ -128,6 +134,7 @@ help:
 	@echo "  build-docker           to build the release docker image"
 	@echo "  build-docker-hddl      to build optional docker image for hddl-service"
 	@echo "  build-docker-biosfw    to build optional docker image for biosfw feature"
+	@echo "  build-docker-fpga-cfg  to build optional docker image for bbdev configuration utility"
 	@echo "  run-docker             to start containers"
 	@echo "  lint                   to run linters and static analysis on the code"
 	@echo "  test                   to run unit tests"

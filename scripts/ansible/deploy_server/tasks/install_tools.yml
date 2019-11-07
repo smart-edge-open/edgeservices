@@ -33,7 +33,7 @@
   - include_tasks: ../../common/tasks/dpdk/unload_modules.yml
   - include_tasks: ../../common/tasks/dpdk/load_modules.yml
   - include_tasks: ../../common/tasks/fec/enable_sriov.yml
-    when: vc_fec_vf['enabled']
+    when: fpga_sriov_userspace_vf['enabled']
   - include_tasks: ../../deploy_server/tasks/ovs/check_if_set.yml
   - include_tasks: ../../deploy_server/tasks/ovs/set_eva_config.yml
   - include_tasks: ../../deploy_server/tasks/ovs/ovs.yml  

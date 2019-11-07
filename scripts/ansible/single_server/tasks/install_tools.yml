@@ -33,8 +33,8 @@
   - include_tasks: ../../deploy_server/tasks/ovs/wait_until_uio_pci_generic_module_removed.yml
   - include_tasks: ../../common/tasks/dpdk/unload_modules.yml
   - include_tasks: ../../common/tasks/dpdk/load_modules.yml
-  - include_tasks: ../../common/tasks/fec/enable_sriov.yml
-    when: vc_fec_vf['enabled']
+  - include_tasks: ../../common/tasks/fpga/enable_sriov.yml
+    when: fpga_sriov_userspace_vf['enabled']
   - include_tasks: ../../deploy_server/tasks/ovs/check_if_set.yml
   - include_tasks: ../../deploy_server/tasks/ovs/set_eva_config.yml
   - include_tasks: ../../deploy_server/tasks/ovs/ovs.yml

@@ -43,23 +43,26 @@
 - name: Import Docker sriov-cni image to filesystem
   docker_image:
     name: sriov-cni
-    # tag: 1.0
     load_path: "{{ docker_image_import_location_path }}/sriovcni.docker"
   when: sriov['enabled']
 
 - name: Import Docker sriov-device-plugin image to filesystem
   docker_image:
     name: nfvpe/sriov-device-plugin
-    # tag: 1.0
     load_path: "{{ docker_image_import_location_path }}/sriovdeviceplugin.docker"
-  when: sriov['enabled'] and not vc_fec['enabled']
+  when: sriov['enabled']
 
-- name: Import Docker sriov-device-plugin VC FEC image to filesystem
+- name: Check if FPGA config image is available
+  stat:
+    path: "{{ docker_image_import_location_path }}/fpgaconfig.docker"
+  register: fpga_img
+  when: fpga_sriov_userspace['enabled']
+
+- name: Import Docker FPGA confing for FPGA SRIOV image to filesystem
   docker_image:
-    name: nfvpe/sriov-device-plugin-fec
-    # tag: 1.0
-    load_path: "{{ docker_image_import_location_path }}/sriovdeviceplugin.docker"
-  when: sriov['enabled'] and vc_fec['enabled']
+    name: fpga-config-utility
+    load_path: "{{ docker_image_import_location_path }}/fpgaconfig.docker"
+  when: fpga_sriov_userspace['enabled'] and fpga_img.stat.exists
 
 - name: Import Docker BIOSFW image from defined location
   docker_image:

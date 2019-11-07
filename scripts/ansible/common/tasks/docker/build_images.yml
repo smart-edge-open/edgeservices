@@ -24,16 +24,31 @@
   when: openvino['enabled']
 
 - name: Build SRIOV CNI image
-  shell: source /etc/profile && docker build -t sriov-cni -f ./Dockerfile .
+  shell: docker build -t sriov-cni -f ./Dockerfile .
   args:
     chdir: "{{ sriov_cni_downloaddir }}"
   when: sriov['enabled']
 
 - name: Build SRIOV device plugin image
-  shell: source /etc/profile && make image
+  shell: make image
   args:
     chdir: "{{ sriov_dev_plugin_downloaddir }}"
   when: sriov['enabled']
+
+- name: Check that FPGA Config utility is present
+  stat:
+    path: "{{ base_path }}/build/fpga_config/bbdev_config_service"
+  register: fpga_dir
+
+- debug:
+    msg: "FPGA SRIOV USERSPACE enabled but FPGA-config directory not found, FPGA config utility will not be build."
+  when: fpga_dir.stat.exists == false
+
+- name: Build FPGA Config utility image
+  shell: make build-docker-fpga-cfg
+  args:
+    chdir: "{{ base_path }}"
+  when: fpga_sriov_userspace['enabled'] and fpga_dir.stat.exists
 
 - name: Build biosfw image
   shell: source /etc/profile && make build-docker-biosfw

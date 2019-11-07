@@ -1,4 +1,4 @@
-# Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved.
+# Copyright 2019 Intel Corporation. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,12 +24,12 @@
     repo: "{{ sriov_dev_plugin_url }}"
     dest: "{{ sriov_dev_plugin_downloaddir }}"
     clone: yes
-    version: "{{ vc_fec_dev_plugin_commit }}"
+    version: "{{ fpga_sriov_userspace_dev_plugin_commit }}"
 
-- name: Patch SRIOV device plugin for VC FEC functionality
+- name: Patch SRIOV device plugin for FPGA SRIOV USERSPACE functionality
   patch:
-    src: "{{ vc_fec_patch_path }}"
+    src: "{{ fpga_sriov_userspace_patch_path }}"
     basedir: "{{ sriov_dev_plugin_downloaddir }}"
     strip: 1
     binary: no
-  when: vc_fec['enabled']
+  when: fpga_sriov_userspace['enabled']
