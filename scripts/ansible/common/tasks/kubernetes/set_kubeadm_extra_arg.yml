@@ -14,7 +14,36 @@
 
 - name: Kubernetes - setting KUBELET_EXTRA_ARGS
   lineinfile:
-    path: "{{ kubernetes_kubeadm_conf }}"
-    line: Environment="KUBELET_EXTRA_ARGS=--runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --feature-gates=\"HugePages=true\""
-    create: no
+    path: "{{ kubernetes_env_file }}"
+    regexp: '^KUBELET_EXTRA_ARGS=(.*)$'
+    line: 'KUBELET_EXTRA_ARGS=--runtime-cgroups=/systemd/system.slice --config {{ kubernetes_config_file }}'
 
+- name: Kubernetes - creating Kubelet's config
+  blockinfile:
+    path: "{{ kubernetes_config_file }}"
+    marker: "# {mark} OpenNESS configuration - General"
+    create: yes
+    block: |
+      apiVersion: kubelet.config.k8s.io/v1beta1
+      kind: KubeletConfiguration
+      KubeletCgroups: "/systemd/system.slice"
+      featureGates:
+        TopologyManager: {{ kubernetes_topology_manager['enabled'] }}
+
+- name: Kubernetes - setting Kubelet's config - CPU Manager
+  blockinfile:
+    path: "{{ kubernetes_config_file }}"
+    marker: "# {mark} OpenNESS configuration - CPU Manager"
+    block: |
+      cpuManagerPolicy: {{ kubernetes_cpu_policy }}
+      kubeReserved:
+        cpu: "{{ kubernetes_reserved_cpus }}"
+    state: "{{ 'present' if kubernetes_cpu_policy == 'static' else 'absent' }}"
+
+- name: Kubernetes - setting Kubelet's config - Topology Manager
+  blockinfile:
+    path: "{{ kubernetes_config_file }}"
+    marker: "# {mark} OpenNESS configuration - Topology Manager"
+    block: |
+      topologyManagerPolicy: {{ kubernetes_topology_manager['policy'] }}
+    state: "{{ 'present' if kubernetes_topology_manager['enabled'] else 'absent' }}"
