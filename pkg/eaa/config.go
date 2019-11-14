@@ -22,6 +22,7 @@ type CertsInfo struct {
 	CaRootPath     string `json:"CaRootPath"`
 	ServerCertPath string `json:"ServerCertPath"`
 	ServerKeyPath  string `json:"ServerKeyPath"`
+	CommonName     string `json:"CommonName"`
 }
 
 // Config describes EAA JSON config file

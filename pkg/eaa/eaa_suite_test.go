@@ -222,7 +222,8 @@ func generateConfigs() {
 			"CaRootKeyPath": "` + tempConfCaRootKeyPath + `",
 			"CaRootPath": "` + tempConfCaRootPath + `",
 			"ServerCertPath": "` + tempConfServerCertPath + `",
-			"ServerKeyPath": "` + tempConfServerKeyPath + `"
+			"ServerKeyPath": "` + tempConfServerKeyPath + `",
+			"CommonName": "` + EaaCommonName + `"
 		}
 	}`)
 

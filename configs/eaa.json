@@ -7,6 +7,7 @@
         "CaRootKeyPath": "certs/eaa/rootCA.key",
         "CaRootPath": "certs/eaa/rootCA.pem",
         "ServerCertPath": "certs/eaa/server.crt",
-        "ServerKeyPath": "certs/eaa/server.key"
+        "ServerKeyPath": "certs/eaa/server.key",
+        "CommonName": "eaa.community.appliance.mec"
     }
 }
