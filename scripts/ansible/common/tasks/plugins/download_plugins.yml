@@ -12,12 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+- name: Remove old SRIOV-CNI plugin directory    
+  become: true
+  file:
+    path: "{{ sriov_cni_downloaddir }}"
+    state: absent
+
 - name: Download SRIOV-CNI plugin
   git:
     repo: "{{ sriov_cni_url }}"
     dest: "{{ sriov_cni_downloaddir }}"
     clone: yes
     version: "{{ sriov_cni_commit }}"
+
+- name: Remove old SRIOV device plugin directory
+  become: true
+  file:
+    path: "{{ sriov_dev_plugin_downloaddir }}"
+    state: absent
 
 - name: Download SRIOV device plugin
   git:

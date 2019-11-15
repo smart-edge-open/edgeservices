@@ -18,12 +18,36 @@
   
 - name: Bind FPGA SRIOV PF to IGB UIO.
   shell: echo "{{ fpga_sriov_userspace_vendor_id }} {{ fpga_sriov_userspace_pf_device_id }}" | sudo tee /sys/bus/pci/drivers/igb_uio/new_id
+
+- name: Enable PF FPGA bind to IGB_UIO on boot
+  lineinfile:
+    state: present
+    dest: /etc/profile
+    line: "{{ item }}"
+  with_items:
+    - "echo \"{{ fpga_sriov_userspace_vendor_id }} {{ fpga_sriov_userspace_pf_device_id }}\" | sudo tee /sys/bus/pci/drivers/igb_uio/new_id"
   
 - name: Create SRIOV VFs
-  shell: "echo {{ fpga_sriov_userspace_vf_number }} | sudo tee /sys/bus/pci/devices/0000:{{ item }}/max_vfs"
+  shell: "echo 0 | sudo tee /sys/bus/pci/devices/0000:{{ item }}/max_vfs && echo {{ fpga_sriov_userspace_vf_number }} | sudo tee /sys/bus/pci/devices/0000:{{ item }}/max_vfs"
   with_items:
     - "{{ pci_address.stdout_lines }}"
-  
+
+- name: Enable Creation of SRIOV VFs on boot
+  lineinfile:
+    state: present
+    dest: /etc/profile
+    line: "echo {{ fpga_sriov_userspace_vf_number }} | sudo tee /sys/bus/pci/devices/0000:{{ item }}/max_vfs"
+  with_items:
+    - "{{ pci_address.stdout_lines }}"
+
 - name: Bind FPGA SRIOV VFs to IGB_UIO
   shell: echo "{{ fpga_sriov_userspace_vendor_id }} {{ fpga_sriov_userspace_vf_device_id }}" | sudo tee /sys/bus/pci/drivers/igb_uio/new_id
+
+- name: Enable VFs binding to IGB_UIO on boot
+  lineinfile:
+    state: present
+    dest: /etc/profile
+    line: "{{ item }}"
+  with_items:
+    - "echo \"{{ fpga_sriov_userspace_vendor_id }} {{ fpga_sriov_userspace_vf_device_id }}\" | sudo tee /sys/bus/pci/drivers/igb_uio/new_id"
  
