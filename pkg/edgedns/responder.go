@@ -138,7 +138,6 @@ func (r *Responder) startListeners() {
 			}
 		}()
 	}
-
 }
 
 // Stop all listeners

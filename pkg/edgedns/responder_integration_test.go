@@ -15,6 +15,8 @@ package edgedns_test
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 
 	"github.com/miekg/dns"
 	. "github.com/onsi/ginkgo"
@@ -178,7 +180,17 @@ var _ = Describe("Responder", func() {
 	})
 
 	It("Delegates non-authoritative queries", func() {
-		dnsServer.SetDefaultForwarder("8.8.8.8")
+		// get regular dns IP
+		commandGetCurrentDNS :=
+			"nmcli dev show | grep DNS | grep -m 1 -E -o \"([0-9]{1,3}[\\.])" +
+				"{3}[0-9]{1,3}\""
+
+		currentDNS, err := exec.Command("bash", "-c",
+			commandGetCurrentDNS).Output()
+		Expect(err).NotTo(HaveOccurred())
+		currentDNSstr := strings.TrimSuffix(string(currentDNS), "\n")
+
+		dnsServer.SetDefaultForwarder(currentDNSstr)
 		msg, err := query("google.com.", dns.TypeA)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(msg.Answer).NotTo(BeEmpty())

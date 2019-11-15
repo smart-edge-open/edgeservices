@@ -37,12 +37,19 @@ func main() {
 		"debug, info, notice, warning, error, critical, alert, emergency")
 	syslogAddr := flag.String("syslog", "", "Syslog address")
 	v4 := flag.String("4", "", "IPv4 listener address")
-	port := flag.Int("port", 5053, "listener UDP port")
-	sock := flag.String("sock", "/run/edgedns.sock", "API socket path")
+	port := flag.Int("port", 53, "listener UDP port")
+	sock := flag.String("sock", "/run/edgedns.sock",
+		"API socket path used by default. "+
+			"This parameter is not used if 'address' is defined.")
+	addr := flag.String("address", "",
+		"API IP address. If defined, socket parameter is not used.")
 	db := flag.String("db", "/var/lib/edgedns/rrsets.db",
 		"Database file path")
 	fwdr := flag.String("fwdr", "8.8.8.8", "Forwarder")
 	hbInterval := flag.Int("hb", 60, "Heartbeat interval in s")
+	pkiCrtPath := flag.String("cert", "certs/cert.pem", "PKI Cert Path")
+	pkiKeyPath := flag.String("key", "certs/key.pem", "PKI Key Path")
+	pkiCAPath := flag.String("ca", "certs/root.pem", "PKI CA Path")
 	flag.Parse()
 
 	lvl, err := logger.ParseLevel(*logLvl)
@@ -85,14 +92,22 @@ func main() {
 		Filename: *db,
 	}
 
-	ctl := &grpc.ControlServer{
-		Sock: *sock,
+	pki := &grpc.ControlServerPKI{
+		Crt: *pkiCrtPath,
+		Key: *pkiKeyPath,
+		Ca:  *pkiCAPath,
 	}
 
-	srv := edgedns.NewResponder(cfg, stg, ctl)
-	srv.SetDefaultForwarder(*fwdr)
-	err = srv.Start()
-	defer srv.Stop()
+	ctl := &grpc.ControlServer{
+		Sock:    *sock,
+		Address: *addr,
+		PKI:     pki,
+	}
+
+	svr := edgedns.NewResponder(cfg, stg, ctl)
+	svr.SetDefaultForwarder(*fwdr)
+	err = svr.Start()
+	defer svr.Stop()
 
 	if err != nil {
 		log.Err(err)
@@ -108,8 +123,8 @@ func main() {
 	})
 
 	// Receive OS signals and listener errors from Start()
-	signal.Notify(srv.Sig, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-srv.Sig
+	signal.Notify(svr.Sig, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-svr.Sig
 	switch sig {
 	case syscall.SIGCHLD:
 		log.Err("Child lisenter/service unexpectedly died")

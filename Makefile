@@ -84,7 +84,7 @@ else
 	cp internal/nts/build/libnes_api_shared.so "${TMP_DIR}/nts"
 	cp internal/nts/Dockerfile "${TMP_DIR}/Dockerfile_nts"
 	cd "${TMP_DIR}" && VER=${VER} docker-compose build appliance nts eaa edgednssvr syslog-ng
-endif	
+endif
 	ls "${TMP_DIR}"
 	rm -rf "${TMP_DIR}"
 
