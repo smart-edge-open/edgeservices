@@ -27,6 +27,11 @@
       apiVersion: kubelet.config.k8s.io/v1beta1
       kind: KubeletConfiguration
       KubeletCgroups: "/systemd/system.slice"
+      authentication:
+        x509:
+          clientCAFile: /etc/kubernetes/pki/ca.crt
+      clusterDNS:
+      - 10.96.0.10
       featureGates:
         TopologyManager: {{ kubernetes_topology_manager['enabled'] }}
 
