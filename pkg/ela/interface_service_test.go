@@ -63,6 +63,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 		Specify("will respond", func() {
 
 			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			Expect(err).ShouldNot(HaveOccurred())
 			prefaceLis := progutil.NewPrefaceListener(lis)
 			defer prefaceLis.Close()
 			go prefaceLis.Accept() // we only expect 1 connection
@@ -71,7 +72,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 			// OP-1742: ContextDialler not supported by Gateway
 			//nolint:staticcheck
 			conn, err := grpc.Dial("",
-				grpc.WithTransportCredentials(transportCreds), 
+				grpc.WithTransportCredentials(transportCreds),
 				grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
@@ -104,6 +105,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 		get := func(id string) (*pb.NetworkInterface, error) {
 
 			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			Expect(err).ShouldNot(HaveOccurred())
 			prefaceLis := progutil.NewPrefaceListener(lis)
 			defer prefaceLis.Close()
 			go prefaceLis.Accept() // we only expect 1 connection
@@ -112,7 +114,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 			// OP-1742: ContextDialler not supported by Gateway
 			//nolint:staticcheck
 			conn, err := grpc.Dial("",
-				grpc.WithTransportCredentials(transportCreds), 
+				grpc.WithTransportCredentials(transportCreds),
 				grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()
@@ -197,6 +199,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 		bulkUpdate := func(networkInterfaces *pb.NetworkInterfaces) error {
 
 			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			Expect(err).ShouldNot(HaveOccurred())
 			prefaceLis := progutil.NewPrefaceListener(lis)
 			defer prefaceLis.Close()
 			go prefaceLis.Accept() // we only expect 1 connection
@@ -205,7 +208,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 			// OP-1742: ContextDialler not supported by Gateway
 			//nolint:staticcheck
 			conn, err := grpc.Dial("",
-				grpc.WithTransportCredentials(transportCreds), 
+				grpc.WithTransportCredentials(transportCreds),
 				grpc.WithDialer(prefaceLis.DialEla))
 			Expect(err).NotTo(HaveOccurred())
 			defer conn.Close()

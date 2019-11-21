@@ -92,7 +92,11 @@ func runServer(ctx context.Context) error {
 		return err
 	}
 	lis := &progutil.DialListener{RemoteAddr: addr, Name: "ELA"}
-	defer lis.Close()
+	defer func() {
+		if err1 := lis.Close(); err1 != nil {
+			log.Errf("Failed to close ELA listener: %v", err1)
+		}
+	}()
 
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
 

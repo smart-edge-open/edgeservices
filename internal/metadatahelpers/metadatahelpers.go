@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 
@@ -64,7 +65,7 @@ func loadFile(filePath string) []byte {
 		ginkgo.Fail("Filepath parameter is empty")
 	}
 
-	bytes, err := ioutil.ReadFile(filePath)
+	bytes, err := ioutil.ReadFile(filepath.Clean(filePath))
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to read metadata file from: %s "+
 			"because: %v", filePath, err))

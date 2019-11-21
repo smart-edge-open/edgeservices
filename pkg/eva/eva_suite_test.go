@@ -39,7 +39,7 @@ var (
 	evaStartTimeout = time.Duration(10) // Starting EVA timeout in seconds
 	srvCtx          context.Context     // Context for EVA
 	srvCancel       context.CancelFunc
-	prefaceLis		*progutil.PrefaceListener
+	prefaceLis      *progutil.PrefaceListener
 )
 
 // It tak some time for EVA to start services
@@ -144,7 +144,7 @@ func stopEVA(stopIndication chan bool) {
 // defer prefaceLis.Close()
 // defer conn.Close()
 func createConnection() (*grpc.ClientConn, context.CancelFunc) {
-	
+
 	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(),
 		10*time.Second)
 
@@ -166,7 +166,7 @@ func TestEdgeVirtualizationAgent(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	log.SetOutput(GinkgoWriter)
-	
+
 	lis, err := net.Listen("tcp", "127.0.0.1:8081")
 	if err != nil {
 		Fail(fmt.Sprintf("Failed to create server: %v", err))

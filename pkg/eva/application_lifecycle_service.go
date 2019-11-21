@@ -156,8 +156,8 @@ func (c ContainerHandler) RestartHandler(ctx context.Context,
 	return nil
 }
 
-func waitForDomStateChange(dom wrappers.DomainInterface, 
-	expected libvirt.DomainState,timeoutDuration time.Duration) (bool, error) {
+func waitForDomStateChange(dom wrappers.DomainInterface,
+	expected libvirt.DomainState, timeoutDuration time.Duration) (bool, error) {
 
 	tout := time.After(timeoutDuration)
 
@@ -304,7 +304,7 @@ func (v VMHandler) RestartHandler(ctx context.Context,
 	return nil
 }
 
-func startVM(d wrappers.DomainInterface, timeout time.Duration, 
+func startVM(d wrappers.DomainInterface, timeout time.Duration,
 	v VMHandler) error {
 	if err := d.Create(); err != nil {
 		return err

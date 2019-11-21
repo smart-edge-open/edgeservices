@@ -39,6 +39,7 @@ import (
 
 const (
 	Name1Prod1 = "namespace-1:producer-1"
+	Name1Prod2 = "namespace-1:producer-2"
 	Name1Cons1 = "namespace-1:testAppID-1"
 	Name1Cons2 = "namespace-1:testAppID-2"
 )
@@ -1061,7 +1062,7 @@ var _ = Describe("ApiEaa", func() {
 
 			BeforeEach(func() {
 				prodCertTempl2 := GetCertTempl()
-				prodCertTempl2.Subject.CommonName = "namespace-1:producer-2"
+				prodCertTempl2.Subject.CommonName = Name1Prod2
 				prodCert2, prodCertPool2 = generateSignedClientCert(
 					&prodCertTempl2)
 			})
@@ -1801,8 +1802,7 @@ var _ = Describe("ApiEaa", func() {
 				Context("one namespace", func() {
 					BeforeEach(func() {
 						prodCertTempl2 = GetCertTempl()
-						prodCertTempl2.Subject.CommonName =
-							"namespace-1:producer-2"
+						prodCertTempl2.Subject.CommonName = Name1Prod2
 					})
 
 					Specify("Namespace Notification: 1 Event from 2 Producers"+
@@ -2252,7 +2252,7 @@ var _ = Describe("ApiEaa", func() {
 
 				BeforeEach(func() {
 					prodCertTempl2 := GetCertTempl()
-					prodCertTempl2.Subject.CommonName = "namespace-1:producer-2"
+					prodCertTempl2.Subject.CommonName = Name1Prod2
 					prodCert2, prodCertPool2 = generateSignedClientCert(
 						&prodCertTempl2)
 				})

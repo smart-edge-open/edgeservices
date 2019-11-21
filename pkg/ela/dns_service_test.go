@@ -87,6 +87,7 @@ var _ = Describe("DnsService gRPC Server", func() {
 			It("responds with no error", func() {
 
 				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				Expect(err).ShouldNot(HaveOccurred())
 				prefaceLis := progutil.NewPrefaceListener(lis)
 				defer prefaceLis.Close()
 				go prefaceLis.Accept() // we only expect 1 connection
@@ -94,7 +95,7 @@ var _ = Describe("DnsService gRPC Server", func() {
 				// OP-1742: ContextDialler not supported by Gateway
 				//nolint:staticcheck
 				conn, err := grpc.Dial("",
-					grpc.WithTransportCredentials(transportCreds), 
+					grpc.WithTransportCredentials(transportCreds),
 					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
@@ -115,6 +116,7 @@ var _ = Describe("DnsService gRPC Server", func() {
 		Context("with wrong arguments", func() {
 			It("responds with error", func() {
 				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				Expect(err).ShouldNot(HaveOccurred())
 				prefaceLis := progutil.NewPrefaceListener(lis)
 				defer prefaceLis.Close()
 				go prefaceLis.Accept() // we only expect 1 connection
@@ -122,7 +124,7 @@ var _ = Describe("DnsService gRPC Server", func() {
 				// OP-1742: ContextDialler not supported by Gateway
 				//nolint:staticcheck
 				conn, err := grpc.Dial("",
-					grpc.WithTransportCredentials(transportCreds), 
+					grpc.WithTransportCredentials(transportCreds),
 					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
@@ -147,6 +149,7 @@ var _ = Describe("DnsService gRPC Server", func() {
 			It("responds with no error", func() {
 
 				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				Expect(err).ShouldNot(HaveOccurred())
 				prefaceLis := progutil.NewPrefaceListener(lis)
 				defer prefaceLis.Close()
 				go prefaceLis.Accept() // we only expect 1 connection
@@ -154,7 +157,7 @@ var _ = Describe("DnsService gRPC Server", func() {
 				// OP-1742: ContextDialler not supported by Gateway
 				//nolint:staticcheck
 				conn, err := grpc.Dial("",
-					grpc.WithTransportCredentials(transportCreds), 
+					grpc.WithTransportCredentials(transportCreds),
 					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()

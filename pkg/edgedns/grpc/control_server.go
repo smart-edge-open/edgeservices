@@ -61,7 +61,7 @@ func readPKI(crtPath, keyPath,
 	}
 
 	certPool := x509.NewCertPool()
-	ca, err := ioutil.ReadFile(caPath)
+	ca, err := ioutil.ReadFile(filepath.Clean(caPath))
 	if err != nil {
 		return nil, fmt.Errorf("Failed read ca certificates: %v", err)
 	}

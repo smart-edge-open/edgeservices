@@ -30,8 +30,8 @@ import (
 	"github.com/otcshare/edgenode/pkg/util"
 )
 
-// ServiceStartFunction is func typedef for starting service
-type ServiceStartFunction func(context.Context, string) error
+// StartFunction is func typedef for starting service
+type StartFunction func(context.Context, string) error
 
 // EnrollConfig is struct that stores configuration of enrollment read from json file
 type EnrollConfig struct {
@@ -110,8 +110,8 @@ func WaitForServices(wg *sync.WaitGroup,
 	}
 }
 
-// RunRunServicesSer starts the services provided in slice
-func RunServices(services []ServiceStartFunction) bool {
+// RunServices starts the services provided in slice
+func RunServices(services []StartFunction) bool {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
@@ -134,7 +134,7 @@ func RunServices(services []ServiceStartFunction) bool {
 
 		Log.Infof("Starting: %v", srvName)
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, start ServiceStartFunction, cfg string) {
+		go func(wg *sync.WaitGroup, start StartFunction, cfg string) {
 			defer wg.Done()
 			err := start(ctx, cfg)
 			results <- err

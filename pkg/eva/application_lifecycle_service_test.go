@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"errors"
 	libvirt "github.com/libvirt/libvirt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,7 +30,6 @@ import (
 	"github.com/otcshare/edgenode/pkg/eva"
 	evapb "github.com/otcshare/edgenode/pkg/eva/pb"
 	"google.golang.org/grpc"
-	"errors"
 )
 
 var _ = Describe("ApplicationLifecycleService", func() {
@@ -59,7 +59,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 		Context("with no application deployed", func() {
 			It("responds with error", func() {
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -122,7 +122,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":2}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()		
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -162,7 +162,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -201,7 +201,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -244,7 +244,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":2}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -266,7 +266,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 				Expect(status.Status).To(Equal(evapb.LifecycleStatus_RUNNING))
 			})
 
-			It("responds with connection create error", func() {		
+			It("responds with connection create error", func() {
 				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
 				stubs.ConnStub.ConnCreateErr = errors.New("Conn create error")
 
@@ -284,21 +284,21 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":2}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
 				ctx, close := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer close()
-				
-				cmd := evapb.LifecycleCommand{Id: "testapp", 
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_START}
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
-				Expect(err)			
+				Expect(err)
 			})
 
-			It("responds with connection close error", func() {		
+			It("responds with connection close error", func() {
 				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
 				stubs.ConnStub.ConnCloseErr = errors.New("Conn close error")
 
@@ -316,23 +316,23 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":2}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
 				ctx, close := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer close()
-				
-				cmd := evapb.LifecycleCommand{Id: "testapp", 
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_START}
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
-				Expect(err)			
+				Expect(err)
 			})
 
 			It("responds with LookupDomainByName error", func() {
 				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
-				stubs.ConnStub.DomByNameErr = 
+				stubs.ConnStub.DomByNameErr =
 					errors.New("LookupDomainByName error")
 
 				stubs.DomStub.DomState = libvirt.DOMAIN_RUNNING
@@ -349,18 +349,18 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":2}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
 				ctx, close := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer close()
-				
-				cmd := evapb.LifecycleCommand{Id: "testapp", 
+
+				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_START}
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
-				Expect(err)			
+				Expect(err)
 			})
 
 			It("responds with application type identification failed", func() {
@@ -380,18 +380,18 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":2}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
 				ctx, close := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer close()
-				
+
 				//command without parameters
-				cmd := evapb.LifecycleCommand{} 
+				cmd := evapb.LifecycleCommand{}
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
-				Expect(err)	
+				Expect(err)
 			})
 		})
 	})
@@ -415,7 +415,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -438,7 +438,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 			})
 
 			It("responds with connection create error", func() {
-			
+
 				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
 				stubs.ConnStub.ConnCreateErr = errors.New("Conn create error")
 
@@ -489,7 +489,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -506,7 +506,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 			It("responds with LookupDomainByName error", func() {
 
 				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
-				stubs.ConnStub.DomByNameErr = 
+				stubs.ConnStub.DomByNameErr =
 					errors.New("LookupDomainByName error")
 
 				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
@@ -523,7 +523,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -556,7 +556,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()		
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -589,7 +589,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -621,7 +621,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -655,7 +655,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -695,7 +695,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -727,7 +727,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -743,7 +743,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 			It("responds with LookupDomainByName error", func() {
 				eva.CreateLibvirtConnection = stubs.CreateLibvirtConnectionStub
-				stubs.ConnStub.DomByNameErr = 
+				stubs.ConnStub.DomByNameErr =
 					errors.New("LookupDomainByName error")
 
 				stubs.DomStub.DomState = libvirt.DOMAIN_SHUTDOWN
@@ -760,7 +760,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -792,7 +792,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -823,7 +823,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					"name":"testapp","status":4}}`)
 
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -837,5 +837,5 @@ var _ = Describe("ApplicationLifecycleService", func() {
 			})
 		})
 	})
-	
+
 })

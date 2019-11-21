@@ -29,12 +29,11 @@ import (
 	"github.com/otcshare/edgenode/internal/metadatahelpers"
 	"github.com/otcshare/edgenode/internal/stubs"
 	"github.com/otcshare/edgenode/internal/wrappers"
+	"github.com/otcshare/edgenode/pkg/eva"
 	evapb "github.com/otcshare/edgenode/pkg/eva/pb"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
-	"github.com/otcshare/edgenode/pkg/eva"
 )
-
 
 var _ = Describe("EVA: Docker tests", func() {
 
@@ -43,7 +42,7 @@ var _ = Describe("EVA: Docker tests", func() {
 	BeforeEach(func() {
 		err := runEVA("testdata/eva.json", stopInd)
 		Expect(err).ToNot(HaveOccurred())
-	
+
 		stubs.HTTPCliStub = stubs.HTTPClientStub{}
 		stubs.DockerCliStub = stubs.DockerClientStub{}
 	})
@@ -56,7 +55,7 @@ var _ = Describe("EVA: Docker tests", func() {
 		Expect(err2).ToNot(HaveOccurred())
 		err2 = os.RemoveAll(cfgFile.AppImageDir)
 		Expect(err2).ToNot(HaveOccurred())
-			
+
 	})
 
 	When("DeployContainer is called", func() {
@@ -77,7 +76,7 @@ var _ = Describe("EVA: Docker tests", func() {
 
 				// Create connection
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -126,7 +125,7 @@ var _ = Describe("EVA: Docker tests", func() {
 
 				// Create connection
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()	
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -165,8 +164,8 @@ var _ = Describe("EVA: Docker tests", func() {
 						StatusCode: 200, Proto: "HTTP/1.1", ProtoMajor: 1,
 						ProtoMinor: 1, Body: body, ContentLength: 11}
 					body2 := ioutil.NopCloser(strings.NewReader(
-						`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23`+
-						`bf663ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
+						`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23` +
+							`bf663ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
 					stubs.DockerCliStub.ImLoadResp = types.ImageLoadResponse{
 						Body: body2, JSON: false}
 
@@ -199,7 +198,7 @@ var _ = Describe("EVA: Docker tests", func() {
 
 					// Verify status after deployment
 					appid := evapb.ApplicationID{Id: "test-app-deploy"}
-					alsClient := 
+					alsClient :=
 						evapb.NewApplicationLifecycleServiceClient(conn)
 					status, err := alsClient.GetStatus(ctx, &appid,
 						grpc.WaitForReady(true))
@@ -215,11 +214,11 @@ var _ = Describe("EVA: Docker tests", func() {
 						StatusCode: 200, Proto: "HTTP/1.1", ProtoMajor: 1,
 						ProtoMinor: 1, Body: body, ContentLength: 11}
 					body2 := ioutil.NopCloser(strings.NewReader(
-						`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23`+
-						`bf663ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
+						`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23` +
+							`bf663ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
 					stubs.DockerCliStub.ImLoadResp = types.ImageLoadResponse{
 						Body: body2, JSON: true}
-					stubs.DockerCliStub.CCreateErr = 
+					stubs.DockerCliStub.CCreateErr =
 						errors.New("ContainerCreate Failed")
 					wrappers.CreateHTTPClient = stubs.CreateHTTPClientStub
 					wrappers.CreateDockerClient = stubs.CreateDockerClientStub
@@ -250,7 +249,7 @@ var _ = Describe("EVA: Docker tests", func() {
 
 					// Verify status after deployment
 					appid := evapb.ApplicationID{Id: "test-app-deploy"}
-					alsClient := 
+					alsClient :=
 						evapb.NewApplicationLifecycleServiceClient(conn)
 					status, err := alsClient.GetStatus(ctx, &appid,
 						grpc.WaitForReady(true))
@@ -295,7 +294,7 @@ var _ = Describe("EVA: Docker tests", func() {
 
 				// Create connection
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()			
+				defer cancelTimeout()
 				defer conn.Close()
 
 				uri := evapb.Application_HttpUri{
@@ -355,7 +354,7 @@ var _ = Describe("EVA: Docker tests", func() {
 
 				// Create connection
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()				
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -413,7 +412,7 @@ var _ = Describe("EVA Libvirt tests", func() {
 
 				// Create connection
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()				
+				defer cancelTimeout()
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -500,7 +499,7 @@ var _ = Describe("EVA Libvirt tests", func() {
 	When("Redeploy is called", func() {
 		Context("for vm with correct arguments", func() {
 			It("responds with no error", func() {
-				
+
 				body := ioutil.NopCloser(strings.NewReader("TEST IMAGE"))
 				stubs.HTTPCliStub.HTTPResp = http.Response{Status: "200 OK",
 					StatusCode: 200, Proto: "HTTP/1.1", ProtoMajor: 1,
@@ -527,7 +526,7 @@ var _ = Describe("EVA Libvirt tests", func() {
 
 				// Create connection
 				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()				
+				defer cancelTimeout()
 				defer conn.Close()
 
 				uri := evapb.Application_HttpUri{
@@ -561,4 +560,3 @@ var _ = Describe("EVA Libvirt tests", func() {
 		})
 	})
 })
-

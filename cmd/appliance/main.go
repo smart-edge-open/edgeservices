@@ -17,18 +17,18 @@ package main
 import (
 	"os"
 	"time"
-	
+
 	"github.com/otcshare/edgenode/pkg/auth"
 
 	// Imports required to run agents
-	"github.com/otcshare/edgenode/pkg/service"
 	"github.com/otcshare/edgenode/pkg/eda"
 	"github.com/otcshare/edgenode/pkg/ela"
 	"github.com/otcshare/edgenode/pkg/eva"
+	"github.com/otcshare/edgenode/pkg/service"
 )
 
 // EdgeServices array contains function pointers to services start functions
-var EdgeServices = []service.ServiceStartFunction{ela.Run, eva.Run, eda.Run}
+var EdgeServices = []service.StartFunction{ela.Run, eva.Run, eda.Run}
 
 const enrollBackoff = time.Second * 10
 

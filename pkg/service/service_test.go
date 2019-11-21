@@ -69,7 +69,7 @@ func successfulRun(parentCtx context.Context, cfg string) error {
 var _ = Describe("runServices", func() {
 	var (
 		controlAgent fakeAgent
-		controlRun   ServiceStartFunction = controlAgent.run
+		controlRun   StartFunction = controlAgent.run
 	)
 
 	BeforeEach(func() {
@@ -84,7 +84,7 @@ var _ = Describe("runServices", func() {
 	Describe("Starts an Agent that will fail", func() {
 		It("Will return failure and context cancellation will be issued",
 			func() {
-				Expect(RunServices([]ServiceStartFunction{failingRun,
+				Expect(RunServices([]StartFunction{failingRun,
 					successfulRun, controlRun})).Should(BeFalse())
 				Expect(controlAgent.ContextCancelled).Should(BeTrue())
 				Expect(controlAgent.EndedWork).Should(BeFalse())
@@ -95,7 +95,7 @@ var _ = Describe("runServices", func() {
 	Describe("Starts an Agent that will succeed", func() {
 		It("Will return success and other agents will finish work normally",
 			func() {
-				Expect(RunServices([]ServiceStartFunction{successfulRun,
+				Expect(RunServices([]StartFunction{successfulRun,
 					controlRun})).Should(BeTrue())
 				Expect(controlAgent.EndedWork).Should(BeTrue())
 				Expect(controlAgent.ContextCancelled).Should(BeFalse())

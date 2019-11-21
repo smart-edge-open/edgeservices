@@ -39,7 +39,8 @@ var fakeDialEDASet = func(context.Context,
 }
 
 var (
-	fakeMACAddress      = "AA:BB:CC:DD:EE:FF"
+	sampleMACAddress    = "AA:BB:CC:DD:EE:FF"
+	fakeMACAddress      = sampleMACAddress
 	fakeMACAddressError error
 )
 
@@ -54,7 +55,7 @@ func (*fakeMACAddressProvider) GetMacAddress(context.Context,
 var _ = Describe("Application Policy gRPC Server", func() {
 
 	BeforeEach(func() {
-		fakeMACAddress = "AA:BB:CC:DD:EE:FF"
+		fakeMACAddress = sampleMACAddress
 		fakeMACAddressError = nil
 	})
 
@@ -64,6 +65,7 @@ var _ = Describe("Application Policy gRPC Server", func() {
 			ela.MACFetcher = &fakeMACAddressProvider{}
 
 			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			Expect(err).ShouldNot(HaveOccurred())
 			prefaceLis := progutil.NewPrefaceListener(lis)
 			defer prefaceLis.Close()
 			go prefaceLis.Accept() // we only expect 1 connection
@@ -102,12 +104,12 @@ var _ = Describe("Application Policy Server Implementation", func() {
 	service := ela.ApplicationPolicyServiceServerImpl{}
 
 	BeforeEach(func() {
-		fakeMACAddress = "AA:BB:CC:DD:EE:FF"
+		fakeMACAddress = sampleMACAddress
 		fakeMACAddressError = nil
 	})
 
 	AfterEach(func() {
-		fakeMACAddress = "AA:BB:CC:DD:EE:FF"
+		fakeMACAddress = sampleMACAddress
 		fakeMACAddressError = nil
 	})
 

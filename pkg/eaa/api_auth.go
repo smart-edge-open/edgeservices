@@ -89,9 +89,9 @@ func RequestCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if eaaCtx.cfg.ValidationEndpoint != "" {
-		isIPValid, err := validateAppIP(host, eaaCtx.cfg.ValidationEndpoint)
-		if err != nil {
-			log.Errf(fName+"IP address validation failed: %v", err)
+		isIPValid, err1 := validateAppIP(host, eaaCtx.cfg.ValidationEndpoint)
+		if err1 != nil {
+			log.Errf(fName+"IP address validation failed: %v", err1)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

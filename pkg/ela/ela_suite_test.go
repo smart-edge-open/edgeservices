@@ -33,7 +33,7 @@ import (
 )
 
 var (
-	transportCreds  credentials.TransportCredentials
+	transportCreds     credentials.TransportCredentials
 	controllerEndpoint = "127.0.0.1:8081"
 )
 
@@ -65,12 +65,12 @@ func TestEdgeLifecycleAgent(t *testing.T) {
 		srvCancel()
 		<-srvErrChan
 	}()
-	
+
 	//waiting for ela.json
 	for start := time.Now(); time.Since(start) < 3*time.Second; {
 		if ela.Config.ControllerEndpoint != "" {
 			break
-		}	
+		}
 	}
 	Expect(ela.Config.ControllerEndpoint).ToNot(Equal(""))
 
@@ -82,5 +82,5 @@ var _ = BeforeSuite(func() {
 })
 var _ = AfterSuite(func() {
 	os.Remove("ela.json")
-    os.Remove("edgedns_test.sock")
+	os.Remove("edgedns_test.sock")
 })

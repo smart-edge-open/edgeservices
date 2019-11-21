@@ -465,6 +465,7 @@ func isOVSBridgeCreated(o *ovs.Client, name string) (bool, error) {
 func execOvsWithPath(cmd string, args ...string) ([]byte, error) {
 	commands := append(
 		[]string{"--db=unix:" + ovsDbSocket}, args...)
+	// #nosec G204 - This is a workaround to use OVS cli with custom socket file
 	return exec.Command(cmd, commands...).CombinedOutput()
 }
 

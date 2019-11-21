@@ -17,33 +17,31 @@ package main
 import (
 	"flag"
 	"os"
+	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
-	"strings"
-	"os/exec"
 
 	logger "github.com/otcshare/common/log"
 )
 
 var log = logger.DefaultLogger.WithField("hddl", nil)
-var cmd *exec.Cmd
 
 func checkHddlService() {
 	var err error
-	
-	output, err := exec.Command( "ps", "-A" ).Output()
+
+	output, err := exec.Command("ps", "-A").Output()
 	if err != nil {
 		log.Errf("Error executing ps: %+v", err)
 	}
 
-	if strings.Contains(string(output), "autoboot"){
+	if strings.Contains(string(output), "autoboot") {
 		log.Infof("HDDL service is running")
 	} else {
 		log.Infof("HDDL service is not running")
 	}
 }
-
 
 func main() {
 	logLvl := flag.String("log", "info", "Log level.\nSupported values: "+
@@ -69,8 +67,8 @@ func main() {
 	ticker := time.NewTicker(10 * time.Second)
 	done := make(chan bool)
 
-	c := make(chan os.Signal)
-    signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		for {
@@ -83,11 +81,9 @@ func main() {
 		}
 	}()
 
-	select {
-	case sig := <-c:
-		ticker.Stop()
-		done <- true
-		log.Infof("HDDL Service Container received %s signal. Aborting...\n", sig)
-		os.Exit(0)
-	}
+	sig := <-c
+	ticker.Stop()
+	done <- true
+	log.Infof("HDDL Service Container received %s signal. Aborting...\n", sig)
+	os.Exit(0)
 }

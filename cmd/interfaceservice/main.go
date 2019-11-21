@@ -23,7 +23,7 @@ import (
 )
 
 // EdgeServices array contains function pointers to services start functions
-var EdgeServices = []service.ServiceStartFunction{interfaceservice.Run}
+var EdgeServices = []service.StartFunction{interfaceservice.Run}
 
 func main() {
 

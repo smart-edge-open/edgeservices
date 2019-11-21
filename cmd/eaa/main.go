@@ -18,15 +18,15 @@ import (
 	"os"
 
 	// Imports required to run agent
-	"github.com/otcshare/edgenode/pkg/service"
 	"github.com/otcshare/edgenode/pkg/eaa"
+	"github.com/otcshare/edgenode/pkg/service"
 )
 
 // EdgeServices array contains function pointers to services start functions
-var EdgeServices = []service.ServiceStartFunction{eaa.Run}
+var EdgeServices = []service.StartFunction{eaa.Run}
 
 func main() {
-	
+
 	if !service.RunServices(EdgeServices) {
 		os.Exit(1)
 	}

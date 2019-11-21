@@ -216,7 +216,7 @@ func AddRequest(conn NtsConnectionInt, tp *pb.TrafficPolicy) error {
 			LookupKeys: rule.LookupKeys,
 		}
 
-		log.Debugf("Sucessfully added traffic rule: %v for "+
+		log.Debugf("Successfully added traffic rule: %v for "+
 			"mac address: %v", tr.LookupKeys, tr.Mac.String())
 
 		appTrafficPolicy.NtsTrafficRules =
