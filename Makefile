@@ -16,7 +16,7 @@
 
 export GO111MODULE = on
 
-.PHONY: build appliance eaa interfaceservice edgedns clean build-docker lint test help build-docker-hddl hddllog build-docker-fpga-cfg
+.PHONY: build appliance eaa interfaceservice edgedns clean build-docker lint test help build-docker-hddl hddllog build-docker-fpga-cfg build-docker-fpga-opae
 TMP_DIR:=$(shell mktemp -d)
 BUILD_DIR ?=dist
 
@@ -110,6 +110,15 @@ build-docker-fpga-cfg:
 	cd "${TMP_DIR}" && docker build -t fpga-config-utility:1.0 -f Dockerfile_fpga .
 	rm -rf "${TMP_DIR}"
 
+build-docker-fpga-opae:
+	cp build/fpga_opae/Dockerfile "${TMP_DIR}/Dockerfile_opae"
+	cp -r build/fpga_opae/n3000-1-3-5-beta-cfg-2x2x25g-setup.zip "${TMP_DIR}"
+	cp -r build/fpga_opae/n3000-1-3-5-beta-rte-setup.zip "${TMP_DIR}"
+	cp -r build/fpga_opae/expect_script.sh "${TMP_DIR}"
+	cp -r build/fpga_opae/check_if_modules_loaded.sh "${TMP_DIR}"
+	cd "${TMP_DIR}" && docker build -t fpga-opae-pacn3000:1.0 -f Dockerfile_opae .
+	rm -rf "${TMP_DIR}"
+
 run-docker:
 ifeq ($(KUBE_OVN_MODE), False)
 	VER=${VER} docker-compose up appliance nts eaa edgednssvr syslog-ng --no-build
@@ -135,6 +144,7 @@ help:
 	@echo "  build-docker-hddl      to build optional docker image for hddl-service"
 	@echo "  build-docker-biosfw    to build optional docker image for biosfw feature"
 	@echo "  build-docker-fpga-cfg  to build optional docker image for bbdev configuration utility"
+	@echo "  build-docker-fpga-opae to build optional docker image for opae"
 	@echo "  run-docker             to start containers"
 	@echo "  lint                   to run linters and static analysis on the code"
 	@echo "  test                   to run unit tests"
