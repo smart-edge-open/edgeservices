@@ -90,11 +90,13 @@ var _ = Describe("DnsService gRPC Server", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				prefaceLis := progutil.NewPrefaceListener(lis)
 				defer prefaceLis.Close()
+
+				prefaceLis.RegisterHost("127.0.0.1")
 				go prefaceLis.Accept() // we only expect 1 connection
 
 				// OP-1742: ContextDialler not supported by Gateway
 				//nolint:staticcheck
-				conn, err := grpc.Dial("",
+				conn, err := grpc.Dial("127.0.0.1",
 					grpc.WithTransportCredentials(transportCreds),
 					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
@@ -119,11 +121,13 @@ var _ = Describe("DnsService gRPC Server", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				prefaceLis := progutil.NewPrefaceListener(lis)
 				defer prefaceLis.Close()
+
+				prefaceLis.RegisterHost("127.0.0.1")
 				go prefaceLis.Accept() // we only expect 1 connection
 
 				// OP-1742: ContextDialler not supported by Gateway
 				//nolint:staticcheck
-				conn, err := grpc.Dial("",
+				conn, err := grpc.Dial("127.0.0.1",
 					grpc.WithTransportCredentials(transportCreds),
 					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
@@ -152,11 +156,13 @@ var _ = Describe("DnsService gRPC Server", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				prefaceLis := progutil.NewPrefaceListener(lis)
 				defer prefaceLis.Close()
+
+				prefaceLis.RegisterHost("127.0.0.1")
 				go prefaceLis.Accept() // we only expect 1 connection
 
 				// OP-1742: ContextDialler not supported by Gateway
 				//nolint:staticcheck
-				conn, err := grpc.Dial("",
+				conn, err := grpc.Dial("127.0.0.1",
 					grpc.WithTransportCredentials(transportCreds),
 					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())

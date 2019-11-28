@@ -58,8 +58,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 	When("GetStatus is called", func() {
 		Context("with no application deployed", func() {
 			It("responds with error", func() {
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -88,8 +87,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "DockerContainer","App":{"id":"testapp",
 					"name":"testapp","status":2}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -121,8 +119,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "DockerContainer","App":{"id":"testapp",
 					"name":"testapp","status":2}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -138,6 +135,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 				time.Sleep(100 * time.Millisecond)
 
 				appid := evapb.ApplicationID{Id: "testapp"}
+				go prefaceLis.Accept()
 				status, err := client.GetStatus(ctx, &appid,
 					grpc.WaitForReady(true))
 				Expect(err).ToNot(HaveOccurred())
@@ -161,8 +159,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "DockerContainer","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -171,6 +168,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 				defer cancel()
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_STOP}
+				go prefaceLis.Accept()
 				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err).ToNot(HaveOccurred())
 
@@ -200,14 +198,14 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "DockerContainer","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
 				ctx, cancel := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer cancel()
+				go prefaceLis.Accept()
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_RESTART}
 				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
@@ -243,15 +241,14 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":2}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
 				ctx, cancel := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer cancel()
-
+				go prefaceLis.Accept()
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_START}
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
@@ -283,8 +280,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":2}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -294,6 +290,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_START}
+				go prefaceLis.Accept()
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -315,8 +312,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":2}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -326,6 +322,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_START}
+				go prefaceLis.Accept()
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -348,8 +345,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":2}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -359,6 +355,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_START}
+				go prefaceLis.Accept()
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -379,8 +376,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":2}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -390,6 +386,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				//command without parameters
 				cmd := evapb.LifecycleCommand{}
+				go prefaceLis.Accept()
 				_, err := client.Start(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -414,15 +411,14 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
 				ctx, cancel := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer cancel()
-
+				go prefaceLis.Accept()
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_STOP}
 				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
@@ -455,8 +451,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -466,6 +461,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_STOP}
+				go prefaceLis.Accept()
 				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -488,8 +484,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -499,6 +494,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_STOP}
+				go prefaceLis.Accept()
 				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -522,8 +518,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -533,6 +528,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_STOP}
+				go prefaceLis.Accept()
 				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -555,8 +551,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -566,6 +561,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_STOP}
+				go prefaceLis.Accept()
 				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -588,8 +584,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -599,6 +594,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_STOP}
+				go prefaceLis.Accept()
 				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -620,8 +616,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -630,6 +625,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 				defer cancel()
 
 				cmd := evapb.LifecycleCommand{} // command without parameters
+				go prefaceLis.Accept()
 				_, err := client.Stop(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -654,8 +650,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -663,8 +658,10 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					10*time.Second)
 				defer cancel()
 
+				go prefaceLis.Accept()
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_RESTART}
+				go prefaceLis.Accept()
 				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err).ToNot(HaveOccurred())
 
@@ -694,8 +691,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -705,6 +701,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_RESTART}
+				go prefaceLis.Accept()
 				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -726,8 +723,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -737,6 +733,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_RESTART}
+				go prefaceLis.Accept()
 				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -759,8 +756,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -770,6 +766,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_RESTART}
+				go prefaceLis.Accept()
 				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -791,8 +788,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -802,6 +798,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_RESTART}
+				go prefaceLis.Accept()
 				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -822,8 +819,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					`{"Type": "LibvirtDomain","App":{"id":"testapp",
 					"name":"testapp","status":4}}`)
 
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationLifecycleServiceClient(conn)
@@ -832,6 +828,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 				defer cancel()
 
 				cmd := evapb.LifecycleCommand{} // command without parameters
+				go prefaceLis.Accept()
 				_, err := client.Restart(ctx, &cmd, grpc.WaitForReady(true))
 				Expect(err)
 			})

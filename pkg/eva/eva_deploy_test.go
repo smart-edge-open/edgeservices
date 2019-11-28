@@ -75,8 +75,7 @@ var _ = Describe("EVA: Docker tests", func() {
 				wrappers.CreateDockerClient = stubs.CreateDockerClientStub
 
 				// Create connection
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -92,6 +91,7 @@ var _ = Describe("EVA: Docker tests", func() {
 				app := evapb.Application{Id: "test-app-deploy",
 					Cores: 2, Memory: 40, Source: &uri}
 
+				go prefaceLis.Accept()
 				_, err := client.DeployContainer(ctx, &app,
 					grpc.WaitForReady(true))
 				Expect(err).ToNot(HaveOccurred())
@@ -100,6 +100,7 @@ var _ = Describe("EVA: Docker tests", func() {
 
 				// Verify status after deployment
 				appid := evapb.ApplicationID{Id: "test-app-deploy"}
+				go prefaceLis.Accept()
 				alsClient := evapb.NewApplicationLifecycleServiceClient(conn)
 				status, err := alsClient.GetStatus(ctx, &appid,
 					grpc.WaitForReady(true))
@@ -124,8 +125,7 @@ var _ = Describe("EVA: Docker tests", func() {
 				wrappers.CreateDockerClient = stubs.CreateDockerClientStub
 
 				// Create connection
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -149,6 +149,7 @@ var _ = Describe("EVA: Docker tests", func() {
 
 				// Verify status after deployment
 				appid := evapb.ApplicationID{Id: "test-app-deploy"}
+				go prefaceLis.Accept()
 				alsClient := evapb.NewApplicationLifecycleServiceClient(conn)
 				status, err := alsClient.GetStatus(ctx, &appid,
 					grpc.WaitForReady(true))
@@ -173,8 +174,7 @@ var _ = Describe("EVA: Docker tests", func() {
 					wrappers.CreateDockerClient = stubs.CreateDockerClientStub
 
 					// Create connection
-					conn, cancelTimeout := createConnection()
-					defer cancelTimeout()
+					conn := createConnection()
 					defer conn.Close()
 
 					client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -198,6 +198,7 @@ var _ = Describe("EVA: Docker tests", func() {
 
 					// Verify status after deployment
 					appid := evapb.ApplicationID{Id: "test-app-deploy"}
+					go prefaceLis.Accept()
 					alsClient :=
 						evapb.NewApplicationLifecycleServiceClient(conn)
 					status, err := alsClient.GetStatus(ctx, &appid,
@@ -224,8 +225,7 @@ var _ = Describe("EVA: Docker tests", func() {
 					wrappers.CreateDockerClient = stubs.CreateDockerClientStub
 
 					// Create connection
-					conn, cancelTimeout := createConnection()
-					defer cancelTimeout()
+					conn := createConnection()
 					defer conn.Close()
 
 					client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -249,6 +249,7 @@ var _ = Describe("EVA: Docker tests", func() {
 
 					// Verify status after deployment
 					appid := evapb.ApplicationID{Id: "test-app-deploy"}
+					go prefaceLis.Accept()
 					alsClient :=
 						evapb.NewApplicationLifecycleServiceClient(conn)
 					status, err := alsClient.GetStatus(ctx, &appid,
@@ -293,8 +294,7 @@ var _ = Describe("EVA: Docker tests", func() {
 					"TEST IMAGE")
 
 				// Create connection
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				uri := evapb.Application_HttpUri{
@@ -311,6 +311,7 @@ var _ = Describe("EVA: Docker tests", func() {
 				ctx, cancel := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer cancel()
+				go prefaceLis.Accept()
 				_, err := client.Redeploy(ctx, &app, grpc.WaitForReady(true))
 				Expect(err).ToNot(HaveOccurred())
 
@@ -353,14 +354,14 @@ var _ = Describe("EVA: Docker tests", func() {
 					"TEST IMAGE")
 
 				// Create connection
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
 				ctx, cancel := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer cancel()
+				go prefaceLis.Accept()
 				_, err := client.Undeploy(ctx, &appid, grpc.WaitForReady(true))
 				Expect(err).ToNot(HaveOccurred())
 
@@ -411,8 +412,7 @@ var _ = Describe("EVA Libvirt tests", func() {
 					ProtoMinor: 1, Body: body, ContentLength: 11}
 
 				// Create connection
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
@@ -428,6 +428,7 @@ var _ = Describe("EVA Libvirt tests", func() {
 				app := evapb.Application{Id: "test-app-deploy",
 					Cores: 2, Memory: 40, Source: &uri}
 
+				go prefaceLis.Accept()
 				_, err := client.DeployVM(ctx, &app,
 					grpc.WaitForReady(true))
 				Expect(err).ToNot(HaveOccurred())
@@ -472,14 +473,14 @@ var _ = Describe("EVA Libvirt tests", func() {
 					"TEST IMAGE")
 
 				// Create connection
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				client := evapb.NewApplicationDeploymentServiceClient(conn)
 				ctx, cancel := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer cancel()
+				go prefaceLis.Accept()
 				_, err := client.Undeploy(ctx, &appid, grpc.WaitForReady(true))
 				Expect(err).ToNot(HaveOccurred())
 
@@ -525,8 +526,7 @@ var _ = Describe("EVA Libvirt tests", func() {
 					"TEST IMAGE")
 
 				// Create connection
-				conn, cancelTimeout := createConnection()
-				defer cancelTimeout()
+				conn := createConnection()
 				defer conn.Close()
 
 				uri := evapb.Application_HttpUri{
@@ -543,6 +543,7 @@ var _ = Describe("EVA Libvirt tests", func() {
 				ctx, cancel := context.WithTimeout(context.Background(),
 					10*time.Second)
 				defer cancel()
+				go prefaceLis.Accept()
 				_, err := client.Redeploy(ctx, &app, grpc.WaitForReady(true))
 				Expect(err).ToNot(HaveOccurred())
 

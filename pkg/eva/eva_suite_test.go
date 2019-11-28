@@ -140,23 +140,20 @@ func stopEVA(stopIndication chan bool) {
 // createConnection creates all necessary  contexts and connection to EVA
 // Following actions must be added in test to cancel timeout and close listener
 // and connection:
-// defer cancelTimeout()
+//
 // defer prefaceLis.Close()
 // defer conn.Close()
-func createConnection() (*grpc.ClientConn, context.CancelFunc) {
-
-	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(),
-		10*time.Second)
-
+func createConnection() (*grpc.ClientConn) {
+	go prefaceLis.Accept() // Only one connection is expected
 	// OP-1742: ContextDialler not supported by Gateway
 	//nolint:staticcheck
-	conn, err := grpc.DialContext(ctxTimeout, "",
-		grpc.WithTransportCredentials(transportCreds), grpc.WithBlock(),
+	conn, err := grpc.Dial("127.0.0.1",
+		grpc.WithTransportCredentials(transportCreds),
 		grpc.WithDialer(prefaceLis.DialEva))
 	if err != nil {
 		Fail(fmt.Sprintf("Failed to dial EVA: %v", err))
 	}
-	return conn, cancelTimeout
+	return conn
 }
 
 func TestEdgeVirtualizationAgent(t *testing.T) {
@@ -172,8 +169,8 @@ var _ = BeforeSuite(func() {
 		Fail(fmt.Sprintf("Failed to create server: %v", err))
 	}
 	prefaceLis = progutil.NewPrefaceListener(lis)
+	prefaceLis.RegisterHost("127.0.0.1")
 	go prefaceLis.Accept() // Only one connection is expected
-
 })
 
 var _ = AfterSuite(func() {
