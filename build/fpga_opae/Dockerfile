@@ -53,3 +53,6 @@ RUN ./n3000-1.3.5-beta-cfg-*-setup.sh -y
 
 #copy module checking script
 COPY check_if_modules_loaded.sh .
+
+#install pip and intelhex
+RUN easy_install pip && pip install intelhex
