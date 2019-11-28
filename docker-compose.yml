@@ -40,7 +40,7 @@ services:
     environment:
      - SYSLOG_ADDR=syslog.community.appliance.mec
     network_mode: bridge
-  
+
   nts:
     container_name: nts
     build:
@@ -67,12 +67,10 @@ services:
       context: .
       dockerfile: "Dockerfile_eaa"
     image: "eaa:${VER}"
-    privileged: true
     ports:
      - "192.168.122.1:443:443"
      - "192.168.122.1:80:80"
     volumes:
-     - "/sys/devices:/devices"
      - "/var/lib/appliance/certs:/root/certs"
      - "/var/lib/appliance/configs:/root/configs"
     network_mode: bridge
