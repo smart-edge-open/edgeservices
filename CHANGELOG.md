@@ -189,3 +189,15 @@
  - Ansible: Fixed docker-compose up
  - Ansible: Updated Kubernetes version to 1.16.2 and openvswitch to 2.11.4
  
+## [0.7.2] - 2019-10-25
+### Changes:
+ - BIOSFW: Fixed deployment
+ - EVA: Added tests for libvirt deployment and lifecycle
+
+## [] - TO BE RELEASED
+### Features:
+ - SRIOV
+ - Standalone Interface Service
+### Changes:
+ - Ansible: OVS RPM installation fix
+ - EVA: Fixed race condition in tests
