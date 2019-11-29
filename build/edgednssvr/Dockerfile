@@ -14,6 +14,7 @@
 
 FROM alpine:latest
 ENV DNS_FWDR=""
-WORKDIR /home
+WORKDIR /root
 COPY ./edgednssvr .
-ENTRYPOINT ./edgednssvr -port=53 -fwdr=$DNS_FWDR -syslog=$LOCAL_SYSLOG
+ENTRYPOINT ["./edgednssvr"]
+CMD ["-port=53", "-fwdr=$DNS_FWDR"]
