@@ -54,9 +54,8 @@ import (
 
 // DeploySrv describes deplyment
 type DeploySrv struct {
-	cfg    *Config
-	meta   *metadata.AppMetadata
-	hddlIn bool
+	cfg  *Config
+	meta *metadata.AppMetadata
 }
 
 const (
@@ -74,19 +73,14 @@ const (
 var httpMatcher = regexp.MustCompile("^http://.")
 var httpsMatcher = regexp.MustCompile("^https://.")
 
-// detectHDDL detects if HDDL is present and configured: checks if devices exist
-func (s *DeploySrv) detectHDDL() {
-	var hddlPaths = []string{"/dev/ion", "/dev/myriad0"}
+// Tables with the Enhanced App Configuration handlers
+type EACHandler func(string, interface{})
 
-	for _, d := range hddlPaths {
-		if _, err := os.Stat(filepath.Clean(d)); os.IsNotExist(err) {
-			s.hddlIn = false
-			break
-		} else {
-			s.hddlIn = true
-		}
-	}
+var EACHandlersDocker = map[string]EACHandler{
+	"hddl": handleHddl,
 }
+
+var EACHandlersVM = map[string]EACHandler{}
 
 func downloadImage(ctx context.Context, url string,
 	target string) error {
@@ -309,6 +303,55 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
+func handleHddl(value string, genericCfg interface{}) {
+	turnedOn := map[string]bool{"on": true, "yes": true, "enabled": true,
+		"y": true, "true": true}
+	if _, on := turnedOn[strings.ToLower(value)]; !on {
+		return
+	}
+	log.Infof("HDDL requested (%v), adding mappings.", value)
+
+	hostCfg := genericCfg.(*container.HostConfig)
+	devIon := container.DeviceMapping{
+		PathOnHost:        "/dev/ion",
+		PathInContainer:   "/dev/ion",
+		CgroupPermissions: "rmw",
+	}
+	hostCfg.Resources.Devices = append(hostCfg.Resources.Devices, devIon)
+	hostCfg.Binds = append(hostCfg.Binds, "/var/tmp:/var/tmp")
+}
+
+type EPAFeature struct {
+	Key   string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+// This function will go through all the entries in our EPAFeatures
+// table and find any keys for which we have registered handlers.
+// If match is found, it will call the handler with the value
+// as entered on the UI. (EPA Feature Value)
+func processEAC(EACJson string, EACHandlers map[string]EACHandler,
+	genericCfg interface{}) {
+	var EPAFeatures []EPAFeature
+
+	if err := json.Unmarshal([]byte(EACJson), &EPAFeatures); err != nil {
+		log.Errf("Failed unmarshall'ing EPAFeatures json: %v", err)
+		return
+	}
+	log.Debugf("Unmarshalled EPAFeatures: %+v", EPAFeatures)
+
+	for _, entry := range EPAFeatures {
+		log.Debugf("processing EAC key %v (val=%v)", entry.Key, entry.Value)
+
+		// If the handler for key is found, call it with the value
+		handler, ok := EACHandlers[entry.Key]
+		if ok {
+			log.Debugf("calling handler for %v", entry.Key)
+			handler(entry.Value, genericCfg)
+		}
+	}
+}
+
 func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	dapp *metadata.DeployedApp) {
 
@@ -352,30 +395,23 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	}
 
 	// Now create a container out of the image
-	devIon := container.DeviceMapping{
-		PathOnHost:        "/dev/ion",
-		PathInContainer:   "/dev/ion",
-		CgroupPermissions: "rmw",
-	}
-	var hddlDevices []container.DeviceMapping
-	var hddlBinds []string
-	if s.hddlIn {
-		hddlDevices = []container.DeviceMapping{devIon}
-		hddlBinds = []string{"/var/tmp:/var/tmp"}
-	}
+
 	nanoCPUs := int64(dapp.App.Cores) * 1e9 // convert CPUs to NanoCPUs
 	resources := container.Resources{
 		Memory:   int64(dapp.App.Memory) * 1024 * 1024,
 		NanoCPUs: nanoCPUs,
-		Devices:  hddlDevices,
 	}
+	hostCfg := container.HostConfig{
+		Resources: resources,
+		CapAdd:    []string{"NET_ADMIN"}}
+
+	// Update hostCfg based on EAC configuration
+	processEAC(dapp.App.EACJsonBlob, EACHandlersDocker, &hostCfg)
+	log.Debugf("hostCfg: %+v", hostCfg)
+
 	respCreate, err := docker.ContainerCreate(ctx,
 		&container.Config{Image: dapp.App.Id},
-		&container.HostConfig{
-			Resources: resources,
-			Binds:     hddlBinds,
-			CapAdd:    []string{"NET_ADMIN"}},
-		nil, dapp.App.Id)
+		&hostCfg, nil, dapp.App.Id)
 
 	if err != nil {
 		log.Errf("docker.ContainerCreate failed: %+v", err)
@@ -665,7 +701,8 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 			return
 		}
 	}
-
+	// Update domcfg based on EAC configuration
+	processEAC(dapp.App.EACJsonBlob, EACHandlersVM, &domcfg)
 	xmldoc, err := domcfg.Marshal()
 	if err != nil {
 		dapp.App.Status = pb.LifecycleStatus_ERROR
