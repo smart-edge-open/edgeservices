@@ -6,7 +6,7 @@
     "Certs": {
         "CaRootKeyPath": "certs/eaa/rootCA.key",
         "CaRootPath": "certs/eaa/rootCA.pem",
-        "ServerCertPath": "certs/eaa/server.crt",
+        "ServerCertPath": "certs/eaa/server.pem",
         "ServerKeyPath": "certs/eaa/server.key",
         "CommonName": "eaa.community.appliance.mec"
     }

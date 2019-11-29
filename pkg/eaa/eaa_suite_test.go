@@ -405,7 +405,7 @@ var _ = BeforeSuite(func() {
 
 	tempConfCaRootKeyPath = tempdir + "/" + "certs/eaa/rootCA.key"
 	tempConfCaRootPath = tempdir + "/" + "certs/eaa/rootCA.pem"
-	tempConfServerCertPath = tempdir + "/" + "certs/eaa/server.crt"
+	tempConfServerCertPath = tempdir + "/" + "certs/eaa/server.pem"
 	tempConfServerKeyPath = tempdir + "/" + "certs/eaa/server.key"
 
 	generateConfigs()
