@@ -17,4 +17,4 @@ ENV DNS_FWDR=""
 WORKDIR /root
 COPY ./edgednssvr .
 ENTRYPOINT ["./edgednssvr"]
-CMD ["-port=53", "-fwdr=$DNS_FWDR"]
+CMD ["-port=53", "-fwdr=$DNS_FWDR", "-syslog=$LOCAL_SYSLOG"]
