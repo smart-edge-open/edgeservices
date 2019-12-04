@@ -143,7 +143,7 @@ func stopEVA(stopIndication chan bool) {
 //
 // defer prefaceLis.Close()
 // defer conn.Close()
-func createConnection() (*grpc.ClientConn) {
+func createConnection() *grpc.ClientConn {
 	go prefaceLis.Accept() // Only one connection is expected
 	// OP-1742: ContextDialler not supported by Gateway
 	//nolint:staticcheck

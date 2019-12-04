@@ -73,13 +73,15 @@ const (
 var httpMatcher = regexp.MustCompile("^http://.")
 var httpsMatcher = regexp.MustCompile("^https://.")
 
-// Tables with the Enhanced App Configuration handlers
+// EACHandler - the type for the generic Enhanced App Confuration handler
 type EACHandler func(string, interface{})
 
+// EACHandlersDocker - Table of EACHandlers for the Docker backend
 var EACHandlersDocker = map[string]EACHandler{
 	"hddl": handleHddl,
 }
 
+// EACHandlersVM - Table of EACHandlers for the Libvirt backend
 var EACHandlersVM = map[string]EACHandler{}
 
 func downloadImage(ctx context.Context, url string,
@@ -321,6 +323,8 @@ func handleHddl(value string, genericCfg interface{}) {
 	hostCfg.Binds = append(hostCfg.Binds, "/var/tmp:/var/tmp")
 }
 
+// EPAFeature - we get an array of those in API calls from controller
+// Key is used to lookup the proper EACHandler, value is handler specific
 type EPAFeature struct {
 	Key   string `json:"key,omitempty"`
 	Value string `json:"value,omitempty"`
