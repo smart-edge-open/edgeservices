@@ -14,7 +14,7 @@
 
 FROM centos:7.6.1810
 
-RUN yum upgrade ca-certificates && \
+RUN yum upgrade -y ca-certificates && \
     yum install -y epel-release && \
     yum install -y numactl-devel libhugetlbfs-utils iproute python python-pip && \
     pip install docker && \
