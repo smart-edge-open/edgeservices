@@ -52,7 +52,7 @@ import (
 )
 
 // EaaCommonName Common Name that EAA uses for TLS connection
-const EaaCommonName string = "eaa.community.appliance.mec"
+const EaaCommonName string = "eaa.openness"
 
 // To pass configuration file path use ginkgo pass-through argument
 // ginkgo -r -v -- -cfg=myconfig.json

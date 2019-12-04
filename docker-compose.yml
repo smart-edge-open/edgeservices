@@ -38,7 +38,7 @@ services:
      - "/var/lib/appliance/applications:/var/lib/appliance/applications"
      - "/usr/local/var/run/openvswitch:/usr/local/var/run/openvswitch"
     environment:
-     - SYSLOG_ADDR=syslog.community.appliance.mec
+     - SYSLOG_ADDR=syslog.openness
     network_mode: bridge
 
   nts:
@@ -104,7 +104,7 @@ services:
 
     command: "--no-caps"
     extra_hosts:
-      - "syslog.community.controller.mec:${REMOTE_SYSLOG_IP}"
+      - "syslog.controller.openness:${REMOTE_SYSLOG_IP}"
     ports:
       - "192.168.122.1:514:514/udp"
     network_mode: bridge

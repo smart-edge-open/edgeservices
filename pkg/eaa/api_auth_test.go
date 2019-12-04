@@ -253,7 +253,7 @@ func replaceEAACert(start time.Time, stop time.Time) {
 		SerialNumber: big.NewInt(1658),
 		Subject: pkix.Name{
 			Organization: []string{"Test Authority"},
-			CommonName:   "test.eaa.community.appliance.mec",
+			CommonName:   "test.eaa.openness",
 		},
 		NotBefore:    start,
 		NotAfter:     stop,

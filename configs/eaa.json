@@ -1,13 +1,13 @@
 {
     "TlsEndpoint": ":443",
     "OpenEndpoint": ":80",
-    "ValidationEndpoint": "eva.community.appliance.mec:42103",
+    "ValidationEndpoint": "eva.openness:42103",
     "HeartbeatInterval": "60s",
     "Certs": {
         "CaRootKeyPath": "certs/eaa/rootCA.key",
         "CaRootPath": "certs/eaa/rootCA.pem",
         "ServerCertPath": "certs/eaa/server.pem",
         "ServerKeyPath": "certs/eaa/server.key",
-        "CommonName": "eaa.community.appliance.mec"
+        "CommonName": "eaa.openness"
     }
 }

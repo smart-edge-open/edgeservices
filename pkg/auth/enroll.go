@@ -48,8 +48,8 @@ const (
 
 // Community edition controller server names
 const (
-	ControllerServerName = "v1.community.controller.mec"
-	EnrollServerName     = "v1.enroll.community.controller.mec"
+	ControllerServerName = "controller.openness"
+	EnrollServerName     = "enroll.controller.openness"
 )
 
 // credentials stores loaded/received credentials including locally generated
