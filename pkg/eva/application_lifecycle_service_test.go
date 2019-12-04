@@ -67,6 +67,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 				defer cancel()
 
 				appid := evapb.ApplicationID{Id: "testapp"}
+				go prefaceLis.Accept()
 				_, err := client.GetStatus(ctx, &appid, grpc.WaitForReady(true))
 				Expect(err)
 			})
@@ -96,6 +97,7 @@ var _ = Describe("ApplicationLifecycleService", func() {
 				defer cancel()
 
 				appid := evapb.ApplicationID{Id: "testapp"}
+				go prefaceLis.Accept()
 				status, err := client.GetStatus(ctx, &appid,
 					grpc.WaitForReady(true))
 				Expect(err).ToNot(HaveOccurred())
@@ -658,7 +660,6 @@ var _ = Describe("ApplicationLifecycleService", func() {
 					10*time.Second)
 				defer cancel()
 
-				go prefaceLis.Accept()
 				cmd := evapb.LifecycleCommand{Id: "testapp",
 					Cmd: evapb.LifecycleCommand_RESTART}
 				go prefaceLis.Accept()
