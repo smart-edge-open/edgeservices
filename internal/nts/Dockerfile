@@ -20,10 +20,10 @@ RUN yum upgrade ca-certificates && \
     pip install docker && \
     pip install configparser
 
-ADD ./nts/nes-daemon /root/
-ADD ./nts/kni_docker_daemon.py /root/
-ADD ./nts/ovs_docker_daemon.py /root/
-ADD ./nts/entrypoint.sh /root/
-ADD ./nts/libnes_api_shared.so /root/
+COPY ./nts/nes-daemon /root/
+COPY ./nts/kni_docker_daemon.py /root/
+COPY ./nts/ovs_docker_daemon.py /root/
+COPY ./nts/entrypoint.sh /root/
+COPY ./nts/libnes_api_shared.so /root/
 
 ENTRYPOINT ["/root/entrypoint.sh"]
