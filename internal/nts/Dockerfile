@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM centos:7.6.1810
+FROM centos:7.6.1810 AS nts-deps-image
 
 RUN yum upgrade -y ca-certificates && \
     yum install -y epel-release && \
     yum install -y numactl-devel libhugetlbfs-utils iproute python python-pip sudo && \
     pip install docker && \
     pip install configparser
+
+FROM nts-deps-image
 
 ARG username=nts
 ARG user_dir=/home/$username

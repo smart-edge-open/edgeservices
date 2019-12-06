@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM centos:7.6.1810
+FROM centos:7.6.1810 AS eaa-deps-image
 
 RUN yum install -y openssl sudo \
     && yum clean all
+
+FROM eaa-deps-image
 
 ARG username=eaa
 ARG user_dir=/home/$username

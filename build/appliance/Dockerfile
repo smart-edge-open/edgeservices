@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM centos:7.6.1810
+FROM centos:7.6.1810 AS appliance-deps-image
 
 RUN yum install -y libvirt-devel \
         pciutils which \
@@ -20,6 +20,8 @@ RUN yum install -y libvirt-devel \
         sudo \
     && yum clean all
 RUN rpm -ivh https://github.com/alauda/ovs/releases/download/v2.11.4-1/openvswitch-2.11.4-1.el7.x86_64.rpm
+
+FROM appliance-deps-image
 
 ARG username=appliance
 ARG user_dir=/home/$username
