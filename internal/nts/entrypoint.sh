@@ -35,7 +35,7 @@ sigterm_handler() {
 trap 'sigterm_handler' SIGTERM
 
 umask 002
-exec /root/nes-daemon \
+exec ./nes-daemon \
     -n 4 \
     --lcores='(0,3,4,5)@0,1@3,2@4' \
     --huge-dir /hugepages \
@@ -45,12 +45,12 @@ exec /root/nes-daemon \
     /var/lib/appliance/nts/nts.cfg &
 nts_pid="$!"
 
-exec /root/kni_docker_daemon.py \
-    --library /root/libnes_api_shared.so \
+exec ./kni_docker_daemon.py \
+    --library ./libnes_api_shared.so \
     --config /var/lib/appliance/nts/nts.cfg &
 kni_pid="$!"
 
-exec /root/ovs_docker_daemon.py \
+exec ./ovs_docker_daemon.py \
     --bridge ${OVS_BRIDGE_NAME} \
     --enable ${OVS_ENABLED} &
 ovs_pid="$!"

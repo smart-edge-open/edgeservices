@@ -16,14 +16,25 @@ FROM centos:7.6.1810
 
 RUN yum upgrade -y ca-certificates && \
     yum install -y epel-release && \
-    yum install -y numactl-devel libhugetlbfs-utils iproute python python-pip && \
+    yum install -y numactl-devel libhugetlbfs-utils iproute python python-pip sudo && \
     pip install docker && \
     pip install configparser
 
-COPY ./nts/nes-daemon /root/
-COPY ./nts/kni_docker_daemon.py /root/
-COPY ./nts/ovs_docker_daemon.py /root/
-COPY ./nts/entrypoint.sh /root/
-COPY ./nts/libnes_api_shared.so /root/
+ARG username=nts
+ARG user_dir=/home/$username
 
-ENTRYPOINT ["/root/entrypoint.sh"]
+RUN useradd -d $user_dir -m -s /bin/bash $username
+RUN groupadd sudo
+RUN usermod -aG sudo $username
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+USER $username
+WORKDIR $user_dir
+
+COPY ./nts/nes-daemon ./
+COPY ./nts/kni_docker_daemon.py ./
+COPY ./nts/ovs_docker_daemon.py ./
+COPY ./nts/entrypoint.sh ./
+COPY ./nts/libnes_api_shared.so ./
+
+ENTRYPOINT ["sudo", "./entrypoint.sh"]

@@ -28,5 +28,18 @@ RUN cd inih/extra && make -f Makefile.static && cp ../ini.h .
 RUN make
 
 FROM centos:7.6.1810
-WORKDIR /root/
+
+RUN yum install -y sudo
+
+ARG username=fpga_config
+ARG user_dir=/home/$username
+
+RUN useradd -d $user_dir -m -s /bin/bash $username
+RUN groupadd sudo
+RUN usermod -aG sudo $username
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+USER $username
+WORKDIR $user_dir
+
 COPY --from=builder /root/bbdev_config/config_bbdev .

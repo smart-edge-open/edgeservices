@@ -229,7 +229,7 @@ func rebindDevices(pcis []string,
 	}
 
 	// #nosec G204 - bindParams controlled and checked above
-	cmd := exec.Command("/root/dpdk-devbind.py", bindParams...)
+	cmd := exec.Command("./dpdk-devbind.py", bindParams...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 

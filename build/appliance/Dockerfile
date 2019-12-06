@@ -17,13 +17,23 @@ FROM centos:7.6.1810
 RUN yum install -y libvirt-devel \
         pciutils which \
         unbound openssl \
+        sudo \
     && yum clean all
 RUN rpm -ivh https://github.com/alauda/ovs/releases/download/v2.11.4-1/openvswitch-2.11.4-1.el7.x86_64.rpm
 
-WORKDIR /root/
+ARG username=appliance
+ARG user_dir=/home/$username
 
-COPY ./appliance .
-COPY ./dpdk-devbind.py .
-COPY ./entrypoint.sh .
+RUN useradd -d $user_dir -m -s /bin/bash $username
+RUN groupadd sudo
+RUN usermod -aG sudo $username
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-CMD ["./entrypoint.sh"]
+USER $username
+WORKDIR $user_dir
+
+COPY ./appliance ./
+COPY ./dpdk-devbind.py ./
+COPY ./entrypoint.sh ./
+
+CMD ["sudo", "./entrypoint.sh"]

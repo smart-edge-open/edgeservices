@@ -19,6 +19,8 @@ services:
     build:
       context: .
       dockerfile: "Dockerfile_appliance"
+      args:
+        username: appliance
     image: "appliance:${VER}"
     privileged: true
     ports:
@@ -33,8 +35,8 @@ services:
      - "/var/run/docker/netns:/var/run/docker/netns"
      - "/sys/class/net:/var/host_net_devices"
      - "/sys/devices:/devices"
-     - "/var/lib/appliance/certs:/root/certs"
-     - "/var/lib/appliance/configs:/root/configs"
+     - "/var/lib/appliance/certs:/home/appliance/certs"
+     - "/var/lib/appliance/configs:/home/appliance/configs"
      - "/var/lib/appliance/applications:/var/lib/appliance/applications"
      - "/usr/local/var/run/openvswitch:/usr/local/var/run/openvswitch"
     environment:
@@ -46,6 +48,8 @@ services:
     build:
       context: .
       dockerfile: "Dockerfile_nts"
+      args:
+        username: nts
     image: "nts:${VER}"
     privileged: true
     volumes:
@@ -66,13 +70,15 @@ services:
     build:
       context: .
       dockerfile: "Dockerfile_eaa"
+      args:
+        username: eaa
     image: "eaa:${VER}"
     ports:
      - "192.168.122.1:443:443"
      - "192.168.122.1:80:80"
     volumes:
-     - "/var/lib/appliance/certs:/root/certs"
-     - "/var/lib/appliance/configs:/root/configs"
+     - "/var/lib/appliance/certs:/home/eaa/certs"
+     - "/var/lib/appliance/configs:/home/eaa/configs"
     network_mode: bridge
 
   edgednssvr:
@@ -82,6 +88,8 @@ services:
     build:
       context: .
       dockerfile: "Dockerfile_edgednssvr"
+      args:
+        username: edgednssvr
     image: "edgednssvr:${VER}"
     cap_add:
      - NET_ADMIN
@@ -114,10 +122,12 @@ services:
     build:
       context: .
       dockerfile: "Dockerfile_interfaceservice"
+      args:
+        username: interfaceservice
     image: "interfaceservice:${VER}"
     privileged: true
     volumes:
-     - "/var/lib/appliance/configs:/root/configs"
-     - "/var/lib/appliance/certs:/root/certs"
+     - "/var/lib/appliance/configs:/home/interfaceservice/configs"
+     - "/var/lib/appliance/certs:/home/interfaceservice/certs"
      - "/var/run:/var/run"
     network_mode: host

@@ -13,8 +13,20 @@
 # limitations under the License.
 
 FROM alpine:latest
+
+RUN apk add --no-cache sudo
+
 ENV DNS_FWDR=""
-WORKDIR /root
-COPY ./edgednssvr .
+
+ARG username=edgednssvr
+ARG user_dir=/home/$username
+
+RUN addgroup -S sudo && adduser -S $username -G sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+USER $username
+WORKDIR $user_dir
+
+COPY ./edgednssvr ./
 ENTRYPOINT ["./edgednssvr"]
 CMD ["-port=53", "-fwdr=$DNS_FWDR", "-syslog=$LOCAL_SYSLOG"]
