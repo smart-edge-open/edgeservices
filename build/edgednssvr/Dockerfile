@@ -28,5 +28,5 @@ USER $username
 WORKDIR $user_dir
 
 COPY ./edgednssvr ./
-ENTRYPOINT ["./edgednssvr"]
+ENTRYPOINT ["sudo", "./edgednssvr"]
 CMD ["-port=53", "-fwdr=$DNS_FWDR", "-syslog=$LOCAL_SYSLOG"]
