@@ -51,6 +51,7 @@ services:
       args:
         username: nts
     image: "nts:${VER}"
+    read_only: true
     privileged: true
     volumes:
      - "/dev/hugepages:/hugepages"
@@ -73,6 +74,7 @@ services:
       args:
         username: eaa
     image: "eaa:${VER}"
+    read_only: true
     ports:
      - "192.168.122.1:443:443"
      - "192.168.122.1:80:80"
@@ -91,6 +93,7 @@ services:
       args:
         username: edgednssvr
     image: "edgednssvr:${VER}"
+    read_only: true
     cap_add:
      - NET_ADMIN
     volumes:
@@ -105,6 +108,7 @@ services:
 
   syslog-ng:
     image:  balabit/syslog-ng:3.19.1
+    read_only: true
     volumes:
       - "/var/lib/appliance/configs/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro"
       - "/var/lib/appliance/certs:/etc/syslog-ng/certs:ro"
@@ -125,6 +129,7 @@ services:
       args:
         username: interfaceservice
     image: "interfaceservice:${VER}"
+    read_only: true
     privileged: true
     volumes:
      - "/var/lib/appliance/configs:/home/interfaceservice/configs"
