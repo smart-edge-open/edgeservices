@@ -24,6 +24,8 @@ services:
     image: "hddlservice:${VER}"
     cap_add:
      - SYS_ADMIN
+    sec_opt:
+     - no-new-privileges:false
     devices:
      - "/dev/ion:/dev/ion"
     volumes:

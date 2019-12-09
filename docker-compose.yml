@@ -23,6 +23,8 @@ services:
         username: appliance
     image: "appliance:${VER}"
     privileged: true
+    sec_opt:
+     - no-new-privileges:false
     ports:
      - "42101:42101"
      - "42102:42102"
@@ -53,6 +55,8 @@ services:
     image: "nts:${VER}"
     read_only: true
     privileged: true
+    sec_opt:
+     - no-new-privileges:false
     volumes:
      - "/dev/hugepages:/hugepages"
      - "/var/lib/appliance/nts:/var/lib/appliance/nts"
@@ -75,6 +79,8 @@ services:
         username: eaa
     image: "eaa:${VER}"
     read_only: true
+    sec_opt:
+     - no-new-privileges:false
     ports:
      - "192.168.122.1:443:443"
      - "192.168.122.1:80:80"
@@ -94,6 +100,8 @@ services:
         username: edgednssvr
     image: "edgednssvr:${VER}"
     read_only: true
+    sec_opt:
+     - no-new-privileges:false
     cap_add:
      - NET_ADMIN
     volumes:
@@ -130,6 +138,8 @@ services:
         username: interfaceservice
     image: "interfaceservice:${VER}"
     read_only: true
+    sec_opt:
+     - no-new-privileges:false
     privileged: true
     volumes:
      - "/var/lib/appliance/configs:/home/interfaceservice/configs"
