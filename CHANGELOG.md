@@ -115,7 +115,7 @@
  - Kubernetes integration changes
  - Changed DPDK version from 18.08 to 18.11.2
  - Added support for inter app communication using OVS-dpdk
-  
+
 ## [0.4.0] - 2019-09-13
  - Async deployment
  - Async lifecycle
@@ -150,7 +150,7 @@
  - KNI interface not activated with docker-native mode and nts
  - Minor updates and bugfixes
 
-## [0.4.2] 2019-09-23 
+## [0.4.2] 2019-09-23
  - Install defined Kubernetes packages versions
  - Minor updates and bugfixes
 
@@ -183,21 +183,59 @@
 ### Changes
  - Ansible: Remove applications folder after Docker reinstall
  - Unit tests: Coverage improvement in EVA package
- 
+
 ## [0.7.1] - 2019-10-24
 ### Changes
  - Ansible: Fixed docker-compose up
  - Ansible: Updated Kubernetes version to 1.16.2 and openvswitch to 2.11.4
- 
+
 ## [0.7.2] - 2019-10-25
-### Changes:
+### Changes
  - BIOSFW: Fixed deployment
  - EVA: Added tests for libvirt deployment and lifecycle
 
-## [] - TO BE RELEASED
-### Features:
- - SRIOV
+## [0.8.0] - 2019-10-30
+### Features
  - Standalone Interface Service
-### Changes:
+ - HDDL: Early version
+
+## [0.8.1] - 2019-11-07
+### Changes
  - Ansible: OVS RPM installation fix
  - EVA: Fixed race condition in tests
+ - OnPrem: Changed domain for local service discovery
+
+## [0.9.0] - 2019-11-07
+### Features
+ - HDDL: Updated HDDL installation automation
+
+## [0.10.0] - 2019-11-08
+### Features
+- Topology Manager: Automated setup
+
+## [0.10.1] - 2019-11-15
+### Changes
+ - EAA: Fix common name in KubeOVN mode
+ - edgeDNS: Handling connections with edgeDNS CLI
+ - HDDL: Fixing installation issues
+
+## [0.11.0] - 2019-11-29
+### Features
+ - EVA: Added EAC implementation
+### Changes
+ - Fixed Kubectl authorization bug
+ - EAA: Removed redundant priviledged flag from container
+
+## [0.11.1] - 2019-12-04
+### Changes
+ - edgeDNS: Fixed args in Dockerfile
+ - edgeDNS: Used local syslog as an option
+ - EVA: Fixed tests
+ - Hostnames refactoring
+
+## [0.11.2] - 2019-12-06
+### Changes
+ - NTS: Updated Dockerfile for non-interactive install
+ - Set read-only root file system for OpenNESS containers
+ - Used non-root users for containers
+ - Added multi stage Docker builds for offline package
