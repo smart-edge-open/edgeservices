@@ -265,10 +265,10 @@ func restartDNSAndSetRules(ctx context.Context) error {
 	_, err := updateContainer(ctx, dnsContainerName,
 		container.UpdateConfig{
 			Resources: container.Resources{
-				CPUShares: 1024, // Default value
-				Memory: 134217728, // 128 MiB
+				CPUShares:  1024,      // Default value
+				Memory:     134217728, // 128 MiB
 				MemorySwap: 134217728, // 128 MiB
-				PidsLimit: 100,
+				PidsLimit:  100,
 			},
 		})
 	if err != nil {
@@ -369,10 +369,10 @@ func startNTSandDNS(ctx context.Context) error {
 	_, err := updateContainer(ctx, ntsContainerName,
 		container.UpdateConfig{
 			Resources: container.Resources{
-				CPUShares: 1024, // Default value
-				Memory: 134217728, // 128 MiB
+				CPUShares:  1024,      // Default value
+				Memory:     134217728, // 128 MiB
 				MemorySwap: 134217728, // 128 MiB
-				PidsLimit: 100,
+				PidsLimit:  100,
 			},
 		})
 	if err != nil {
