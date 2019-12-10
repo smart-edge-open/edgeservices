@@ -1,3 +1,6 @@
+SPDX-License-Identifier: Apache-2.0
+Copyright (c) 2019 Intel Corporation
+
 # Contribution Guide
 
 Please consider the following criteria before suggesting or implementing any changes:
