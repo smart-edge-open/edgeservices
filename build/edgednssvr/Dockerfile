@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2019 Intel Corporation
 
-FROM alpine:latest
+FROM alpine:latest AS edgedns-deps-image
 
 RUN apk add --no-cache sudo
+
+FROM edgedns-deps-image
 
 ENV DNS_FWDR=""
 
