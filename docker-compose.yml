@@ -107,11 +107,13 @@ services:
     volumes:
      - "/var/lib/appliance/edgednssvr:/var/lib/edgedns"
      - "/run:/run"
+    command:
+     - "-port=53"
+     - "-fwdr=8.8.8.8"
+     - "-syslog=192.168.122.1:514"
     environment:
      - http_proxy
      - https_proxy
-     - DNS_FWDR=8.8.8.8
-     - LOCAL_SYSLOG=192.168.122.1:514
     network_mode: bridge
 
   syslog-ng:
