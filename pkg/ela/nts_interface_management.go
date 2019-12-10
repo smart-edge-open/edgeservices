@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
 
@@ -142,6 +143,15 @@ type interfaceData struct {
 	NetworkInterface *pb.NetworkInterface
 }
 
+func updateContainer(ctx context.Context, containerName string, updateConfig container.UpdateConfig) (container.ContainerUpdateOKBody, error) {
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return container.ContainerUpdateOKBody{}, err
+	}
+
+	return cli.ContainerUpdate(ctx, containerName, updateConfig)
+}
+
 func startContainer(ctx context.Context, containerName string) error {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -164,18 +174,22 @@ func stopContainer(ctx context.Context, containerName string) error {
 func isNTSrunning(ctx context.Context) error {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
+		cli.Close()
 		return err
 	}
 
 	containerData, err := cli.ContainerInspect(ctx, ntsContainerName)
 	if err != nil {
+		cli.Close()
 		return err
 	}
 
 	if containerData.State.Running {
+		cli.Close()
 		return nil
 	}
 
+	cli.Close()
 	return errors.New("NTS container is not running, status: " +
 		containerData.State.Status)
 }
@@ -259,11 +273,23 @@ func stopDNSAndRemoveRules(ctx context.Context) error {
 }
 
 func restartDNSAndSetRules(ctx context.Context) error {
+	_, err := updateContainer(ctx, dnsContainerName,
+		container.UpdateConfig{
+			Resources: container.Resources{
+				CPUShares: 1024, // Default value
+				Memory: 134217728, // 128 MiB
+				MemorySwap: 134217728, // 128 MiB
+				PidsLimit: 100,
+			},
+		})
+	if err != nil {
+		return errors.Wrap(err, "failed to update Edge DNS container")
+	}
+
 	if err := startContainer(ctx, dnsContainerName); err != nil {
 		return errors.Wrap(err, "failed to start Edge DNS")
 	}
 
-	var err error
 	dnsKNImac := ""
 
 	ticker := time.NewTicker(25 * time.Millisecond)
@@ -351,6 +377,19 @@ func waitForNTS(ctx context.Context) error {
 }
 
 func startNTSandDNS(ctx context.Context) error {
+	_, err := updateContainer(ctx, ntsContainerName,
+		container.UpdateConfig{
+			Resources: container.Resources{
+				CPUShares: 1024, // Default value
+				Memory: 134217728, // 128 MiB
+				MemorySwap: 134217728, // 128 MiB
+				PidsLimit: 100,
+			},
+		})
+	if err != nil {
+		return errors.Wrap(err, "failed to update NTS container")
+	}
+
 	if err := startContainer(ctx, ntsContainerName); err != nil {
 		return errors.Wrap(err, "failed to start NTS")
 	}
