@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nes_arp.h
+/**
+ * @file nes_arp.h
  * @brief Header file for nes_arp
  */
 

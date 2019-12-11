@@ -1,13 +1,14 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nts_lookup.c
+/**
+ * @file nts_lookup.c
  * @brief Implementation of lookup functionality
  */
 
 #include <stdlib.h>
-
 
 #include <rte_malloc.h>
 

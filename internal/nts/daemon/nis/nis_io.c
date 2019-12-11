@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nis_io.c
+/**
+ * @file nis_io.c
  * @brief Implementation of nis i/o
  */
 

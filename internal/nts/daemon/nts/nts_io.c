@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nts_io.c
+/**
+ * @file nts_io.c
  * @brief Implementation of nts i/o
  */
 

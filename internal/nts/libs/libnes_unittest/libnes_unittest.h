@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file libnes_unittest.h
+/**
+ * @file libnes_unittest.h
  * @brief Header file for unit tests
  */
 

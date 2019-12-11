@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nes_mac_lookup.h
+/**
+ * @file nes_mac_lookup.h
  * @brief Prototypes for NES MAC lookup functions
  */
 

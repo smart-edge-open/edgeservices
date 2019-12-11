@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nis_routing_data.h
+/**
+ * @file nis_routing_data.h
  * @brief Header file for nis_routing_data
  */
 

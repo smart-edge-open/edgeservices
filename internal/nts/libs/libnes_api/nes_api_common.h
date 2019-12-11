@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nes_api_common.h
+/**
+ * @file nes_api_common.h
  * @brief Common header file for NES daemon and external client
  *
  * Contains definitions shared between NES daemon and NES API user.

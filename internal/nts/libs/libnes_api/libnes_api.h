@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file libnes_api.h
+/**
+ * @file libnes_api.h
  * @brief NES API library header file
  *
  * The functions marked as INTERNAL are supported by command line interface

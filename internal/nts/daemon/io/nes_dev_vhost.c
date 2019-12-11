@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nes_dev_vhost.c
+/**
+ * @file nes_dev_vhost.c
  * @brief Implementation of vhost nes device
  */
 

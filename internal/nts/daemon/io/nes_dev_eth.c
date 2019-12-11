@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nes_dev_eth.c
+/**
+ * @file nes_dev_eth.c
  * @brief Implementation of ethernet nes device
  */
 

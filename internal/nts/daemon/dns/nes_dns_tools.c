@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nes_dns_tools.c
+/**
+ * @file nes_dns_tools.c
  * @brief implementation of nes_dns_tools
  */
 

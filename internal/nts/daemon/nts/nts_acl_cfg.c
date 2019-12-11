@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nts_acl_cfg.c
+/**
+ * @file nts_acl_cfg.c
  * @brief Implementation of nts acl config loading
  */
 

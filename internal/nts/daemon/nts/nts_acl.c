@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nts_acl.c
+/**
+ * @file nts_acl.c
  * @brief implementation of lookups using libnes_acl
  */
 

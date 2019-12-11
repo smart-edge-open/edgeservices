@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nes_dev.h
+/**
+ * @file nes_dev.h
  * @brief Header file for nes device. Includes declarations for nes_dev_eth and nes_dev_vhost
  */
 

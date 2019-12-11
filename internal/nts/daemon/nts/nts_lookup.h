@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nts_lookup.h
+/**
+ * @file nts_lookup.h
  * @brief Header file for nts_lookup
  */
 

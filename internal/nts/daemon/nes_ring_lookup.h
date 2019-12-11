@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nes_ring_lookup.h
+/**
+ * @file nes_ring_lookup.h
  * @brief Prototypes for NES ring lookup functions
  */
 

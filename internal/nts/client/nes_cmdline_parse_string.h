@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nes_cmdline_parse_string.h
+/**
+ * @file nes_cmdline_parse_string.h
  * @brief Header file for nes_cmdline_parse_string
  */
 

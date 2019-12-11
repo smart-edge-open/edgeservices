@@ -1,8 +1,10 @@
-/* SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) 2019 Intel Corporation
  */
 
-/* @file nes_capacity.h
+/**
+ * @file nes_capacity.h
  * @brief NES daemon capacity limitations
  */
 
