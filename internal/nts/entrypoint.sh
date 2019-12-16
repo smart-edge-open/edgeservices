@@ -26,7 +26,7 @@ trap 'sigterm_handler' SIGTERM
 umask 002
 exec ./nes-daemon \
     -n 4 \
-    --lcores='(0,3,4,5)@0,1@3,2@4' \
+    --lcores='(0,3,4,5)@0,1@2,2@3' \
     --huge-dir /hugepages \
     --file-prefix=vhost-1 \
     --socket-mem ${NTS_SOCKET0_MEM},${NTS_SOCKET1_MEM} \
