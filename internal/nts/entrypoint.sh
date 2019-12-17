@@ -40,8 +40,8 @@ exec ./kni_docker_daemon.py \
 kni_pid="$!"
 
 exec ./ovs_docker_daemon.py \
-    --bridge ${OVS_BRIDGE_NAME} \
-    --enable ${OVS_ENABLED} &
+    --bridge "${OVS_BRIDGE_NAME}" \
+    --enable "${OVS_ENABLED}" &
 ovs_pid="$!"
 
 wait $nts_pid

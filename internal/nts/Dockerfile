@@ -28,4 +28,4 @@ COPY ./nts/ovs_docker_daemon.py ./
 COPY ./nts/entrypoint.sh ./
 COPY ./nts/libnes_api_shared.so ./
 
-ENTRYPOINT ["sudo", "./entrypoint.sh"]
+ENTRYPOINT ["sudo", "-E", "./entrypoint.sh"]
