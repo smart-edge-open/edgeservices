@@ -10,10 +10,8 @@ ENV https_proxy=$https_proxy
 
 RUN yum install -y gcc gcc-c++ cmake make autoconf automake libxml2 libxml2-devel json-c-devel boost ncurses ncurses-devel ncurses-libs boost-devel libuuid libuuid-devel python2-jsonschema doxygen hwloc-devel libpng12 rsync openssl-devel bc python-devel python-libs python-sphinx openssl unzip which wget python36 epel-release sudo
 
-#Instal Kernel headers
-RUN wget http://linuxsoft.cern.ch/cern/centos/7/rt/CentOS-RT.repo -O /etc/yum.repos.d/CentOS-RT.repo
-RUN wget http://linuxsoft.cern.ch/cern/centos/7/os/x86_64/RPM-GPG-KEY-cern -O /etc/pki/rpm-gpg/RPM-GPG-KEY-cern
-RUN yum install -y "kernel-rt-devel-uname-r == $(uname -r)"
+#Install Kernel headers
+RUN yum install -y "kernel-devel-uname-r == $(uname -r)"
 RUN mkdir -p /lib/modules/$(uname -r)
 RUN ln -s /usr/src/kernels/$(uname -r) /lib/modules/$(uname -r)/build
 
@@ -57,4 +55,3 @@ WORKDIR $user_dir
 
 #copy module checking script
 COPY check_if_modules_loaded.sh .
-
