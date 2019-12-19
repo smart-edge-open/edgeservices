@@ -131,7 +131,7 @@ def move_if_to_host(if_name, bridge_name):
     add_to_ovs =  ["nsenter",
                     "--mount=" + _HOST_NS_MNT,
                     "--net=" + _HOST_NS] + \
-    [ "ovs-vsctl", "add-port", bridge_name, if_name]
+    [ "/usr/local/bin/ovs-vsctl", "add-port", bridge_name, if_name]
 
     if not run_command(move_to_host, ""):
         _LOG.error("Failed to move {} to the default namespace".format(if_name))
@@ -192,7 +192,7 @@ def docker_delete_if(docker_name, bridge_name, name_filter):
     ovsIf, dstIf = create_veth_pair_names(docker_name, name_filter)
     remove_from_ovs =  ["nsenter",
                     "--mount=" + _HOST_NS_MNT,
-                    "--net=" + _HOST_NS] + [ "ovs-vsctl", "del-port", bridge_name, ovsIf]
+                    "--net=" + _HOST_NS] + [ "/usr/local/bin/ovs-vsctl", "del-port", bridge_name, ovsIf]
 
     if not run_command(remove_from_ovs, ""):
         _LOG.error("Failed to remove interface from ovs: " + ovsIf)
