@@ -11,7 +11,7 @@ ENV https_proxy=$https_proxy
 RUN yum install -y gcc gcc-c++ cmake make autoconf automake libxml2 libxml2-devel json-c-devel boost ncurses ncurses-devel ncurses-libs boost-devel libuuid libuuid-devel python2-jsonschema doxygen hwloc-devel libpng12 rsync openssl-devel bc python-devel python-libs python-sphinx openssl unzip which wget python36 epel-release sudo
 
 #Install Kernel headers
-RUN yum install -y "kernel-devel-uname-r == $(uname -r)"
+RUN yum install -y "http://linuxsoft.cern.ch/centos-vault/7.6.1810/os/x86_64/Packages/kernel-devel-3.10.0-957.el7.x86_64.rpm"
 RUN mkdir -p /lib/modules/$(uname -r)
 RUN ln -s /usr/src/kernels/$(uname -r) /lib/modules/$(uname -r)/build
 
