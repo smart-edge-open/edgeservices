@@ -5,7 +5,7 @@ package stubs
 
 import (
 	libvirt "github.com/libvirt/libvirt-go"
-	wrapp "github.com/open-ness/edgenode/internal/wrappers"
+	wrapp "github.com/otcshare/edgenode/internal/wrappers"
 )
 
 // ConnStub stores LibvirtConnectStub

@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/open-ness/edgenode/internal/wrappers"
-	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
-	pb "github.com/open-ness/edgenode/pkg/eva/pb"
+	"github.com/otcshare/edgenode/internal/wrappers"
+	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
+	pb "github.com/otcshare/edgenode/pkg/eva/pb"
 
 	"github.com/docker/docker/api/types"
 	libvirt "github.com/libvirt/libvirt-go"

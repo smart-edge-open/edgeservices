@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-ness/edgenode/pkg/auth"
+	"github.com/otcshare/edgenode/pkg/auth"
 )
 
 func TestPKI(t *testing.T) {

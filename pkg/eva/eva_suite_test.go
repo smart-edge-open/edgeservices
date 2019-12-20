@@ -13,11 +13,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	log "github.com/open-ness/common/log"
-	"github.com/open-ness/common/proxy/progutil"
-	"github.com/open-ness/edgenode/internal/authtest"
-	"github.com/open-ness/edgenode/pkg/config"
-	"github.com/open-ness/edgenode/pkg/eva"
+	log "github.com/otcshare/common/log"
+	"github.com/otcshare/common/proxy/progutil"
+	"github.com/otcshare/edgenode/internal/authtest"
+	"github.com/otcshare/edgenode/pkg/config"
+	"github.com/otcshare/edgenode/pkg/eva"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

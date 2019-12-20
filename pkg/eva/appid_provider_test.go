@@ -6,7 +6,7 @@ package eva_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	// . "github.com/open-ness/edgenode/pkg/eva"
+	// . "github.com/otcshare/edgenode/pkg/eva"
 )
 
 var _ = Describe("AppidProvider", func() {

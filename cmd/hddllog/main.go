@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	logger "github.com/open-ness/common/log"
+	logger "github.com/otcshare/common/log"
 )
 
 var log = logger.DefaultLogger.WithField("hddl", nil)

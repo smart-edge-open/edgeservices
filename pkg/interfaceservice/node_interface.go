@@ -9,10 +9,10 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/open-ness/edgenode/pkg/ela/helpers"
+	"github.com/otcshare/edgenode/pkg/ela/helpers"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/open-ness/edgenode/pkg/ela/pb"
+	pb "github.com/otcshare/edgenode/pkg/ela/pb"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

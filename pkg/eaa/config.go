@@ -3,7 +3,7 @@
 
 package eaa
 
-import "github.com/open-ness/edgenode/pkg/util"
+import "github.com/otcshare/edgenode/pkg/util"
 
 // CertsInfo describes paths for certs used in configuration
 type CertsInfo struct {

@@ -16,8 +16,8 @@ import (
 	"path/filepath"
 	"time"
 
-	logger "github.com/open-ness/common/log"
-	pb "github.com/open-ness/edgenode/pkg/auth/pb"
+	logger "github.com/otcshare/common/log"
+	pb "github.com/otcshare/edgenode/pkg/auth/pb"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	grpcCreds "google.golang.org/grpc/credentials"

@@ -7,8 +7,8 @@ import (
 	"os"
 
 	// Imports required to run agent
-	"github.com/open-ness/edgenode/pkg/interfaceservice"
-	"github.com/open-ness/edgenode/pkg/service"
+	"github.com/otcshare/edgenode/pkg/interfaceservice"
+	"github.com/otcshare/edgenode/pkg/service"
 )
 
 // EdgeServices array contains function pointers to services start functions

@@ -10,8 +10,8 @@ import (
 	"os"
 	"path"
 
-	logger "github.com/open-ness/common/log"
-	pb "github.com/open-ness/edgenode/pkg/eva/pb"
+	logger "github.com/otcshare/common/log"
+	pb "github.com/otcshare/edgenode/pkg/eva/pb"
 	"github.com/pkg/errors"
 )
 
