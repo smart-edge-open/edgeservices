@@ -11,7 +11,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
-	"github.com/otcshare/edgenode/internal/wrappers"
+	"github.com/open-ness/edgenode/internal/wrappers"
 )
 
 // DockerCliStub stores DockerClientStub

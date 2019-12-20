@@ -7,13 +7,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/otcshare/edgenode/pkg/auth"
+	"github.com/open-ness/edgenode/pkg/auth"
 
 	// Imports required to run agents
-	"github.com/otcshare/edgenode/pkg/eda"
-	"github.com/otcshare/edgenode/pkg/ela"
-	"github.com/otcshare/edgenode/pkg/eva"
-	"github.com/otcshare/edgenode/pkg/service"
+	"github.com/open-ness/edgenode/pkg/eda"
+	"github.com/open-ness/edgenode/pkg/ela"
+	"github.com/open-ness/edgenode/pkg/eva"
+	"github.com/open-ness/edgenode/pkg/service"
 )
 
 // EdgeServices array contains function pointers to services start functions

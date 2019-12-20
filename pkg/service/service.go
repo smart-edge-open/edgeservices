@@ -14,9 +14,9 @@ import (
 	"sync"
 	"syscall"
 
-	logger "github.com/otcshare/common/log"
-	"github.com/otcshare/edgenode/pkg/config"
-	"github.com/otcshare/edgenode/pkg/util"
+	logger "github.com/open-ness/common/log"
+	"github.com/open-ness/edgenode/pkg/config"
+	"github.com/open-ness/edgenode/pkg/util"
 )
 
 // StartFunction is func typedef for starting service
