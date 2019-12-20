@@ -30,10 +30,9 @@ RUN useradd -m -s /bin/bash hddl
 RUN adduser hddl sudo
 RUN echo 'hddl:hddl' | chpasswd
 RUN echo "hddl ALL=(ALL) NOPASSWD:ALL" >>/etc/sudoers
-USER hddl
 # Set the current working directory to the cloned ncsdk directory
 WORKDIR "/home/hddl/"
-RUN sudo usermod -a -G users,video hddl
+RUN usermod -a -G users,video hddl
 
 ARG OPENVINO_LINK=http://registrationcenter-download.intel.com/akdlm/irc_nas/15791/l_openvino_toolkit_fpga_p_2019.2.275.tgz
 
@@ -44,12 +43,13 @@ RUN cd /home/hddl && \
     pwd && ls && \
     cd l_openvino_toolkit* && \
     sed -i 's/decline/accept/g' silent.cfg && \
-    sudo -E ./install_openvino_dependencies.sh && \
-    sudo -E ./install.sh -s silent.cfg && \
+    ./install_openvino_dependencies.sh && \
+    ./install.sh -s silent.cfg && \
     rm -rf /tmp/l_openvino_toolkit*
 # Edit hddl_autoboot config and hddl_service config in order to stop failing on reset and enabling additional logs for service
-RUN sudo -E sed -i '/"abort_if_hw_reset_failed"/ s/true/false/' /opt/intel/openvino_2019.2.275/deployment_tools/inference_engine/external/hddl/config/hddl_autoboot.config && \
-    sudo -E sed -i '/"device_snapshot_mode"/ s/none/full/' /opt/intel/openvino_2019.2.275/deployment_tools/inference_engine/external/hddl/config/hddl_service.config
+RUN sed -i '/"abort_if_hw_reset_failed"/ s/true/false/' /opt/intel/openvino_2019.2.275/deployment_tools/inference_engine/external/hddl/config/hddl_autoboot.config && \
+    sed -i '/"device_snapshot_mode"/ s/none/full/' /opt/intel/openvino_2019.2.275/deployment_tools/inference_engine/external/hddl/config/hddl_service.config
+USER hddl
 RUN echo "source /opt/intel/openvino/bin/setupvars.sh" >> ~/.bashrc
 
 FROM hddl-deps-image
