@@ -8,7 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/otcshare/edgenode/pkg/eva"
+	"github.com/open-ness/edgenode/pkg/eva"
 )
 
 var _ = Describe("EvaRun", func() {

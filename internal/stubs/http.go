@@ -6,7 +6,7 @@ package stubs
 import (
 	"net/http"
 
-	"github.com/otcshare/edgenode/internal/wrappers"
+	"github.com/open-ness/edgenode/internal/wrappers"
 )
 
 // HTTPCliStub stores HTTPClientStub

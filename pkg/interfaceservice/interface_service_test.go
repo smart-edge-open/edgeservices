@@ -13,10 +13,10 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
-	k "github.com/otcshare/edgenode/pkg/interfaceservice"
+	k "github.com/open-ness/edgenode/pkg/interfaceservice"
 
-	h "github.com/otcshare/edgenode/pkg/ela/helpers"
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	h "github.com/open-ness/edgenode/pkg/ela/helpers"
+	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 )
 
 type vsctlResult struct {
