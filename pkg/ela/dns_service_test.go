@@ -1,16 +1,5 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 
 package ela_test
 
@@ -87,12 +76,18 @@ var _ = Describe("DnsService gRPC Server", func() {
 			It("responds with no error", func() {
 
 				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				Expect(err).ShouldNot(HaveOccurred())
 				prefaceLis := progutil.NewPrefaceListener(lis)
 				defer prefaceLis.Close()
+
+				prefaceLis.RegisterHost("127.0.0.1")
 				go prefaceLis.Accept() // we only expect 1 connection
 
-				conn, err := grpc.Dial("",
-					grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
+				// OP-1742: ContextDialler not supported by Gateway
+				//nolint:staticcheck
+				conn, err := grpc.Dial("127.0.0.1",
+					grpc.WithTransportCredentials(transportCreds),
+					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 
@@ -112,12 +107,18 @@ var _ = Describe("DnsService gRPC Server", func() {
 		Context("with wrong arguments", func() {
 			It("responds with error", func() {
 				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				Expect(err).ShouldNot(HaveOccurred())
 				prefaceLis := progutil.NewPrefaceListener(lis)
 				defer prefaceLis.Close()
+
+				prefaceLis.RegisterHost("127.0.0.1")
 				go prefaceLis.Accept() // we only expect 1 connection
 
-				conn, err := grpc.Dial("",
-					grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
+				// OP-1742: ContextDialler not supported by Gateway
+				//nolint:staticcheck
+				conn, err := grpc.Dial("127.0.0.1",
+					grpc.WithTransportCredentials(transportCreds),
+					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 
@@ -141,12 +142,18 @@ var _ = Describe("DnsService gRPC Server", func() {
 			It("responds with no error", func() {
 
 				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				Expect(err).ShouldNot(HaveOccurred())
 				prefaceLis := progutil.NewPrefaceListener(lis)
 				defer prefaceLis.Close()
+
+				prefaceLis.RegisterHost("127.0.0.1")
 				go prefaceLis.Accept() // we only expect 1 connection
 
-				conn, err := grpc.Dial("",
-					grpc.WithTransportCredentials(transportCreds), grpc.WithDialer(prefaceLis.DialEla))
+				// OP-1742: ContextDialler not supported by Gateway
+				//nolint:staticcheck
+				conn, err := grpc.Dial("127.0.0.1",
+					grpc.WithTransportCredentials(transportCreds),
+					grpc.WithDialer(prefaceLis.DialEla))
 				Expect(err).NotTo(HaveOccurred())
 				defer conn.Close()
 

@@ -1,16 +1,5 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 
 package eaa_test
 
@@ -52,7 +41,7 @@ import (
 )
 
 // EaaCommonName Common Name that EAA uses for TLS connection
-const EaaCommonName string = "eaa.community.appliance.mec"
+const EaaCommonName string = "eaa.openness"
 
 // To pass configuration file path use ginkgo pass-through argument
 // ginkgo -r -v -- -cfg=myconfig.json
@@ -71,7 +60,7 @@ type EAATestSuiteConfig struct {
 	Dir                 string `json:"Dir"`
 	TLSEndpoint         string `json:"TlsEndpoint"`
 	OpenEndpoint        string `json:"OpenEndpoint"`
-	InternalEndpoint    string `json:"InternalEndpoint"`
+	ValidationEndpoint  string `json:"ValidationEndpoint"`
 	ApplianceTimeoutSec int    `json:"Timeout"`
 }
 
@@ -163,7 +152,7 @@ func (*FakeIPAppLookupServiceServerImpl) GetApplicationByIP(
 
 func fakeAppidProvider() error {
 
-	lApp, err := net.Listen("tcp", cfg.InternalEndpoint)
+	lApp, err := net.Listen("tcp", cfg.ValidationEndpoint)
 	if err != nil {
 		log.Errf("net.Listen error: %+v", err)
 		return err
@@ -175,7 +164,7 @@ func fakeAppidProvider() error {
 		&ipAppLookupService)
 
 	go func() {
-		log.Infof("Fake internal serving on %s", cfg.InternalEndpoint)
+		log.Infof("Fake internal serving on %s", cfg.ValidationEndpoint)
 		err = serverApp.Serve(lApp)
 		if err != nil {
 			log.Errf("Failed grpcServe(): %v", err)
@@ -217,12 +206,13 @@ func generateConfigs() {
 	eaaCfg := []byte(`{
 		"TlsEndpoint": "` + cfg.TLSEndpoint + `",
 		"OpenEndpoint": "` + cfg.OpenEndpoint + `",
-		"InternalEndpoint": "` + cfg.InternalEndpoint + `",
+		"ValidationEndpoint": "` + cfg.ValidationEndpoint + `",
 		"Certs": {
 			"CaRootKeyPath": "` + tempConfCaRootKeyPath + `",
 			"CaRootPath": "` + tempConfCaRootPath + `",
 			"ServerCertPath": "` + tempConfServerCertPath + `",
-			"ServerKeyPath": "` + tempConfServerKeyPath + `"
+			"ServerKeyPath": "` + tempConfServerKeyPath + `",
+			"CommonName": "` + EaaCommonName + `"
 		}
 	}`)
 
@@ -404,7 +394,7 @@ var _ = BeforeSuite(func() {
 
 	tempConfCaRootKeyPath = tempdir + "/" + "certs/eaa/rootCA.key"
 	tempConfCaRootPath = tempdir + "/" + "certs/eaa/rootCA.pem"
-	tempConfServerCertPath = tempdir + "/" + "certs/eaa/server.crt"
+	tempConfServerCertPath = tempdir + "/" + "certs/eaa/server.pem"
 	tempConfServerKeyPath = tempdir + "/" + "certs/eaa/server.key"
 
 	generateConfigs()

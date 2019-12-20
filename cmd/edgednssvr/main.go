@@ -1,16 +1,5 @@
-// Copyright 2019 Smart-Edge.com, Inc. All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 
 package main
 
@@ -37,12 +26,19 @@ func main() {
 		"debug, info, notice, warning, error, critical, alert, emergency")
 	syslogAddr := flag.String("syslog", "", "Syslog address")
 	v4 := flag.String("4", "", "IPv4 listener address")
-	port := flag.Int("port", 5053, "listener UDP port")
-	sock := flag.String("sock", "/run/edgedns.sock", "API socket path")
+	port := flag.Int("port", 53, "listener UDP port")
+	sock := flag.String("sock", "/run/edgedns.sock",
+		"API socket path used by default. "+
+			"This parameter is not used if 'address' is defined.")
+	addr := flag.String("address", "",
+		"API IP address. If defined, socket parameter is not used.")
 	db := flag.String("db", "/var/lib/edgedns/rrsets.db",
 		"Database file path")
 	fwdr := flag.String("fwdr", "8.8.8.8", "Forwarder")
 	hbInterval := flag.Int("hb", 60, "Heartbeat interval in s")
+	pkiCrtPath := flag.String("cert", "certs/cert.pem", "PKI Cert Path")
+	pkiKeyPath := flag.String("key", "certs/key.pem", "PKI Key Path")
+	pkiCAPath := flag.String("ca", "certs/root.pem", "PKI CA Path")
 	flag.Parse()
 
 	lvl, err := logger.ParseLevel(*logLvl)
@@ -54,8 +50,12 @@ func main() {
 
 	err = logger.ConnectSyslog(*syslogAddr)
 	if err != nil {
-		log.Errf("Syslog(%s) connection failed: %s", *syslogAddr, err.Error())
-		os.Exit(1)
+		if *syslogAddr != "" {
+			log.Errf("Syslog(%s) connection failed: %s", *syslogAddr, err.Error())
+			os.Exit(1)
+		} else {
+			log.Warningf("Fail to connect to local syslog")
+		}
 	}
 
 	sockPath := path.Dir(*sock)
@@ -85,14 +85,22 @@ func main() {
 		Filename: *db,
 	}
 
-	ctl := &grpc.ControlServer{
-		Sock: *sock,
+	pki := &grpc.ControlServerPKI{
+		Crt: *pkiCrtPath,
+		Key: *pkiKeyPath,
+		Ca:  *pkiCAPath,
 	}
 
-	srv := edgedns.NewResponder(cfg, stg, ctl)
-	srv.SetDefaultForwarder(*fwdr)
-	err = srv.Start()
-	defer srv.Stop()
+	ctl := &grpc.ControlServer{
+		Sock:    *sock,
+		Address: *addr,
+		PKI:     pki,
+	}
+
+	svr := edgedns.NewResponder(cfg, stg, ctl)
+	svr.SetDefaultForwarder(*fwdr)
+	err = svr.Start()
+	defer svr.Stop()
 
 	if err != nil {
 		log.Err(err)
@@ -108,8 +116,8 @@ func main() {
 	})
 
 	// Receive OS signals and listener errors from Start()
-	signal.Notify(srv.Sig, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-srv.Sig
+	signal.Notify(svr.Sig, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-svr.Sig
 	switch sig {
 	case syscall.SIGCHLD:
 		log.Err("Child lisenter/service unexpectedly died")

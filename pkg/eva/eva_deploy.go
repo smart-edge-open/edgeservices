@@ -1,16 +1,5 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 
 package eva
 
@@ -35,9 +24,10 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
 
+	"github.com/open-ness/edgenode/internal/wrappers"
 	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
 	pb "github.com/open-ness/edgenode/pkg/eva/pb"
 	"github.com/pkg/errors"
@@ -53,9 +43,8 @@ import (
 
 // DeploySrv describes deplyment
 type DeploySrv struct {
-	cfg    *Config
-	meta   *metadata.AppMetadata
-	hddlIn bool
+	cfg  *Config
+	meta *metadata.AppMetadata
 }
 
 const (
@@ -73,19 +62,16 @@ const (
 var httpMatcher = regexp.MustCompile("^http://.")
 var httpsMatcher = regexp.MustCompile("^https://.")
 
-// detectHDDL detects if HDDL is present and configured - checks if devices exist
-func (s *DeploySrv) detectHDDL() {
-	var hddlPaths = []string{"/dev/ion", "/dev/myriad0"}
+// EACHandler - the type for the generic Enhanced App Confuration handler
+type EACHandler func(string, interface{})
 
-	for _, d := range hddlPaths {
-		if _, err := os.Stat(filepath.Clean(d)); os.IsNotExist(err) {
-			s.hddlIn = false
-			break
-		} else {
-			s.hddlIn = true
-		}
-	}
+// EACHandlersDocker - Table of EACHandlers for the Docker backend
+var EACHandlersDocker = map[string]EACHandler{
+	"hddl": handleHddl,
 }
+
+// EACHandlersVM - Table of EACHandlers for the Libvirt backend
+var EACHandlersVM = map[string]EACHandler{}
 
 func downloadImage(ctx context.Context, url string,
 	target string) error {
@@ -102,7 +88,8 @@ func downloadImage(ctx context.Context, url string,
 		}
 		request = request.WithContext(ctx)
 
-		client := http.DefaultClient
+		client := wrappers.CreateHTTPClient()
+
 		resp, err := client.Do(request)
 		if err != nil {
 			return err
@@ -241,7 +228,7 @@ func parseImageName(body io.Reader) (out string, hadTag bool, err error) {
 }
 
 func loadImage(ctx context.Context,
-	dapp *metadata.DeployedApp, docker *client.Client) error {
+	dapp *metadata.DeployedApp, docker wrappers.DockerClient) error {
 
 	/* NOTE: ImageLoad could read directly from our HTTP stream that's
 	 * downloading the image, thus removing the need for storing the image as
@@ -307,6 +294,57 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
+func handleHddl(value string, genericCfg interface{}) {
+	turnedOn := map[string]bool{"on": true, "yes": true, "enabled": true,
+		"y": true, "true": true}
+	if _, on := turnedOn[strings.ToLower(value)]; !on {
+		return
+	}
+	log.Infof("HDDL requested (%v), adding mappings.", value)
+
+	hostCfg := genericCfg.(*container.HostConfig)
+	devIon := container.DeviceMapping{
+		PathOnHost:        "/dev/ion",
+		PathInContainer:   "/dev/ion",
+		CgroupPermissions: "rmw",
+	}
+	hostCfg.Resources.Devices = append(hostCfg.Resources.Devices, devIon)
+	hostCfg.Binds = append(hostCfg.Binds, "/var/tmp:/var/tmp")
+}
+
+// EPAFeature - we get an array of those in API calls from controller
+// Key is used to lookup the proper EACHandler, value is handler specific
+type EPAFeature struct {
+	Key   string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+// This function will go through all the entries in our EPAFeatures
+// table and find any keys for which we have registered handlers.
+// If match is found, it will call the handler with the value
+// as entered on the UI. (EPA Feature Value)
+func processEAC(EACJson string, EACHandlers map[string]EACHandler,
+	genericCfg interface{}) {
+	var EPAFeatures []EPAFeature
+
+	if err := json.Unmarshal([]byte(EACJson), &EPAFeatures); err != nil {
+		log.Errf("Failed unmarshall'ing EPAFeatures json: %v", err)
+		return
+	}
+	log.Debugf("Unmarshalled EPAFeatures: %+v", EPAFeatures)
+
+	for _, entry := range EPAFeatures {
+		log.Debugf("processing EAC key %v (val=%v)", entry.Key, entry.Value)
+
+		// If the handler for key is found, call it with the value
+		handler, ok := EACHandlers[entry.Key]
+		if ok {
+			log.Debugf("calling handler for %v", entry.Key)
+			handler(entry.Value, genericCfg)
+		}
+	}
+}
+
 func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	dapp *metadata.DeployedApp) {
 
@@ -323,7 +361,7 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	}
 
 	/* Now call the docker API. */
-	docker, err := client.NewClientWithOpts(client.FromEnv)
+	docker, err := wrappers.CreateDockerClient()
 	if err != nil {
 		dapp.App.Status = pb.LifecycleStatus_ERROR
 		log.Errf("failed to create a docker client: %s", err.Error())
@@ -350,30 +388,23 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	}
 
 	// Now create a container out of the image
-	devIon := container.DeviceMapping{
-		PathOnHost:        "/dev/ion",
-		PathInContainer:   "/dev/ion",
-		CgroupPermissions: "rmw",
-	}
-	var hddlDevices []container.DeviceMapping
-	var hddlBinds []string
-	if s.hddlIn {
-		hddlDevices = []container.DeviceMapping{devIon}
-		hddlBinds = []string{"/var/tmp:/var/tmp"}
-	}
+
 	nanoCPUs := int64(dapp.App.Cores) * 1e9 // convert CPUs to NanoCPUs
 	resources := container.Resources{
 		Memory:   int64(dapp.App.Memory) * 1024 * 1024,
 		NanoCPUs: nanoCPUs,
-		Devices:  hddlDevices,
 	}
+	hostCfg := container.HostConfig{
+		Resources: resources,
+		CapAdd:    []string{"NET_ADMIN"}}
+
+	// Update hostCfg based on EAC configuration
+	processEAC(dapp.App.EACJsonBlob, EACHandlersDocker, &hostCfg)
+	log.Debugf("hostCfg: %+v", hostCfg)
+
 	respCreate, err := docker.ContainerCreate(ctx,
 		&container.Config{Image: dapp.App.Id},
-		&container.HostConfig{
-			Resources: resources,
-			Binds:     hddlBinds,
-			CapAdd:    []string{"NET_ADMIN"}},
-		nil, dapp.App.Id)
+		&hostCfg, nil, dapp.App.Id)
 
 	if err != nil {
 		log.Errf("docker.ContainerCreate failed: %+v", err)
@@ -459,10 +490,11 @@ func isOVSBridgeCreated(o *ovs.Client, name string) (bool, error) {
 }
 
 // execOvsWithPath concatenates a path with rest of options to execute
-// ovs-vsctl with apropriate ovs db path
+// ovs-vsctl with appropriate ovs db path
 func execOvsWithPath(cmd string, args ...string) ([]byte, error) {
 	commands := append(
 		[]string{"--db=unix:" + ovsDbSocket}, args...)
+	// #nosec G204 - This is a workaround to use OVS cli with custom socket file
 	return exec.Command(cmd, commands...).CombinedOutput()
 }
 
@@ -556,7 +588,7 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 	}
 
 	/* Now call the libvirt API. */
-	conn, err := libvirt.NewConnect("qemu:///system")
+	conn, err := CreateLibvirtConnection("qemu:///system")
 	if err != nil {
 		dapp.App.Status = pb.LifecycleStatus_ERROR
 		log.Errf("failed to create a libvirt client: %s", err.Error())
@@ -577,7 +609,8 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 		OS: &libvirtxml.DomainOS{
 			Type: &libvirtxml.DomainOSType{Arch: "x86_64", Type: "hvm"},
 		},
-		Features: &libvirtxml.DomainFeatureList{ACPI: &libvirtxml.DomainFeature{}},
+		Features: &libvirtxml.DomainFeatureList{
+			ACPI: &libvirtxml.DomainFeature{}},
 
 		CPU: &libvirtxml.DomainCPU{
 			Mode: "host-passthrough",
@@ -661,7 +694,8 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 			return
 		}
 	}
-
+	// Update domcfg based on EAC configuration
+	processEAC(dapp.App.EACJsonBlob, EACHandlersVM, &domcfg)
 	xmldoc, err := domcfg.Marshal()
 	if err != nil {
 		dapp.App.Status = pb.LifecycleStatus_ERROR
@@ -744,7 +778,7 @@ func (s *DeploySrv) Redeploy(ctx context.Context,
 func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 	dapp *metadata.DeployedApp) error {
 
-	docker, err := client.NewClientWithOpts(client.FromEnv)
+	docker, err := wrappers.CreateDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "Failed to create a docker client")
 	}
@@ -775,7 +809,8 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 func (s *DeploySrv) libvirtUndeploy(ctx context.Context,
 	dapp *metadata.DeployedApp) error {
 
-	conn, err := libvirt.NewConnect("qemu:///system")
+	conn, err := CreateLibvirtConnection("qemu:///system")
+
 	if err != nil {
 		return err
 	}

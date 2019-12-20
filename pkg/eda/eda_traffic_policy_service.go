@@ -1,16 +1,5 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 
 package eda
 
@@ -19,6 +8,7 @@ import (
 	"net"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/open-ness/edgenode/pkg/edants"
 	"github.com/open-ness/edgenode/pkg/ela/ini"
 	pb "github.com/open-ness/edgenode/pkg/ela/pb"
 	"github.com/pkg/errors"
@@ -29,7 +19,7 @@ import (
 
 // NewConnFn is a fun to new Connection
 var NewConnFn = func() (NtsConnectionInt, error) {
-	return NewNtsConnection()
+	return edants.NewNtsConnection()
 }
 
 // NtsConnectionInt interface representing nts connection
@@ -215,7 +205,7 @@ func AddRequest(conn NtsConnectionInt, tp *pb.TrafficPolicy) error {
 			LookupKeys: rule.LookupKeys,
 		}
 
-		log.Debugf("Sucessfully added traffic rule: %v for "+
+		log.Debugf("Successfully added traffic rule: %v for "+
 			"mac address: %v", tr.LookupKeys, tr.Mac.String())
 
 		appTrafficPolicy.NtsTrafficRules =

@@ -1,16 +1,5 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 
 package eaa_test
 
@@ -39,6 +28,7 @@ import (
 
 const (
 	Name1Prod1 = "namespace-1:producer-1"
+	Name1Prod2 = "namespace-1:producer-2"
 	Name1Cons1 = "namespace-1:testAppID-1"
 	Name1Cons2 = "namespace-1:testAppID-2"
 )
@@ -1061,7 +1051,7 @@ var _ = Describe("ApiEaa", func() {
 
 			BeforeEach(func() {
 				prodCertTempl2 := GetCertTempl()
-				prodCertTempl2.Subject.CommonName = "namespace-1:producer-2"
+				prodCertTempl2.Subject.CommonName = Name1Prod2
 				prodCert2, prodCertPool2 = generateSignedClientCert(
 					&prodCertTempl2)
 			})
@@ -1801,8 +1791,7 @@ var _ = Describe("ApiEaa", func() {
 				Context("one namespace", func() {
 					BeforeEach(func() {
 						prodCertTempl2 = GetCertTempl()
-						prodCertTempl2.Subject.CommonName =
-							"namespace-1:producer-2"
+						prodCertTempl2.Subject.CommonName = Name1Prod2
 					})
 
 					Specify("Namespace Notification: 1 Event from 2 Producers"+
@@ -2252,7 +2241,7 @@ var _ = Describe("ApiEaa", func() {
 
 				BeforeEach(func() {
 					prodCertTempl2 := GetCertTempl()
-					prodCertTempl2.Subject.CommonName = "namespace-1:producer-2"
+					prodCertTempl2.Subject.CommonName = Name1Prod2
 					prodCert2, prodCertPool2 = generateSignedClientCert(
 						&prodCertTempl2)
 				})

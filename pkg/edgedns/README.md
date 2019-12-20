@@ -1,3 +1,8 @@
+```text
+SPDX-License-Identifier: Apache-2.0
+Copyright (c) 2019 Intel Corporation
+```
+
 # Edge DNS Responder
 
 This project provides a standards compliant DNS server that exposes gRPC interfaces for the realtime creation of records.

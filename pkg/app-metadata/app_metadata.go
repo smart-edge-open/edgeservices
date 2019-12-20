@@ -1,16 +1,5 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 
 package metadata
 
@@ -128,7 +117,7 @@ func (a *DeployedApp) ImageFilePath() string {
 	return path.Join(a.Path, imageFileName)
 }
 
-// NewDeployedApp create a new deplyed app
+// NewDeployedApp create a new deployed app
 func (m *AppMetadata) NewDeployedApp(appType AppType,
 	app *pb.Application) *DeployedApp {
 	a := new(DeployedApp)
@@ -192,7 +181,7 @@ func (m *AppMetadata) Load(appID string) (*DeployedApp, error) {
 
 // Save function will write into a temporary file that's in the same directory
 // as target first. Only when temp file is fully written, will it atomically
-// rename it to the target file. This ensures we don't end up with a parially
+// rename it to the target file. This ensures we don't end up with a partially
 // written file in case of power failure / system hang etc, since mostly we're
 // updating only a single field anyway.
 func (a *DeployedApp) Save(updateOnly bool) error {

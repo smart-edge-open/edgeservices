@@ -1,19 +1,8 @@
 #!/usr/bin/python
 # coding: utf-8
 
-# Copyright 2019 Intel Corporation. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2019 Intel Corporation
 
 import docker
 import argparse
@@ -142,7 +131,7 @@ def move_if_to_host(if_name, bridge_name):
     add_to_ovs =  ["nsenter",
                     "--mount=" + _HOST_NS_MNT,
                     "--net=" + _HOST_NS] + \
-    [ "ovs-vsctl", "add-port", bridge_name, if_name]
+    [ "/usr/local/bin/ovs-vsctl", "add-port", bridge_name, if_name]
 
     if not run_command(move_to_host, ""):
         _LOG.error("Failed to move {} to the default namespace".format(if_name))
@@ -203,7 +192,7 @@ def docker_delete_if(docker_name, bridge_name, name_filter):
     ovsIf, dstIf = create_veth_pair_names(docker_name, name_filter)
     remove_from_ovs =  ["nsenter",
                     "--mount=" + _HOST_NS_MNT,
-                    "--net=" + _HOST_NS] + [ "ovs-vsctl", "del-port", bridge_name, ovsIf]
+                    "--net=" + _HOST_NS] + [ "/usr/local/bin/ovs-vsctl", "del-port", bridge_name, ovsIf]
 
     if not run_command(remove_from_ovs, ""):
         _LOG.error("Failed to remove interface from ovs: " + ovsIf)

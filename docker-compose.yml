@@ -1,31 +1,23 @@
-# Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2019 Intel Corporation
 
 # TODO: Expose ports only to a local network address
-version: '3'
+version: '3.2'
 services:
   appliance:
     build:
       context: .
       dockerfile: "Dockerfile_appliance"
+      args:
+        username: appliance
     image: "appliance:${VER}"
     privileged: true
+    security_opt:
+     - no-new-privileges:false
     ports:
      - "42101:42101"
      - "42102:42102"
-     - "192.168.122.1:443:443"
-     - "192.168.122.1:80:80"
+     - "192.168.122.1:42103:42103"
     volumes:
      - "/etc/pki/tls/certs:/host_certs"
      - "/proc/1/ns:/var/host_ns:ro"
@@ -34,34 +26,88 @@ services:
      - "/var/run/docker/netns:/var/run/docker/netns"
      - "/sys/class/net:/var/host_net_devices"
      - "/sys/devices:/devices"
-     - "/var/lib/appliance/certs:/root/certs"
-     - "/var/lib/appliance/configs:/root/configs"
+     - "/var/lib/appliance/certs:/home/appliance/certs"
+     - "/var/lib/appliance/configs:/home/appliance/configs"
      - "/var/lib/appliance/applications:/var/lib/appliance/applications"
      - "/usr/local/var/run/openvswitch:/usr/local/var/run/openvswitch"
     environment:
-     - SYSLOG_ADDR=syslog.community.appliance.mec
+     - SYSLOG_ADDR=syslog.openness
+    network_mode: bridge
+
+  nts:
+    container_name: nts
+    build:
+      context: .
+      dockerfile: "Dockerfile_nts"
+      args:
+        username: nts
+    image: "nts:${VER}"
+    read_only: true
+    privileged: true
+    security_opt:
+     - no-new-privileges:false
+    volumes:
+     - "/dev/hugepages:/hugepages"
+     - "/var/lib/appliance/nts:/var/lib/appliance/nts"
+     - "/var/run/docker/netns:/var/run/docker/netns"
+     - "/var/run:/var/run"
+     - "/proc/1/ns:/var/host_ns"
+     - "/sys/class/net:/var/host_net_devices"
+    environment:
+     - NTS_SOCKET0_MEM=${NTS_MEM_MB_S0}
+     - NTS_SOCKET1_MEM=${NTS_MEM_MB_S1}
+     - OVS_BRIDGE_NAME=${OVS_BRIDGE_NAME}
+     - OVS_ENABLED=${OVSE}
+    network_mode: host
+
+  eaa:
+    build:
+      context: .
+      dockerfile: "Dockerfile_eaa"
+      args:
+        username: eaa
+    image: "eaa:${VER}"
+    read_only: true
+    security_opt:
+     - no-new-privileges:false
+    ports:
+     - "192.168.122.1:443:443"
+     - "192.168.122.1:80:80"
+    volumes:
+     - "/var/lib/appliance/certs:/home/eaa/certs"
+     - "/var/lib/appliance/configs:/home/eaa/configs"
     network_mode: bridge
 
   edgednssvr:
+    ports:
+     - "192.168.122.128:53:53/udp"
     container_name: mec-app-edgednssvr
     build:
       context: .
       dockerfile: "Dockerfile_edgednssvr"
+      args:
+        username: edgednssvr
     image: "edgednssvr:${VER}"
+    read_only: true
+    security_opt:
+     - no-new-privileges:false
     cap_add:
      - NET_ADMIN
     volumes:
      - "/var/lib/appliance/edgednssvr:/var/lib/edgedns"
      - "/run:/run"
+    command:
+     - "-port=53"
+     - "-fwdr=8.8.8.8"
+     - "-syslog=192.168.122.1:514"
     environment:
      - http_proxy
      - https_proxy
-     - DNS_FWDR=8.8.8.8
-     - LOCAL_SYSLOG=192.168.122.1:514
     network_mode: bridge
 
   syslog-ng:
     image:  balabit/syslog-ng:3.19.1
+    read_only: true
     volumes:
       - "/var/lib/appliance/configs/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro"
       - "/var/lib/appliance/certs:/etc/syslog-ng/certs:ro"
@@ -69,7 +115,25 @@ services:
 
     command: "--no-caps"
     extra_hosts:
-      - "syslog.community.controller.mec:${REMOTE_SYSLOG_IP}"
+      - "syslog.controller.openness:${REMOTE_SYSLOG_IP}"
     ports:
       - "192.168.122.1:514:514/udp"
     network_mode: bridge
+
+  interfaceservice:
+    container_name: interfaceservice
+    build:
+      context: .
+      dockerfile: "Dockerfile_interfaceservice"
+      args:
+        username: interfaceservice
+    image: "interfaceservice:${VER}"
+    read_only: true
+    security_opt:
+     - no-new-privileges:false
+    privileged: true
+    volumes:
+     - "/var/lib/appliance/configs:/home/interfaceservice/configs"
+     - "/var/lib/appliance/certs:/home/interfaceservice/certs"
+     - "/var/run:/var/run"
+    network_mode: host

@@ -1,16 +1,5 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 
 package ela
 
@@ -24,7 +13,6 @@ import (
 
 	logger "github.com/open-ness/common/log"
 	"github.com/open-ness/edgenode/pkg/config"
-	"github.com/open-ness/edgenode/pkg/ela/kubeovn"
 
 	"github.com/open-ness/common/proxy/progutil"
 	"github.com/open-ness/edgenode/pkg/auth"
@@ -44,7 +32,6 @@ type Configuration struct {
 	CertsDir           string        `json:"CertsDirectory"`
 	DNSIP              string        `json:"DnsIP"`
 	PCIBlacklist       []string      `json:"PCIBlacklist"`
-	KubeOVNMode        bool          `json:"KubeOVNMode"`
 	InterfaceMTU       uint16        `json:"InterfaceMTU"`
 	ControllerEndpoint string        `json:"ControllerEndpoint"`
 }
@@ -94,28 +81,24 @@ func runServer(ctx context.Context) error {
 		return err
 	}
 	lis := &progutil.DialListener{RemoteAddr: addr, Name: "ELA"}
-	defer lis.Close()
+	defer func() {
+		if err1 := lis.Close(); err1 != nil {
+			log.Errf("Failed to close ELA listener: %v", err1)
+		}
+	}()
 
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
 
-	if Config.KubeOVNMode {
-		log.Info("kube-ovn mode")
-		// No ApplicationPolicyService in kube-ovn mode
+	applicationPolicyService := ApplicationPolicyServiceServerImpl{}
+	pb.RegisterApplicationPolicyServiceServer(grpcServer,
+		&applicationPolicyService)
 
-		interfaceService := kubeovn.InterfaceService{}
-		pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
-	} else {
-		applicationPolicyService := ApplicationPolicyServiceServerImpl{}
-		pb.RegisterApplicationPolicyServiceServer(grpcServer,
-			&applicationPolicyService)
+	interfaceService := InterfaceService{}
+	pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
 
-		interfaceService := InterfaceService{}
-		pb.RegisterInterfaceServiceServer(grpcServer, &interfaceService)
-
-		interfacePolicyService := InterfacePolicyService{}
-		pb.RegisterInterfacePolicyServiceServer(grpcServer,
-			&interfacePolicyService)
-	}
+	interfacePolicyService := InterfacePolicyService{}
+	pb.RegisterInterfacePolicyServiceServer(grpcServer,
+		&interfacePolicyService)
 
 	dnsService := DNSServiceServer{}
 	pb.RegisterDNSServiceServer(grpcServer, &dnsService)

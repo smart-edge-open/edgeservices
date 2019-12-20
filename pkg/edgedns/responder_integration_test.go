@@ -1,20 +1,11 @@
-// Copyright 2019 Smart-Edge.com, Inc. All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 package edgedns_test
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 
 	"github.com/miekg/dns"
 	. "github.com/onsi/ginkgo"
@@ -178,7 +169,17 @@ var _ = Describe("Responder", func() {
 	})
 
 	It("Delegates non-authoritative queries", func() {
-		dnsServer.SetDefaultForwarder("8.8.8.8")
+		// get regular dns IP
+		commandGetCurrentDNS :=
+			"nmcli dev show | grep DNS | grep -m 1 -E -o \"([0-9]{1,3}[\\.])" +
+				"{3}[0-9]{1,3}\""
+
+		currentDNS, err := exec.Command("bash", "-c",
+			commandGetCurrentDNS).Output()
+		Expect(err).NotTo(HaveOccurred())
+		currentDNSstr := strings.TrimSuffix(string(currentDNS), "\n")
+
+		dnsServer.SetDefaultForwarder(currentDNSstr)
 		msg, err := query("google.com.", dns.TypeA)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(msg.Answer).NotTo(BeEmpty())

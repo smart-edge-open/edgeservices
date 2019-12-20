@@ -1,16 +1,5 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 
 package ela
 
@@ -26,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
 
@@ -142,6 +132,15 @@ type interfaceData struct {
 	NetworkInterface *pb.NetworkInterface
 }
 
+func updateContainer(ctx context.Context, containerName string, updateConfig container.UpdateConfig) (container.ContainerUpdateOKBody, error) {
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return container.ContainerUpdateOKBody{}, err
+	}
+
+	return cli.ContainerUpdate(ctx, containerName, updateConfig)
+}
+
 func startContainer(ctx context.Context, containerName string) error {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -164,18 +163,22 @@ func stopContainer(ctx context.Context, containerName string) error {
 func isNTSrunning(ctx context.Context) error {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
+		cli.Close()
 		return err
 	}
 
 	containerData, err := cli.ContainerInspect(ctx, ntsContainerName)
 	if err != nil {
+		cli.Close()
 		return err
 	}
 
 	if containerData.State.Running {
+		cli.Close()
 		return nil
 	}
 
+	cli.Close()
 	return errors.New("NTS container is not running, status: " +
 		containerData.State.Status)
 }
@@ -229,7 +232,7 @@ func rebindDevices(pcis []string,
 	}
 
 	// #nosec G204 - bindParams controlled and checked above
-	cmd := exec.Command("/root/dpdk-devbind.py", bindParams...)
+	cmd := exec.Command("./dpdk-devbind.py", bindParams...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 
@@ -259,11 +262,23 @@ func stopDNSAndRemoveRules(ctx context.Context) error {
 }
 
 func restartDNSAndSetRules(ctx context.Context) error {
+	_, err := updateContainer(ctx, dnsContainerName,
+		container.UpdateConfig{
+			Resources: container.Resources{
+				CPUShares:  1024,      // Default value
+				Memory:     134217728, // 128 MiB
+				MemorySwap: 134217728, // 128 MiB
+				PidsLimit:  100,
+			},
+		})
+	if err != nil {
+		return errors.Wrap(err, "failed to update Edge DNS container")
+	}
+
 	if err := startContainer(ctx, dnsContainerName); err != nil {
 		return errors.Wrap(err, "failed to start Edge DNS")
 	}
 
-	var err error
 	dnsKNImac := ""
 
 	ticker := time.NewTicker(25 * time.Millisecond)
@@ -351,6 +366,19 @@ func waitForNTS(ctx context.Context) error {
 }
 
 func startNTSandDNS(ctx context.Context) error {
+	_, err := updateContainer(ctx, ntsContainerName,
+		container.UpdateConfig{
+			Resources: container.Resources{
+				CPUShares:  1024,      // Default value
+				Memory:     134217728, // 128 MiB
+				MemorySwap: 134217728, // 128 MiB
+				PidsLimit:  100,
+			},
+		})
+	if err != nil {
+		return errors.Wrap(err, "failed to update NTS container")
+	}
+
 	if err := startContainer(ctx, ntsContainerName); err != nil {
 		return errors.Wrap(err, "failed to start NTS")
 	}

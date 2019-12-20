@@ -1,16 +1,5 @@
-// Copyright 2019 Intel Corporation and Smart-Edge.com, Inc. All rights reserved
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Intel Corporation
 
 package eva
 
@@ -19,11 +8,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/open-ness/edgenode/internal/wrappers"
 	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
 	pb "github.com/open-ness/edgenode/pkg/eva/pb"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	libvirt "github.com/libvirt/libvirt-go"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
@@ -70,6 +59,12 @@ func (v *VMHandler) getMetadata() *metadata.DeployedApp {
 	return v.meta
 }
 
+// CreateLibvirtConnection stores function returning ConnectInterface
+var CreateLibvirtConnection = func(uri string) (wrappers.ConnectInterface,
+	error) {
+	return wrappers.NewConnect(uri)
+}
+
 // UpdateStatus updates a status
 func (c *ContainerHandler) UpdateStatus(
 	status pb.LifecycleStatus_Status) error {
@@ -96,7 +91,7 @@ func updateStatus(m *metadata.DeployedApp,
 func (c ContainerHandler) StartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := wrappers.CreateDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}
@@ -116,7 +111,7 @@ func (c ContainerHandler) StartHandler(ctx context.Context,
 func (c ContainerHandler) StopHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := wrappers.CreateDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}
@@ -135,7 +130,7 @@ func (c ContainerHandler) StopHandler(ctx context.Context,
 func (c ContainerHandler) RestartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := wrappers.CreateDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}
@@ -150,8 +145,8 @@ func (c ContainerHandler) RestartHandler(ctx context.Context,
 	return nil
 }
 
-func waitForDomStateChange(dom *libvirt.Domain, expected libvirt.DomainState,
-	timeoutDuration time.Duration) (bool, error) {
+func waitForDomStateChange(dom wrappers.DomainInterface,
+	expected libvirt.DomainState, timeoutDuration time.Duration) (bool, error) {
 
 	tout := time.After(timeoutDuration)
 
@@ -176,7 +171,7 @@ func waitForDomStateChange(dom *libvirt.Domain, expected libvirt.DomainState,
 func (v VMHandler) StartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	conn, err := libvirt.NewConnect("qemu:///system")
+	conn, err := CreateLibvirtConnection("qemu:///system")
 	if err != nil {
 		return err
 	}
@@ -200,7 +195,7 @@ func (v VMHandler) StartHandler(ctx context.Context,
 func (v VMHandler) StopHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	conn, err := libvirt.NewConnect("qemu:///system")
+	conn, err := CreateLibvirtConnection("qemu:///system")
 	if err != nil {
 		return err
 	}
@@ -247,7 +242,7 @@ func (v VMHandler) StopHandler(ctx context.Context,
 func (v VMHandler) RestartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
-	conn, err := libvirt.NewConnect("qemu:///system")
+	conn, err := CreateLibvirtConnection("qemu:///system")
 	if err != nil {
 		return err
 	}
@@ -298,7 +293,8 @@ func (v VMHandler) RestartHandler(ctx context.Context,
 	return nil
 }
 
-func startVM(d *libvirt.Domain, timeout time.Duration, v VMHandler) error {
+func startVM(d wrappers.DomainInterface, timeout time.Duration,
+	v VMHandler) error {
 	if err := d.Create(); err != nil {
 		return err
 	}
