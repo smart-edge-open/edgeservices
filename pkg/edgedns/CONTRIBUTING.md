@@ -15,4 +15,3 @@ Updating the gRPC inteface
 
 `protoc -I pb --go_out=plugins=grpc:pb pb/resolver.proto`
 
-Copyright 2019 Smart-Edge.com, Inc. All rights reserved.
