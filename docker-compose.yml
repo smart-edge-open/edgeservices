@@ -6,8 +6,7 @@ version: '3.2'
 services:
   appliance:
     build:
-      context: .
-      dockerfile: "Dockerfile_appliance"
+      context: ./dist/appliance
       args:
         username: appliance
     image: "appliance:${VER}"
@@ -37,8 +36,7 @@ services:
   nts:
     container_name: nts
     build:
-      context: .
-      dockerfile: "Dockerfile_nts"
+      context: ./internal/nts
       args:
         username: nts
     image: "nts:${VER}"
@@ -62,8 +60,7 @@ services:
 
   eaa:
     build:
-      context: .
-      dockerfile: "Dockerfile_eaa"
+      context: ./dist/eaa
       args:
         username: eaa
     image: "eaa:${VER}"
@@ -83,8 +80,7 @@ services:
      - "192.168.122.128:53:53/udp"
     container_name: mec-app-edgednssvr
     build:
-      context: .
-      dockerfile: "Dockerfile_edgednssvr"
+      context: ./dist/edgednssvr
       args:
         username: edgednssvr
     image: "edgednssvr:${VER}"
@@ -123,8 +119,7 @@ services:
   interfaceservice:
     container_name: interfaceservice
     build:
-      context: .
-      dockerfile: "Dockerfile_interfaceservice"
+      context: ./dist/interfaceservice
       args:
         username: interfaceservice
     image: "interfaceservice:${VER}"

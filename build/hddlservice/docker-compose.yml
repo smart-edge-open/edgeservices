@@ -9,7 +9,6 @@ services:
     container_name: openvino-hddl-service
     build:
       context: .
-      dockerfile: "Dockerfile_hddlservice"
     image: "hddlservice:${VER}"
     cap_add:
      - SYS_ADMIN

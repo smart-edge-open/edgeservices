@@ -22,10 +22,10 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER $username
 WORKDIR $user_dir
 
-COPY ./nts/nes-daemon ./
-COPY ./nts/kni_docker_daemon.py ./
-COPY ./nts/ovs_docker_daemon.py ./
-COPY ./nts/entrypoint.sh ./
-COPY ./nts/libnes_api_shared.so ./
+COPY ./build/nes-daemon ./
+COPY ./kni_docker_daemon.py ./
+COPY ./ovs_docker_daemon.py ./
+COPY ./entrypoint.sh ./
+COPY ./build/libnes_api_shared.so ./
 
 ENTRYPOINT ["sudo", "-E", "./entrypoint.sh"]
