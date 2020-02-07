@@ -171,4 +171,67 @@ var _ = Describe("DnsService gRPC Server", func() {
 			})
 		})
 	})
+	When("SetForwarders is called", func() {
+		Context("with correct arguments", func() {
+			It("responds with not implemented error", func() {
+				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				Expect(err).ShouldNot(HaveOccurred())
+				prefaceLis := progutil.NewPrefaceListener(lis)
+				defer prefaceLis.Close()
+
+				prefaceLis.RegisterHost("127.0.0.1")
+				go prefaceLis.Accept() // we only expect 1 connection
+
+				// OP-1742: ContextDialler not supported by Gateway
+				//nolint:staticcheck
+				conn, err := grpc.Dial("127.0.0.1",
+					grpc.WithTransportCredentials(transportCreds),
+					grpc.WithDialer(prefaceLis.DialEla))
+				Expect(err).NotTo(HaveOccurred())
+				defer conn.Close()
+
+				client := elapb.NewDNSServiceClient(conn)
+				setCtx, setCancel := context.WithTimeout(context.Background(),
+					3*time.Second)
+				defer setCancel()
+
+				_, err = client.SetForwarders(setCtx, &elapb.DNSForwarders{})
+
+				Expect(err).Should(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("not implemented"))
+			})
+		})
+	})
+	When("DeleteForwarders is called", func() {
+		Context("with correct arguments", func() {
+			It("responds with not implemented error", func() {
+				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				Expect(err).ShouldNot(HaveOccurred())
+				prefaceLis := progutil.NewPrefaceListener(lis)
+				defer prefaceLis.Close()
+
+				prefaceLis.RegisterHost("127.0.0.1")
+				go prefaceLis.Accept() // we only expect 1 connection
+
+				// OP-1742: ContextDialler not supported by Gateway
+				//nolint:staticcheck
+
+				conn, err := grpc.Dial("127.0.0.1",
+					grpc.WithTransportCredentials(transportCreds),
+					grpc.WithDialer(prefaceLis.DialEla))
+				Expect(err).NotTo(HaveOccurred())
+				defer conn.Close()
+
+				client := elapb.NewDNSServiceClient(conn)
+				setCtx, setCancel := context.WithTimeout(context.Background(),
+					3*time.Second)
+				defer setCancel()
+
+				_, err = client.DeleteForwarders(setCtx, &elapb.DNSForwarders{})
+
+				Expect(err).Should(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("not implemented"))
+			})
+		})
+	})
 })

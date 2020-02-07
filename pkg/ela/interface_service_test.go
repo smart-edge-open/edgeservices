@@ -49,8 +49,7 @@ var _ = Describe("gRPC InterfaceService", func() {
 	})
 
 	Describe("GetAll method", func() {
-		Specify("will respond", func() {
-
+		getAll := func(id string) (*pb.NetworkInterfaces, error) {
 			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
 			Expect(err).ShouldNot(HaveOccurred())
 			prefaceLis := progutil.NewPrefaceListener(lis)
@@ -73,22 +72,48 @@ var _ = Describe("gRPC InterfaceService", func() {
 				3*time.Second)
 			defer cancel()
 
-			ifs, err := client.GetAll(ctx, &empty.Empty{},
+			return client.GetAll(ctx, &empty.Empty{},
 				grpc.WaitForReady(true))
-			Expect(err).ShouldNot(HaveOccurred())
+		}
+		Context("Called with Id corresponding to existing interface", func() {
+			Specify("Will return that interface", func() {
+				ifs, err := getAll("0000:00:00.0")
 
-			Expect(ifs).ToNot(BeNil())
-			Expect(ifs.NetworkInterfaces).To(HaveLen(2))
+				Expect(err).ShouldNot(HaveOccurred())
 
-			ni := ifs.NetworkInterfaces[0]
-			Expect(ni).ToNot(BeNil())
-			Expect(ni.Id).To(Equal(expectedNetworkInterfaces[0].Id))
-			Expect(ni.Driver).To(Equal(expectedNetworkInterfaces[0].Driver))
-			Expect(ni.Type).To(Equal(expectedNetworkInterfaces[0].Type))
-			Expect(ni.MacAddress).
-				To(Equal(expectedNetworkInterfaces[0].MacAddress))
-			Expect(ni.FallbackInterface).
-				To(Equal(expectedNetworkInterfaces[0].FallbackInterface))
+				Expect(ifs).ToNot(BeNil())
+				Expect(ifs.NetworkInterfaces).To(HaveLen(2))
+
+				ni := ifs.NetworkInterfaces[0]
+				Expect(ni).ToNot(BeNil())
+				Expect(ni.Id).To(Equal(expectedNetworkInterfaces[0].Id))
+				Expect(ni.Driver).To(Equal(expectedNetworkInterfaces[0].Driver))
+				Expect(ni.Type).To(Equal(expectedNetworkInterfaces[0].Type))
+				Expect(ni.MacAddress).
+					To(Equal(expectedNetworkInterfaces[0].MacAddress))
+				Expect(ni.FallbackInterface).
+					To(Equal(expectedNetworkInterfaces[0].FallbackInterface))
+			})
+		})
+		Context("GetIntefaces function", func() {
+			When("No interfaces present", func() {
+				It("Will return error", func() {
+					ela.GetInterfaces = func() (*pb.NetworkInterfaces, error) {
+						return nil, errors.New("failure")
+					}
+
+					ifs, err := getAll("0000:00:00.0")
+
+					Expect(ifs).To(BeNil())
+					Expect(err).To(HaveOccurred())
+
+					st, ok := status.FromError(err)
+					Expect(ok).To(BeTrue())
+					Expect(st.Message()).To(Equal("failed to obtain " +
+						"network interfaces: failure"))
+					Expect(st.Code()).To(Equal(codes.Unknown))
+				})
+			})
 		})
 	})
 
@@ -184,6 +209,55 @@ var _ = Describe("gRPC InterfaceService", func() {
 						"network interfaces: failure"))
 					Expect(st.Code()).To(Equal(codes.Unknown))
 				})
+			})
+		})
+	})
+
+	Describe("Update method", func() {
+		update := func(networkInterface *pb.NetworkInterface) error {
+
+			lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+			Expect(err).ShouldNot(HaveOccurred())
+			prefaceLis := progutil.NewPrefaceListener(lis)
+			defer prefaceLis.Close()
+
+			prefaceLis.RegisterHost("127.0.0.1")
+			go prefaceLis.Accept() // we only expect 1 connection
+
+			// Then connecting to it from this thread
+			// OP-1742: ContextDialler not supported by Gateway
+			//nolint:staticcheck
+			conn, err := grpc.Dial("127.0.0.1",
+				grpc.WithTransportCredentials(transportCreds),
+				grpc.WithDialer(prefaceLis.DialEla))
+			Expect(err).NotTo(HaveOccurred())
+			defer conn.Close()
+
+			client := pb.NewInterfaceServiceClient(conn)
+			ctx, cancel := context.WithTimeout(context.Background(),
+				3*time.Second)
+			defer cancel()
+
+			_, err = client.Update(ctx, networkInterface,
+				grpc.WaitForReady(true))
+			return err
+		}
+		var ni *pb.NetworkInterface
+
+		BeforeEach(func() {
+			ni = &pb.NetworkInterface{
+				Id:          "0000:00:00.0",
+				Description: "dummy_desc",
+				Driver:      pb.NetworkInterface_USERSPACE,
+				Type:        pb.NetworkInterface_UPSTREAM,
+			}
+		})
+
+		Context("tries to update interface", func() {
+			It("will fail", func() {
+				err := update(ni)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("not implemented"))
 			})
 		})
 	})
