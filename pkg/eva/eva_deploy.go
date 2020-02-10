@@ -63,11 +63,12 @@ var httpMatcher = regexp.MustCompile("^http://.")
 var httpsMatcher = regexp.MustCompile("^https://.")
 
 // EACHandler - the type for the generic Enhanced App Confuration handler
-type EACHandler func(string, interface{})
+type EACHandler func(string, interface{}, interface{})
 
 // EACHandlersDocker - Table of EACHandlers for the Docker backend
 var EACHandlersDocker = map[string]EACHandler{
-	"hddl": handleHddl,
+	"hddl":     handleHddl,
+	"env_vars": handleEnvVars,
 }
 
 // EACHandlersVM - Table of EACHandlers for the Libvirt backend
@@ -294,7 +295,7 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
-func handleHddl(value string, genericCfg interface{}) {
+func handleHddl(value string, genericCfg interface{}, additionalCfg interface{}) {
 	turnedOn := map[string]bool{"on": true, "yes": true, "enabled": true,
 		"y": true, "true": true}
 	if _, on := turnedOn[strings.ToLower(value)]; !on {
@@ -312,6 +313,36 @@ func handleHddl(value string, genericCfg interface{}) {
 	hostCfg.Binds = append(hostCfg.Binds, "/var/tmp:/var/tmp")
 }
 
+func handleEnvVars(value string, genericCfg interface{}, additionalCfg interface{}) {
+	envSettings := strings.Split(value, ";")
+	log.Infof("Environment settings provided (%v), setting", value)
+
+	for _, setting := range envSettings {
+		// Check that each variable provided is set to a value and
+		// only one variable has been provided per semi-colon
+		if strings.Count(setting, "=") != 1 {
+			log.Errf("Variable is not set correctly (%v), skipping", setting)
+			continue
+		}
+
+		// Check that the environment variable name has been set
+		isVarNameSet := strings.Index(setting, "=")
+		if isVarNameSet == 0 {
+			log.Errf("Variable name is not provided (%v), skipping", setting)
+			continue
+		}
+
+		// Check that the environment variable value has been set
+		if isVarNameSet == len(setting)-1 {
+			log.Errf("Variable value is not provided (%v), skipping", setting)
+			continue
+		}
+
+		containCfg := additionalCfg.(*container.Config)
+		containCfg.Env = append(containCfg.Env, setting)
+	}
+}
+
 // EPAFeature - we get an array of those in API calls from controller
 // Key is used to lookup the proper EACHandler, value is handler specific
 type EPAFeature struct {
@@ -324,7 +355,7 @@ type EPAFeature struct {
 // If match is found, it will call the handler with the value
 // as entered on the UI. (EPA Feature Value)
 func processEAC(EACJson string, EACHandlers map[string]EACHandler,
-	genericCfg interface{}) {
+	genericCfg interface{}, genericHostCfg interface{}) {
 	var EPAFeatures []EPAFeature
 
 	if err := json.Unmarshal([]byte(EACJson), &EPAFeatures); err != nil {
@@ -340,7 +371,7 @@ func processEAC(EACJson string, EACHandlers map[string]EACHandler,
 		handler, ok := EACHandlers[entry.Key]
 		if ok {
 			log.Debugf("calling handler for %v", entry.Key)
-			handler(entry.Value, genericCfg)
+			handler(entry.Value, genericCfg, genericHostCfg)
 		}
 	}
 }
@@ -398,13 +429,17 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 		Resources: resources,
 		CapAdd:    []string{"NET_ADMIN"}}
 
+	containCfg := container.Config{
+		Image: dapp.App.Id,
+	}
+
 	// Update hostCfg based on EAC configuration
-	processEAC(dapp.App.EACJsonBlob, EACHandlersDocker, &hostCfg)
+	processEAC(dapp.App.EACJsonBlob, EACHandlersDocker, &hostCfg, &containCfg)
 	log.Debugf("hostCfg: %+v", hostCfg)
+	log.Debugf("containCfg: %+v", containCfg)
 
 	respCreate, err := docker.ContainerCreate(ctx,
-		&container.Config{Image: dapp.App.Id},
-		&hostCfg, nil, dapp.App.Id)
+		&containCfg, &hostCfg, nil, dapp.App.Id)
 
 	if err != nil {
 		log.Errf("docker.ContainerCreate failed: %+v", err)
@@ -695,7 +730,7 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 		}
 	}
 	// Update domcfg based on EAC configuration
-	processEAC(dapp.App.EACJsonBlob, EACHandlersVM, &domcfg)
+	processEAC(dapp.App.EACJsonBlob, EACHandlersVM, &domcfg, nil)
 	xmldoc, err := domcfg.Marshal()
 	if err != nil {
 		dapp.App.Status = pb.LifecycleStatus_ERROR
