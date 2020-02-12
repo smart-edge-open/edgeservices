@@ -4,8 +4,8 @@
 export GO111MODULE = on
 
 .PHONY: onprem networkedge networkedge-kubeovn run-onprem clean \
-	appliance eaa interfaceservice edgednssvr nts edalibs hddllog biosfw fpga-cfg fpga-opae syslog-ng\
-	lint test help build
+	appliance eaa interfaceservice edgednssvr nts edalibs hddllog biosfw fpga-cfg fpga-opae syslog-ng \
+	lint test help build pull-syslog
 COPY_DOCKERFILES := $(shell /usr/bin/cp -rfT ./build/ ./dist/)
 VER ?= 1.0
 RTE_SDK ?= /opt/dpdk-18.11.2
@@ -41,6 +41,7 @@ help:
 	@echo "  fpga-cfg               to build only docker image of the FPGA Config"
 	@echo "  fpga-opae              to build only docker image of the FPGA OPAE"
 	@echo "  syslog-ng              to build only docker image of the syslog-ng"
+	@echo "  pull-syslog            to pull docker image of the syslog-ng"
 
 common-services: eaa edgednssvr syslog-ng
 
@@ -120,3 +121,6 @@ fpga-opae:
 
 build:
 	$(MAKE) SKIP_DOCKER_IMAGES=1 common-services appliance edalibs nts interfaceservice
+
+pull-syslog:
+	docker-compose pull --quiet syslog-ng
