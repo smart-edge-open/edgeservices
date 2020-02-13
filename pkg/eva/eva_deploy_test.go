@@ -277,7 +277,8 @@ var _ = Describe("EVA: Docker tests", func() {
 						HttpUri: "https://localhost/test_img.tar.gz"},
 				}
 
-				eacVal := `[{"Key": "env_vars", "Value": "testVar=sample"}]`
+				eacVal := `[{"Key": "env_vars", "Value": "testVar=sample"},
+						{"Key": "cmd", "Value": "/bin/test"}]`
 				app := evapb.Application{Id: "test-app-deploy",
 					Cores: 2, Memory: 40, Source: &uri,
 					EACJsonBlob: eacVal}

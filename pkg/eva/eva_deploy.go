@@ -69,6 +69,7 @@ type EACHandler func(string, interface{}, interface{})
 var EACHandlersDocker = map[string]EACHandler{
 	"hddl":     handleHddl,
 	"env_vars": handleEnvVars,
+	"cmd":      handleCmd,
 }
 
 // EACHandlersVM - Table of EACHandlers for the Libvirt backend
@@ -341,6 +342,18 @@ func handleEnvVars(value string, genericCfg interface{}, additionalCfg interface
 		containCfg := additionalCfg.(*container.Config)
 		containCfg.Env = append(containCfg.Env, setting)
 	}
+}
+
+func handleCmd(cmd string, genericCfg interface{}, additionalCfg interface{}) {
+	log.Infof("Using command override: %v", cmd)
+
+	containerCfg := additionalCfg.(*container.Config)
+	if cmd == "" {
+		log.Errf("Command override string is empty, ignoring")
+		return
+	}
+
+	containerCfg.Cmd = append(containerCfg.Cmd, cmd)
 }
 
 // EPAFeature - we get an array of those in API calls from controller
