@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 
 module github.com/otcshare/edgenode
 
@@ -7,6 +7,8 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
+	github.com/containernetworking/cni v0.7.1
+	github.com/containernetworking/plugins v0.8.5
 	github.com/digitalocean/go-openvswitch v0.0.0-20190729213829-6de2edd48e71
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.13.1
@@ -31,7 +33,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
-	github.com/stretchr/testify v1.3.0 // indirect
+	github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf
 	go.etcd.io/bbolt v1.3.2
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c // indirect
 	golang.org/x/text v0.3.1-0.20181227161524-e6919f6577db // indirect
@@ -41,6 +43,7 @@ require (
 	google.golang.org/grpc v1.20.1
 	gopkg.in/ini.v1 v1.42.0
 	gotest.tools v2.2.0+incompatible // indirect
+	k8s.io/klog v1.0.0
 )
 
 replace github.com/docker/docker => github.com/docker/engine v0.0.0-20190423201726-d2cfbce3f3b0

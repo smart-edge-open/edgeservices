@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2019 Intel Corporation
+# Copyright (c) 2019-2020 Intel Corporation
 
 export GO111MODULE = on
 
 .PHONY: onprem networkedge networkedge-kubeovn run-onprem clean \
-	appliance eaa interfaceservice edgednssvr nts edalibs hddllog biosfw fpga-cfg fpga-opae syslog-ng \
+	appliance eaa interfaceservice edgednssvr nts edalibs ovncni hddllog biosfw fpga-cfg fpga-opae syslog-ng\
 	lint test help build pull-syslog
 COPY_DOCKERFILES := $(shell /usr/bin/cp -rfT ./build/ ./dist/)
 VER ?= 1.0
@@ -36,6 +36,7 @@ help:
 	@echo "  edgednssvr             to build only docker image of the Edge DNS Service"
 	@echo "  nts                    to build only docker image of the NTS"
 	@echo "  edalibs                to build EDA libs"
+	@echo "  ovncni                 to build only ovncni executable"
 	@echo "  hddllog                to build only docker image of the HDDL Service"
 	@echo "  biosfw                 to build only docker image of the BIOSFW"
 	@echo "  fpga-cfg               to build only docker image of the FPGA Config"
@@ -103,6 +104,10 @@ endif
 
 edalibs:
 	$(MAKE) -C internal/nts/eda_libs
+
+ovncni:
+	GOOS=linux go build -o ./dist/$@/$@ ./cmd/$@
+
 
 hddllog:
 	GOOS=linux go build -o ./dist/$@/$@ ./cmd/$@
