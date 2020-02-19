@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 
 package eva
 
@@ -48,6 +48,7 @@ type Config struct {
 	OpenvSwitchBridge  string        `json:"OpenvSwitchBridge"`
 	OpenvSwitch        bool          `json:"OpenvSwitch"`
 	KubernetesMode     bool          `json:"KubernetesMode"`
+	UseCNI             bool          `json:"UseCNI"`
 }
 
 // Wait for cancellation event and then stop the server from other goroutine

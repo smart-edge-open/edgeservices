@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 
 package eva
 
@@ -29,6 +29,7 @@ import (
 
 	"github.com/otcshare/edgenode/internal/wrappers"
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
+	"github.com/otcshare/edgenode/pkg/cni"
 	pb "github.com/otcshare/edgenode/pkg/eva/pb"
 	"github.com/pkg/errors"
 
@@ -442,6 +443,16 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 		Resources: resources,
 		CapAdd:    []string{"NET_ADMIN"}}
 
+	if s.cfg.UseCNI {
+		infraCtrID, err := cni.CreateInfrastructureContainer(ctx, dapp.App.Id)
+		if err != nil {
+			log.Errf("Failed to create infrastructure container. AppID=%s, Reason=%s", dapp.App.Id, err.Error())
+			return
+		}
+
+		hostCfg.NetworkMode = container.NetworkMode(fmt.Sprintf("container:%s", infraCtrID))
+	}
+
 	containCfg := container.Config{
 		Image: dapp.App.Id,
 	}
@@ -850,6 +861,14 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 		return errors.Wrapf(err, "ImageRemove(%v) failed", dapp.App.Id)
 	}
 	log.Infof("Docker image '%v' removed", dapp.App.Id)
+
+	if s.cfg.UseCNI {
+		err = cni.RemoveInfrastructureContainer(ctx, dapp.App.Id)
+		if err != nil {
+			log.Errf("Failed to remove the Infra Container. AppID=%s, Reason=%s",
+				dapp.App.Id, err.Error())
+		}
+	}
 
 	return dapp.SetUndeployed()
 }

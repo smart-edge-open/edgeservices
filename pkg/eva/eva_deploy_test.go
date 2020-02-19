@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 
 package eva_test
 
@@ -314,7 +314,7 @@ var _ = Describe("EVA: Docker tests", func() {
 					`{"stream":"Loaded image ID: sha256:23456\n"}`))
 				stubs.DockerCliStub.ImLoadResp = types.ImageLoadResponse{
 					Body: body2, JSON: true}
-				stubs.DockerCliStub.ImRemResp =
+				stubs.DockerCliStub.ImRemoveResp =
 					[]types.ImageDeleteResponseItem{{Deleted: "1"}}
 
 				wrappers.CreateHTTPClient = stubs.CreateHTTPClientStub
@@ -374,7 +374,7 @@ var _ = Describe("EVA: Docker tests", func() {
 		Context("for container app with correct arguments", func() {
 			It("responds with no error", func() {
 
-				stubs.DockerCliStub.ImRemResp =
+				stubs.DockerCliStub.ImRemoveResp =
 					[]types.ImageDeleteResponseItem{{Deleted: "1"}}
 				wrappers.CreateDockerClient = stubs.CreateDockerClientStub
 
