@@ -16,10 +16,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("getTypeFromCNIConfig", func() {
+var _ = Describe("GetTypeFromCNIConfig", func() {
 	When("given config with type field", func() {
 		It("returns the value of type field", func() {
-			cniType, err := getTypeFromCNIConfig(`{"cniVersion": "0.4.0", "name": "openness-ovn", "type": "ovn" }`)
+			cniType, err := GetTypeFromCNIConfig(`{"cniVersion": "0.4.0", "name": "openness-ovn", "type": "ovn" }`)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(cniType).To(Equal("ovn"))
 		})
@@ -27,7 +27,7 @@ var _ = Describe("getTypeFromCNIConfig", func() {
 
 	When("given config with type field missing", func() {
 		It("returns an error and empty value", func() {
-			cniType, err := getTypeFromCNIConfig(`{"cniVersion": "0.4.0", "name": "openness-ovn" }`)
+			cniType, err := GetTypeFromCNIConfig(`{"cniVersion": "0.4.0", "name": "openness-ovn" }`)
 			Expect(err).Should(HaveOccurred())
 			Expect(cniType).To(Equal(""))
 		})

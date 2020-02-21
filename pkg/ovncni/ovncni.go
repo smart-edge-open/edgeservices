@@ -23,7 +23,7 @@ import (
 
 // Defaults that can be overwritten by CNI Args
 const (
-	defaultOvsBrName  = "br-int"
+	DefaultOvsBrName  = "br-int"
 	defaultOvsCtlPath = "ovs-vsctl"
 )
 
@@ -64,9 +64,10 @@ var ovsVsctlExec = func(path string, args ...string) (string, error) {
 	return strings.Trim(strings.TrimSpace(string(raw)), `"`), err
 }
 
-func getCNIArg(key, cniArgs string) (string, error) {
+// GetCNIArg searches cniArgs for key and returns key's value
+// Expected format is alphanumeric key-value pairs separated by semicolons; for example, "FOO=BAR;ABC=123"
+func GetCNIArg(key, cniArgs string) (string, error) {
 	// CNI_ARGS: Extra arguments passed in by the user at invocation time.
-	// Alphanumeric key-value pairs separated by semicolons; for example, "FOO=BAR;ABC=123"
 	args := strings.Split(cniArgs, ";")
 	for _, arg := range args {
 		if strings.HasPrefix(arg, fmt.Sprintf("%s=", key)) {
@@ -87,22 +88,22 @@ func delLinkByName(name string) error {
 // GetContext parses args to provide CNIContext structure
 func GetContext(args *skel.CmdArgs) (CNIContext, error) {
 	c := CNIContext{
-		OvsBrName:  defaultOvsBrName,
+		OvsBrName:  DefaultOvsBrName,
 		OvsCtlPath: defaultOvsCtlPath,
 		OVNCli:     GetOVNClient("", 0),
 		Cfg:        CNIConfig{},
 		Args:       args,
 	}
 
-	v, err := getCNIArg("ovsBrName", args.Args)
+	v, err := GetCNIArg("ovsBrName", args.Args)
 	if err == nil {
 		c.OvsBrName = v
 	}
-	v, err = getCNIArg("ovsCtlPath", args.Args)
+	v, err = GetCNIArg("ovsCtlPath", args.Args)
 	if err == nil {
 		c.OvsCtlPath = v
 	}
-	v, err = getCNIArg("nbCtlPath", args.Args)
+	v, err = GetCNIArg("nbCtlPath", args.Args)
 	if err == nil {
 		c.OVNCli = GetOVNClient(v, 0)
 	}
@@ -118,7 +119,7 @@ func GetContext(args *skel.CmdArgs) (CNIContext, error) {
 		return c, errors.Errorf("Only ovn IPAM is supported, provided: %s", c.Cfg.IPAM.Type)
 	}
 
-	c.AppID, err = getCNIArg("appID", args.Args)
+	c.AppID, err = GetCNIArg("appID", args.Args)
 	if err != nil {
 		return c, errors.Wrap(err, "Failed to get appID from CNI args")
 	}
@@ -129,13 +130,13 @@ func GetContext(args *skel.CmdArgs) (CNIContext, error) {
 		c.HostIfName = c.AppID[:15]
 	}
 
-	c.Subnet, err = getCNIArg("subnetID", args.Args)
+	c.Subnet, err = GetCNIArg("subnetID", args.Args)
 	if err != nil {
 		return c, errors.Wrap(err, "Failed to get subnetID from CNI args")
 	}
 
 	// If MTU is set to 0 the default parent value will be used
-	m, err := getCNIArg("mtu", args.Args)
+	m, err := GetCNIArg("mtu", args.Args)
 	if err == nil {
 		c.IfMTU, err = strconv.ParseUint(m, 10, 16)
 		if err != nil {

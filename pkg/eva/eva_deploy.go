@@ -31,6 +31,7 @@ import (
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
 	"github.com/otcshare/edgenode/pkg/cni"
 	pb "github.com/otcshare/edgenode/pkg/eva/pb"
+	"github.com/otcshare/edgenode/pkg/ovncni"
 	"github.com/pkg/errors"
 
 	"google.golang.org/grpc/codes"
@@ -444,9 +445,9 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 		CapAdd:    []string{"NET_ADMIN"}}
 
 	if s.cfg.UseCNI {
-		infraCtrID, err := cni.CreateInfrastructureContainer(ctx, dapp.App.Id)
-		if err != nil {
-			log.Errf("Failed to create infrastructure container. AppID=%s, Reason=%s", dapp.App.Id, err.Error())
+		infraCtrID, cniErr := cni.CreateInfrastructureContainer(ctx, dapp)
+		if cniErr != nil {
+			log.Errf("Failed to create infrastructure container. AppID=%s, Reason=%s", dapp.App.Id, cniErr.Error())
 			return
 		}
 
@@ -753,6 +754,41 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 			return
 		}
 	}
+
+	if s.cfg.UseCNI {
+		if t, cniErr := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); cniErr != nil {
+			log.Errf("failed to get CNI type from CniConfig: %s", cniErr.Error())
+			return
+		} else if cni.Type(t) == cni.OVN {
+			if cniErr := cni.OVNCNICreatePort(dapp); cniErr != nil {
+				log.Errf("failed to create OVN port: %s", cniErr.Error())
+				return
+			}
+
+			bridge, cniErr := ovncni.GetCNIArg("ovsBrName", dapp.App.CniConf.Args)
+			if cniErr != nil {
+				bridge = ovncni.DefaultOvsBrName
+			}
+
+			domcfg.Devices.Interfaces = append(domcfg.Devices.Interfaces,
+				libvirtxml.DomainInterface{
+					Source: &libvirtxml.DomainInterfaceSource{
+						Network: &libvirtxml.DomainInterfaceSourceNetwork{Network: "ovs", Bridge: bridge},
+					},
+
+					VirtualPort: &libvirtxml.DomainInterfaceVirtualPort{
+						Params: &libvirtxml.DomainInterfaceVirtualPortParams{
+							OpenVSwitch: &libvirtxml.DomainInterfaceVirtualPortParamsOpenVSwitch{
+								InterfaceID: dapp.App.Id,
+							},
+						},
+					},
+					Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
+				},
+			)
+		}
+	}
+
 	// Update domcfg based on EAC configuration
 	processEAC(dapp.App.EACJsonBlob, EACHandlersVM, &domcfg, nil)
 	xmldoc, err := domcfg.Marshal()
@@ -863,7 +899,7 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 	log.Infof("Docker image '%v' removed", dapp.App.Id)
 
 	if s.cfg.UseCNI {
-		err = cni.RemoveInfrastructureContainer(ctx, dapp.App.Id)
+		err = cni.RemoveInfrastructureContainer(ctx, dapp)
 		if err != nil {
 			log.Errf("Failed to remove the Infra Container. AppID=%s, Reason=%s",
 				dapp.App.Id, err.Error())
@@ -916,6 +952,18 @@ func (s *DeploySrv) libvirtUndeploy(ctx context.Context,
 		if err = removeOVSPort(s.cfg.OpenvSwitchBridge,
 			dapp.App.Id); err != nil {
 			log.Errf("Undeploy(%v) failed: %+v", dapp.App.Id, err)
+		}
+	}
+
+	if s.cfg.UseCNI {
+		if t, err := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); err != nil {
+			log.Errf("failed to get CNI type from CniConfig: %s", err.Error())
+			return err
+		} else if cni.Type(t) == cni.OVN {
+			if err := cni.OVNCNIDeletePort(dapp); err != nil {
+				log.Errf("failed to delete OVN port: %s", err.Error())
+				return err
+			}
 		}
 	}
 

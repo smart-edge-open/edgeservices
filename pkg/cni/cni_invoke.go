@@ -52,7 +52,8 @@ func NewCNIInvoker(infrastructureContainer InfrastructureContainerInfo,
 	}
 }
 
-func getTypeFromCNIConfig(cniConfig string) (string, error) {
+// GetTypeFromCNIConfig parses CNI configuration (JSON format) looking for field 'type' and returns its value
+func GetTypeFromCNIConfig(cniConfig string) (string, error) {
 	var cni struct {
 		Type string `json:"type"`
 	}
@@ -97,7 +98,7 @@ func (c *Invoker) createCmd() (*exec.Cmd, error) {
 		return nil, errors.New("cniConf is nil")
 	}
 
-	cniType, err := getTypeFromCNIConfig(c.cniConf.CniConfig)
+	cniType, err := GetTypeFromCNIConfig(c.cniConf.CniConfig)
 	if err != nil {
 		log.Errf("Invoker: failed to get type: %s", err.Error())
 		return nil, err

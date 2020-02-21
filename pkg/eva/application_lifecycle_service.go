@@ -94,7 +94,7 @@ func (c ContainerHandler) StartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
 	if c.useCNI {
-		err := cni.StartInfrastructureContainer(ctx, c.meta.App.Id, c.meta.App.CniConf)
+		err := cni.StartInfrastructureContainer(ctx, c.meta)
 
 		if err != nil {
 			log.Errf("Failed to start infrastructure container. AppID=%s, Reason=%s", c.meta.App.Id, err.Error())
@@ -136,7 +136,7 @@ func (c ContainerHandler) StopHandler(ctx context.Context,
 	log.Infof("Container ID:%v stopped", c.meta.DeployedID)
 
 	if c.useCNI {
-		err := cni.StopInfrastructureContainer(ctx, c.meta.App.Id, c.meta.App.CniConf)
+		err := cni.StopInfrastructureContainer(ctx, c.meta)
 		if err != nil {
 			log.Errf("Failed to start infrastructure container. AppID=%s, Reason=%s", c.meta.App.Id, err.Error())
 			return err
