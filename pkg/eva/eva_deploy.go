@@ -355,7 +355,9 @@ func handleCmd(cmd string, genericCfg interface{}, additionalCfg interface{}) {
 		return
 	}
 
-	containerCfg.Cmd = append(containerCfg.Cmd, cmd)
+	for _, arg := range strings.Split(cmd, " ") {
+		containerCfg.Cmd = append(containerCfg.Cmd, arg)
+	}
 }
 
 // EPAFeature - we get an array of those in API calls from controller
