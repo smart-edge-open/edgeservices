@@ -19,6 +19,7 @@ import (
 	"math"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -72,10 +73,13 @@ var EACHandlersDocker = map[string]EACHandler{
 	"hddl":     handleHddl,
 	"env_vars": handleEnvVars,
 	"cmd":      handleCmd,
+	"cpu_pin":  handleCPUPinContainer,
 }
 
 // EACHandlersVM - Table of EACHandlers for the Libvirt backend
-var EACHandlersVM = map[string]EACHandler{}
+var EACHandlersVM = map[string]EACHandler{
+	"cpu_pin": handleCPUPinVM,
+}
 
 func downloadImage(ctx context.Context, url string,
 	target string) error {
@@ -314,6 +318,68 @@ func handleHddl(value string, genericCfg interface{}, additionalCfg interface{})
 	}
 	hostCfg.Resources.Devices = append(hostCfg.Resources.Devices, devIon)
 	hostCfg.Binds = append(hostCfg.Binds, "/var/tmp:/var/tmp")
+}
+
+// Checks the received core Id list to see if any letters present
+func checkForLetters(input string) bool {
+	convStrToRune := []rune(input)
+
+	for loopCount := 0; loopCount < len(convStrToRune); loopCount++ {
+		if unicode.IsLetter(convStrToRune[loopCount]) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func handleCPUPinContainer(value string, genericCfg interface{}, additionalCfg interface{}) {
+	isCommaFound := strings.Contains(value, ",")
+	isDashFound := strings.Contains(value, "-")
+
+	log.Infof("CPU Pinning settings for Container provided (%v), applying", value)
+
+	// Check that one of the correct string formats was provided
+	if (isCommaFound && !isDashFound) || (!isCommaFound && isDashFound) || (!isCommaFound && !isDashFound) {
+		// Check that only numbers were provided
+		if checkForLetters(value) {
+			log.Err("Incorrect core Id found in input, skipping")
+			return
+		}
+		hostCfg := genericCfg.(*container.HostConfig)
+		hostCfg.Resources.CpusetCpus = value
+		return
+	}
+
+	log.Err("Please provide only one input format for CPU pinning, skipping")
+}
+
+func handleCPUPinVM(value string, genericCfg interface{}, additionalCfg interface{}) {
+	hostCfg := genericCfg.(*libvirtxml.Domain)
+	totalVMCores := hostCfg.VCPU.Value
+	isCommaFound := strings.Contains(value, ",")
+	isDashFound := strings.Contains(value, "-")
+
+	log.Infof("CPU Pinning settings for VM provided (%v), applying", value)
+
+	// Check that one of the correct string formats was provided
+	if (isCommaFound && !isDashFound) || (!isCommaFound && isDashFound) || (!isCommaFound && !isDashFound) {
+		// Check the only numbers were provided
+		if checkForLetters(value) {
+			log.Err("Incorrect core Id found in input, skipping")
+			return
+		}
+		for coreIDIndex := 0; coreIDIndex < totalVMCores; coreIDIndex++ {
+			vcpuPin := libvirtxml.DomainCPUTuneVCPUPin{
+				VCPU:   uint(coreIDIndex),
+				CPUSet: value,
+			}
+			hostCfg.CPUTune.VCPUPin = append(hostCfg.CPUTune.VCPUPin, vcpuPin)
+		}
+		return
+	}
+
+	log.Err("Please provide only one input format for CPU Pinning, skipping")
 }
 
 func handleEnvVars(value string, genericCfg interface{}, additionalCfg interface{}) {
@@ -689,6 +755,10 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 			},
 		},
 		VCPU: &libvirtxml.DomainVCPU{Value: int(dapp.App.Cores)},
+
+		CPUTune: &libvirtxml.DomainCPUTune{
+			VCPUPin: []libvirtxml.DomainCPUTuneVCPUPin{},
+		},
 
 		MemoryBacking: &libvirtxml.DomainMemoryBacking{
 			MemoryHugePages: &libvirtxml.DomainMemoryHugepages{
