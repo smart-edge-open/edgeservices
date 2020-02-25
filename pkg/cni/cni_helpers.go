@@ -21,6 +21,10 @@ const (
 
 // CreateInfrastructureContainer creates new infrastructure container for application
 func CreateInfrastructureContainer(ctx context.Context, app *metadata.DeployedApp) (string, error) {
+	if app == nil || app.App == nil || app.App.CniConf == nil {
+		return "", errors.New("received nil args")
+	}
+
 	if t, err := GetTypeFromCNIConfig(app.App.CniConf.CniConfig); err != nil {
 		return "", err
 	} else if Type(t) == OVN {
@@ -39,6 +43,10 @@ func CreateInfrastructureContainer(ctx context.Context, app *metadata.DeployedAp
 
 // RemoveInfrastructureContainer removes infrastructure container for application
 func RemoveInfrastructureContainer(ctx context.Context, app *metadata.DeployedApp) error {
+	if app == nil || app.App == nil || app.App.CniConf == nil {
+		return errors.New("received nil args")
+	}
+
 	if t, err := GetTypeFromCNIConfig(app.App.CniConf.CniConfig); err != nil {
 		return err
 	} else if Type(t) == OVN {
@@ -53,6 +61,10 @@ func RemoveInfrastructureContainer(ctx context.Context, app *metadata.DeployedAp
 
 // StartInfrastructureContainer starts infrastructure container for application and invokes CNI exec with ADD action
 func StartInfrastructureContainer(ctx context.Context, app *metadata.DeployedApp) error {
+	if app == nil || app.App == nil || app.App.CniConf == nil {
+		return errors.New("received nil arg")
+	}
+
 	infraCtr := NewInfrastructureContainerInfo(app.App.Id)
 	if err := infraCtr.Start(ctx); err != nil {
 		return err
@@ -69,6 +81,10 @@ func StartInfrastructureContainer(ctx context.Context, app *metadata.DeployedApp
 
 // StopInfrastructureContainer stops infrastructure container for application and invokes CNI exec with DEL action
 func StopInfrastructureContainer(ctx context.Context, app *metadata.DeployedApp) error {
+	if app == nil || app.App == nil || app.App.CniConf == nil {
+		return errors.New("received nil arg")
+	}
+
 	infraCtr := NewInfrastructureContainerInfo(app.App.Id)
 	if err := infraCtr.QueryDocker(ctx); err != nil {
 		return err

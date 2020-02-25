@@ -480,7 +480,7 @@ func (s *ApplicationLifecycleServiceServer) GetStatus(ctx context.Context,
 		return nil, status.Errorf(codes.NotFound, "App %v not found: %v",
 			app.Id, err)
 	}
-	log.Debugf("GetStatus(%v): returnig %v", app.Id, dapp.App.Status)
+	log.Debugf("GetStatus(%v): returning %v", app.Id, dapp.App.Status)
 
 	return &pb.LifecycleStatus{Status: dapp.App.Status}, nil
 }
