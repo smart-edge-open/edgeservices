@@ -125,7 +125,7 @@ ovncni:
 	GOOS=linux go build -o ./dist/$@/$@ ./cmd/$@
 
 hddllog:
-	GOOS=linux go build -o ./dist/$@/$@ ./cmd/$@
+	GOOS=linux go build -o ./dist/hddlservice/$@ ./cmd/$@
 ifndef SKIP_DOCKER_IMAGES
 	VER=${VER} docker-compose -f dist/hddlservice/docker-compose.yml build
 endif
