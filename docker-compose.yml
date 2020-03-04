@@ -30,8 +30,10 @@ services:
      - "/var/lib/appliance/configs:/home/appliance/configs"
      - "/var/lib/appliance/applications:/var/lib/appliance/applications"
      - "/usr/local/var/run/openvswitch:/usr/local/var/run/openvswitch"
+     - "/var/run/openvswitch:/var/run/openvswitch"
     environment:
      - SYSLOG_ADDR=syslog.openness
+     - OVN_NB_DB=${OVN_NB_DB}
     network_mode: bridge
 
   nts:

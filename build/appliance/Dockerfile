@@ -8,7 +8,9 @@ RUN yum install -y libvirt-devel \
         unbound openssl \
         sudo \
     && yum clean all
-RUN rpm -ivh https://github.com/alauda/ovs/releases/download/v2.11.4-1/openvswitch-2.11.4-1.el7.x86_64.rpm
+RUN rpm -ivh https://github.com/alauda/ovs/releases/download/v2.11.4-1/openvswitch-2.11.4-1.el7.x86_64.rpm \
+		https://github.com/alauda/ovs/releases/download/2.11.4-2/ovn-2.11.4-2.el7.x86_64.rpm \
+		https://github.com/alauda/ovs/releases/download/2.11.4-2/ovn-common-2.11.4-2.el7.x86_64.rpm
 
 FROM appliance-deps-image
 
@@ -27,4 +29,4 @@ COPY ./appliance ./
 COPY ./dpdk-devbind.py ./
 COPY ./entrypoint.sh ./
 
-CMD ["sudo", "./entrypoint.sh"]
+CMD ["sudo", "-E", "./entrypoint.sh"]

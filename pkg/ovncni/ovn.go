@@ -6,6 +6,7 @@ package ovncni
 import (
 	"fmt"
 	"net"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -18,7 +19,10 @@ var defaultNbCtlTimeout = 10
 var nbCtlCommand = func(path string, timeout int, args ...string) (string, error) {
 	args = append([]string{fmt.Sprintf("--timeout=%d", timeout)}, args...)
 	// #nosec G204 - args are controlled by the caller
-	raw, err := exec.Command(path, args...).CombinedOutput()
+	cmd := exec.Command(path, args...)
+	cmd.Env = os.Environ()
+	raw, err := cmd.CombinedOutput()
+
 	return strings.Trim(strings.TrimSpace(string(raw)), `"`), err
 }
 
@@ -58,7 +62,7 @@ func (c *OVNClient) GetPort(lSwitch, id string) (LPort, error) {
 		"wait-until", "logical_switch_port", id, "dynamic_addresses!=[]", "--",
 		"get", "logical_switch_port", id, "dynamic-addresses")
 	if err != nil {
-		return p, errors.Wrapf(err, "Failed to get a dynamic port(%s)", id)
+		return p, errors.Wrapf(err, "Failed to get a dynamic port(%s): %s", id, out)
 	}
 
 	// 00:00:00:00:00:00 0.0.0.0
@@ -79,7 +83,7 @@ func (c *OVNClient) GetPort(lSwitch, id string) (LPort, error) {
 	out, err = nbCtlCommand(c.nbCtlPath, c.timeout,
 		"get", "logical_switch", lSwitch, "other_config:subnet")
 	if err != nil {
-		return p, errors.Wrapf(err, "Failed to get a the subnet OVN switch(%s)", lSwitch)
+		return p, errors.Wrapf(err, "Failed to get a the subnet OVN switch(%s): %s", lSwitch, out)
 	}
 	_, cidr, err := net.ParseCIDR(out)
 	if err != nil {
@@ -103,26 +107,26 @@ func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
 	}
 
 	if ip == "" {
-		_, err := nbCtlCommand(c.nbCtlPath, c.timeout,
+		out, err := nbCtlCommand(c.nbCtlPath, c.timeout,
 			"lsp-add", lSwitch, id, "--",
 			"set", "logical_switch_port", id, "addresses=dynamic")
 		if err != nil {
-			return p, errors.Wrapf(err, "Failed to create a dynamic port(%s)", id)
+			return p, errors.Wrapf(err, "Failed to create a dynamic port(%s): %s", id, out)
 		}
 
 	} else {
-		_, err := nbCtlCommand(c.nbCtlPath, c.timeout, "lsp-add", lSwitch, id, "--",
+		out, err := nbCtlCommand(c.nbCtlPath, c.timeout, "lsp-add", lSwitch, id, "--",
 			"lsp-set-addresses", id, "dynamic", ip)
 		if err != nil {
-			return p, errors.Wrapf(err, "Failed to create a dynamic port(%s)", id)
+			return p, errors.Wrapf(err, "Failed to create a dynamic port(%s): %s", id, out)
 		}
 	}
 	p, err := c.GetPort(lSwitch, id)
 	if err == nil {
-		_, err1 := nbCtlCommand(c.nbCtlPath, c.timeout,
+		out, err1 := nbCtlCommand(c.nbCtlPath, c.timeout,
 			"lsp-set-port-security", id, fmt.Sprintf("%s %s/%s", p.MAC, p.IP.IP, p.IP.Mask))
 		if err1 != nil {
-			return p, errors.Wrapf(err1, "Failed to set port security(%s)", id)
+			return p, errors.Wrapf(err1, "Failed to set port security(%s): %s", id, out)
 		}
 	}
 	return p, err
@@ -130,8 +134,8 @@ func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
 
 // DeletePort deletes a logical port from OVN
 func (c *OVNClient) DeletePort(id string) error {
-	if _, err := nbCtlCommand(c.nbCtlPath, c.timeout, "lsp-del", id); err != nil {
-		return errors.Wrapf(err, "Failed to delete port(%s)", id)
+	if out, err := nbCtlCommand(c.nbCtlPath, c.timeout, "lsp-del", id); err != nil {
+		return errors.Wrapf(err, "Failed to delete port(%s): %s", id, out)
 	}
 	return nil
 }

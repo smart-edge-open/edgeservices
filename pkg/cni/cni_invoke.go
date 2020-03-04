@@ -108,6 +108,7 @@ func (c *Invoker) createCmd() (*exec.Cmd, error) {
 	path := filepath.Join(defaultCniBinDir, cniType)
 	cmd := exec.Command(path)
 	cmd.Env = append(os.Environ(), c.constructEnvs()...)
+
 	return cmd, nil
 }
 
