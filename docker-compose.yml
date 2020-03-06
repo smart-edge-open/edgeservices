@@ -34,6 +34,7 @@ services:
      - "/var/run/openvswitch:/var/run/openvswitch"
     environment:
      - SYSLOG_ADDR=syslog.openness
+     - HOST_HOSTNAME=${HOSTNAME}
      - OVN_NB_DB=${OVN_NB_DB}
     network_mode: bridge
 

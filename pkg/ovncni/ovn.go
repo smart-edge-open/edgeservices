@@ -16,6 +16,10 @@ import (
 var defaultNbCtlPath = "ovn-nbctl"
 var defaultNbCtlTimeout = 10
 
+// TODO: Load these variables from ENV
+var clusterRouter = "cluster-router"
+var nodeSwitch = "node-switch"
+
 // NbCtlCommand function object wraps system call
 var NbCtlCommand = func(path string, timeout int, args ...string) (string, error) {
 	args = append([]string{fmt.Sprintf("--timeout=%d", timeout)}, args...)
@@ -113,7 +117,7 @@ func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
 	}
 
 	if ip == "" {
-		_, err := NbCtlCommand(c.nbCtlPath, c.timeout,
+		out, err := NbCtlCommand(c.nbCtlPath, c.timeout,
 			"lsp-add", lSwitch, id, "--",
 			"set", "logical_switch_port", id, "addresses=dynamic")
 		if err != nil {
@@ -121,8 +125,7 @@ func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
 		}
 
 	} else {
-
-		_, err := NbCtlCommand(c.nbCtlPath, c.timeout, "lsp-add", lSwitch, id, "--",
+		out, err := NbCtlCommand(c.nbCtlPath, c.timeout, "lsp-add", lSwitch, id, "--",
 
 			"lsp-set-addresses", id, "dynamic", ip)
 		if err != nil {
@@ -131,19 +134,60 @@ func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
 	}
 	p, err := c.GetPort(lSwitch, id)
 	if err == nil {
-		_, err1 := NbCtlCommand(c.nbCtlPath, c.timeout,
+		out, err1 := NbCtlCommand(c.nbCtlPath, c.timeout,
 			"lsp-set-port-security", id, fmt.Sprintf("%s %s/%s", p.MAC, p.IP.IP, p.IP.Mask))
 		if err1 != nil {
 			return p, errors.Wrapf(err1, "Failed to set port security(%s): %s", id, out)
 		}
+	}
+
+	// Create routing
+	// Node port name is equal to HOST_HOSTNAME variable
+	pn := os.Getenv("HOST_HOSTNAME")
+	if len(pn) == 0 {
+		return p, errors.Errorf("Failed to read ENV var: HOST_HOSTNAME")
+	}
+	np, err := c.GetPort(nodeSwitch, pn)
+	if err != nil {
+		return p, errors.Wrapf(err, "Failed to get port(%s)", pn)
+	}
+	out, err := NbCtlCommand(c.nbCtlPath, c.timeout,
+		"--policy=src-ip", "lr-route-add", clusterRouter, p.IP.IP.String(), np.IP.IP.String())
+	if err != nil {
+		return p, errors.Wrapf(err, "Failed to set port routing(%s): %s", id, out)
 	}
 	return p, err
 }
 
 // DeletePort deletes a logical port from OVN
 func (c *OVNClient) DeletePort(id string) error {
-	if _, err := NbCtlCommand(c.nbCtlPath, c.timeout, "lsp-del", id); err != nil {
-		return errors.Wrapf(err, "Failed to delete port(%s)", id)
+	if out, err := NbCtlCommand(c.nbCtlPath, c.timeout, "lsp-del", id); err != nil {
+		return errors.Wrapf(err, "Failed to delete port(%s): %s", id, out)
+	}
+
+	// Remove routing
+	out, err := NbCtlCommand(c.nbCtlPath, c.timeout,
+		"wait-until", "logical_switch_port", id, "dynamic_addresses!=[]", "--",
+		"get", "logical_switch_port", id, "dynamic-addresses")
+	if err != nil {
+		return errors.Wrapf(err, "Failed to get a dynamic port(%s)", id)
+	}
+
+	// 00:00:00:00:00:00 0.0.0.0
+	data := strings.Split(out, " ")
+	if len(data) != 2 {
+		return errors.Errorf("Failed to get OVN port addresses(%s) from: (%s)", id, out)
+	}
+
+	ip := net.ParseIP(data[1])
+	if ip == nil {
+		return errors.Errorf("Failed to parse IP address of OVN port(%s) from: (%s)", id, data[1])
+	}
+
+	out, err = NbCtlCommand(c.nbCtlPath, c.timeout,
+		"lr-route-del", clusterRouter, ip.String())
+	if err != nil {
+		return errors.Wrapf(err, "Failed to remove port routing(%s) : %s", id, out)
 	}
 	return nil
 }

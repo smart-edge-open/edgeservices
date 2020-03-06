@@ -194,7 +194,7 @@ func (c *CNIContext) configIf(res *current.Result, p *LPort) error {
 		if err1 != nil {
 			return errors.Wrapf(err1, "Failed to find %s", c.Args.IfName)
 		}
-		if err1 = netlink.LinkSetHardwareAddr(contLink, p.MAC); err != nil {
+		if err1 = netlink.LinkSetHardwareAddr(contLink, p.MAC); err1 != nil {
 			return errors.Wrapf(err1, "Failed to set MAC address for %s", c.Args.IfName)
 		}
 		return ipam.ConfigureIface(c.Args.IfName, res)

@@ -4,6 +4,7 @@
 package ovncni_test
 
 import (
+	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -163,10 +164,10 @@ var _ = Describe("Ovn", func() {
 				if strings.Contains(concArgs, buildArgList("set", "logical_switch_port", id)) {
 					return mac + " " + ipOut, nil
 				}
-				if strings.Contains(concArgs, buildArgList("wait-until", "logical_switch_port", id)) {
+				if strings.Contains(concArgs, buildArgList("wait-until", "logical_switch_port")) {
 					return mac + " " + ipOut, nil
 				}
-				if strings.Contains(concArgs, buildArgList("get", "logical_switch", lSwitch)) {
+				if strings.Contains(concArgs, buildArgList("get", "logical_switch")) {
 					return ipOut + "/24", nil
 				}
 				return "", nil
@@ -176,8 +177,9 @@ var _ = Describe("Ovn", func() {
 
 			ovnClient := GetOVNClient("", 100)
 			Expect(ovnClient).NotTo(BeNil())
-
+			os.Setenv("HOST_HOSTNAME", "test")
 			lport, err := ovnClient.CreatePort(lSwitch, id, ipIn)
+			os.Unsetenv("HOST_HOSTNAME")
 			Expect(err).To(BeNil())
 			Expect(lport.ID).To(Equal(id))
 			Expect(lport.IP.IP.String()).To(Equal(ipOut))
@@ -296,7 +298,21 @@ var _ = Describe("Ovn", func() {
 		})
 
 		Specify("success when command passes", func() {
+			id := "example_id"
+			ipOut := "192.0.2.100"
+			mac := "00:00:00:00:00:00"
+
 			var testNbCtlCommand = func(path string, timeout int, args ...string) (string, error) {
+				concArgs := strings.Join(args, " ")
+				if strings.Contains(concArgs, buildArgList("set", "logical_switch_port", id)) {
+					return mac + " " + ipOut, nil
+				}
+				if strings.Contains(concArgs, buildArgList("wait-until", "logical_switch_port")) {
+					return mac + " " + ipOut, nil
+				}
+				if strings.Contains(concArgs, buildArgList("get", "logical_switch")) {
+					return ipOut + "/24", nil
+				}
 				return "", nil
 			}
 			NbCtlCommand = testNbCtlCommand
@@ -304,7 +320,7 @@ var _ = Describe("Ovn", func() {
 			ovnClient := GetOVNClient("some/path", 100)
 			Expect(ovnClient).NotTo(BeNil())
 
-			err := ovnClient.DeletePort("id")
+			err := ovnClient.DeletePort(id)
 			Expect(err).To(BeNil())
 
 		})

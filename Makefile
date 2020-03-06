@@ -70,7 +70,8 @@ clean:
 	$(MAKE) clean -C internal/nts/eda_libs
 
 lint: edalibs
-	golangci-lint run
+	golangci-lint run --build-tags=nts
+	golangci-lint run --build-tags=cni
 
 test: edalibs
 	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor,edants,wrappers,stubs
