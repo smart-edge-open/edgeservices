@@ -99,6 +99,9 @@ endif
 interfaceservice:
 	GOOS=linux go build -o ./dist/$@/$@ ./cmd/$@
 ifndef SKIP_DOCKER_IMAGES
+	# This 'hack' will enable building without DPDK - ./dpdk-devbind.py will be copied if existing
+	# but will also not fail if file will be not available
+	-cp ${RTE_SDK}/usertools/dpdk-devbind.py ./dist/$@/
 	VER=${VER} docker-compose build $@
 endif
 

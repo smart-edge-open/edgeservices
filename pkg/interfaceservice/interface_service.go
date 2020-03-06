@@ -9,13 +9,14 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 
 	logger "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/pkg/config"
 
 	"github.com/otcshare/edgenode/pkg/auth"
-	pb "github.com/otcshare/edgenode/pkg/ela/pb"
+	pb "github.com/otcshare/edgenode/pkg/interfaceservice/pb"
 	"github.com/otcshare/edgenode/pkg/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
@@ -33,6 +34,9 @@ var (
 	log = logger.DefaultLogger.WithField("interface-service", nil)
 	// Config instantiate a configuration
 	Config Configuration
+
+	// DpdkEnabled var specifies if interface service can use DPDK drivers
+	DpdkEnabled = true
 )
 
 func runServer(ctx context.Context) error {
@@ -106,5 +110,14 @@ func Run(ctx context.Context, cfgPath string) error {
 		log.Errf("Failed to load config: %+v", err)
 		return err
 	}
+
+	if _, err := os.Stat("./dpdk-devbind.py"); err != nil {
+		DpdkEnabled = false
+	} else {
+		if err := reattachDpdkPorts(); err != nil {
+			log.Errf("Failed to reattach Dpdk ports: %s", err.Error())
+		}
+	}
+
 	return runServer(ctx)
 }

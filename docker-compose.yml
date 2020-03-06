@@ -128,7 +128,6 @@ services:
       args:
         username: interfaceservice
     image: "interfaceservice:${VER}"
-    read_only: true
     security_opt:
      - no-new-privileges:false
     privileged: true

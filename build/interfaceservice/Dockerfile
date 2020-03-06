@@ -20,7 +20,9 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER $username
 WORKDIR $user_dir
 
-COPY ./interfaceservice ./
+# This 'hack' will enable building without DPDK - ./dpdk-devbind.py will be copied if existing
+# but will also not fail if file will be not available
+COPY ./interfaceservice ./dpdk-devbind.p[y] ./
 COPY ./entrypoint_interfaceservice.sh ./
 
 CMD ["sudo", "./entrypoint_interfaceservice.sh"]
