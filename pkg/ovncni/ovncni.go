@@ -55,7 +55,8 @@ type CNIContext struct {
 	AppID      string
 }
 
-var ovsVsctlExec = func(path string, args ...string) (string, error) {
+// OvsVsctlExec function object wraps system call
+var OvsVsctlExec = func(path string, args ...string) (string, error) {
 	if path == "" {
 		path = defaultOvsCtlPath
 	}
@@ -203,7 +204,7 @@ func (c *CNIContext) configIf(res *current.Result, p *LPort) error {
 		return errors.Wrapf(err, "Failed to configure interface: %s", c.Args.IfName)
 	}
 
-	_, err = ovsVsctlExec(c.OvsCtlPath, "--may-exist", "add-port", c.OvsBrName, c.HostIfName, "--",
+	_, err = OvsVsctlExec(c.OvsCtlPath, "--may-exist", "add-port", c.OvsBrName, c.HostIfName, "--",
 		"set", "interface", c.HostIfName,
 		fmt.Sprintf("external_ids:attached_mac=%s", p.MAC),
 		fmt.Sprintf("external_ids:iface-id=%s", p.ID))
@@ -239,7 +240,7 @@ func (c *CNIContext) Add() error {
 //       func DeletePort(id string) error
 func (c *CNIContext) Del() error {
 
-	_, err := ovsVsctlExec(c.OvsCtlPath, "--if-exists", "--with-iface", "del-port", c.OvsBrName, c.HostIfName)
+	_, err := OvsVsctlExec(c.OvsCtlPath, "--if-exists", "--with-iface", "del-port", c.OvsBrName, c.HostIfName)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to remove %s from OVS bridge: %s", c.HostIfName, c.OvsBrName)
 	}
@@ -259,7 +260,7 @@ func (c *CNIContext) Check() error {
 		return errors.Wrapf(err, "Failed to find OVN port(%s)", c.AppID)
 	}
 
-	id, err := ovsVsctlExec(c.OvsCtlPath, "get", "interface", c.HostIfName, "external-ids:iface-id")
+	id, err := OvsVsctlExec(c.OvsCtlPath, "get", "interface", c.HostIfName, "external-ids:iface-id")
 	if err != nil {
 		return errors.Wrapf(err, "Failed to find OVS port for %s", c.AppID)
 	}
