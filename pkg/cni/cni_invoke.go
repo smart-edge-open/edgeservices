@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kata-containers/runtime/virtcontainers/pkg/nsenter"
 	evapb "github.com/otcshare/edgenode/pkg/eva/pb"
 )
 
@@ -120,7 +121,14 @@ func (c *Invoker) Invoke() (string, error) {
 		return "", err
 	}
 
-	sout, serr, err := c.runCmdAndGetOutput(cmd)
+	var sout, serr string
+	ns := []nsenter.Namespace{{Path: "/var/host_ns/net", Type: nsenter.NSTypeNet}}
+	err = nsenter.NsEnter(ns, func() error {
+		var err error
+		sout, serr, err = c.runCmdAndGetOutput(cmd)
+		return err
+	})
+
 	if err != nil {
 		log.Errf("Invoker: failed to run cmd. Reason='%s', stdout='%s', stderr='%s'", err.Error(), sout, serr)
 		return "", err

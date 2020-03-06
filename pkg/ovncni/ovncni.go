@@ -204,13 +204,13 @@ func (c *CNIContext) configIf(res *current.Result, p *LPort) error {
 		return errors.Wrapf(err, "Failed to configure interface: %s", c.Args.IfName)
 	}
 
-	_, err = OvsVsctlExec(c.OvsCtlPath, "--may-exist", "add-port", c.OvsBrName, c.HostIfName, "--",
+	out, err := OvsVsctlExec(c.OvsCtlPath, "--may-exist", "add-port", c.OvsBrName, c.HostIfName, "--",
 		"set", "interface", c.HostIfName,
 		fmt.Sprintf("external_ids:attached_mac=%s", p.MAC),
 		fmt.Sprintf("external_ids:iface-id=%s", p.ID))
 	if err != nil {
 		_ = delLinkByName(c.HostIfName)
-		return errors.Wrapf(err, "Failed to add %s to OVS bridge: %s", c.HostIfName, c.OvsBrName)
+		return errors.Wrapf(err, "Failed to add %s to OVS bridge: %s because: %s", c.HostIfName, c.OvsBrName, out)
 	}
 
 	return nil
@@ -240,9 +240,9 @@ func (c *CNIContext) Add() error {
 //       func DeletePort(id string) error
 func (c *CNIContext) Del() error {
 
-	_, err := OvsVsctlExec(c.OvsCtlPath, "--if-exists", "--with-iface", "del-port", c.OvsBrName, c.HostIfName)
+	out, err := OvsVsctlExec(c.OvsCtlPath, "--if-exists", "--with-iface", "del-port", c.OvsBrName, c.HostIfName)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to remove %s from OVS bridge: %s", c.HostIfName, c.OvsBrName)
+		return errors.Wrapf(err, "Failed to remove %s from OVS bridge: %s because: %s", c.HostIfName, c.OvsBrName, out)
 	}
 	if err := delLinkByName(c.HostIfName); err != nil {
 		if _, ok := err.(netlink.LinkNotFoundError); !ok {

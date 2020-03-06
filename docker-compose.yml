@@ -11,6 +11,7 @@ services:
         username: appliance
     image: "appliance:${VER}"
     privileged: true
+    pid: host
     security_opt:
      - no-new-privileges:false
     ports:
