@@ -35,7 +35,8 @@ var NbCtlCommand = func(path string, timeout int, args ...string) (string, error
 type LPort struct {
 	ID  string
 	MAC net.HardwareAddr
-	IP  net.IPNet
+	IP  net.IP
+	Net *net.IPNet
 }
 
 // OVNClient wraps ovn-nbctl calls to manage ports
@@ -101,7 +102,8 @@ func (c *OVNClient) GetPort(lSwitch, id string) (LPort, error) {
 	}
 
 	p.ID = id
-	p.IP = net.IPNet{IP: ip, Mask: cidr.Mask}
+	p.IP = ip
+	p.Net = cidr
 	p.MAC = mac
 
 	return p, nil
@@ -135,12 +137,23 @@ func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
 	p, err := c.GetPort(lSwitch, id)
 	if err == nil {
 		out, err1 := NbCtlCommand(c.nbCtlPath, c.timeout,
-			"lsp-set-port-security", id, fmt.Sprintf("%s %s/%s", p.MAC, p.IP.IP, p.IP.Mask))
+			"lsp-set-port-security", id, fmt.Sprintf("%s %s", p.MAC, p.Net))
 		if err1 != nil {
 			return p, errors.Wrapf(err1, "Failed to set port security(%s): %s", id, out)
 		}
 	}
 
+	// Link DHCP options
+	out, err := NbCtlCommand(c.nbCtlPath, c.timeout, "-f", "csv", "--no-headings",
+		"find", "dhcp_options", fmt.Sprintf("cidr=%s", p.Net))
+	if err != nil || len(out) == 0 {
+		return p, errors.Wrapf(err, "Failed to get DHCP option(%s): %s", p.Net, out)
+	}
+	optID := strings.Split(out, ",")[0]
+	out, err = NbCtlCommand(c.nbCtlPath, c.timeout, "lsp-set-dhcpv4-options", id, optID)
+	if err != nil {
+		return p, errors.Wrapf(err, "Failed to set DHCP option(%s): %s", id, out)
+	}
 	// Create routing
 	// Node port name is equal to HOST_HOSTNAME variable
 	pn := os.Getenv("HOST_HOSTNAME")
@@ -151,8 +164,8 @@ func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
 	if err != nil {
 		return p, errors.Wrapf(err, "Failed to get port(%s)", pn)
 	}
-	out, err := NbCtlCommand(c.nbCtlPath, c.timeout,
-		"--policy=src-ip", "lr-route-add", clusterRouter, p.IP.IP.String(), np.IP.IP.String())
+	out, err = NbCtlCommand(c.nbCtlPath, c.timeout,
+		"--policy=src-ip", "lr-route-add", clusterRouter, p.IP.String(), np.IP.String())
 	if err != nil {
 		return p, errors.Wrapf(err, "Failed to set port routing(%s): %s", id, out)
 	}

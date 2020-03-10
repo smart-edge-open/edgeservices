@@ -182,7 +182,7 @@ var _ = Describe("Ovn", func() {
 			os.Unsetenv("HOST_HOSTNAME")
 			Expect(err).To(BeNil())
 			Expect(lport.ID).To(Equal(id))
-			Expect(lport.IP.IP.String()).To(Equal(ipOut))
+			Expect(lport.IP.String()).To(Equal(ipOut))
 		})
 
 	})

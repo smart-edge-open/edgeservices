@@ -157,13 +157,13 @@ func (c *CNIContext) getCNIResult(p *LPort) current.Result {
 		Sandbox: c.Args.Netns,
 	}}
 	ver := "6"
-	if p.IP.IP.To4() != nil {
+	if p.IP.To4() != nil {
 		ver = "4"
 	}
 	res.IPs = []*current.IPConfig{{
 		Interface: current.Int(0),
 		Version:   ver,
-		Address:   p.IP,
+		Address:   net.IPNet{p.IP, p.Net.Mask},
 		Gateway:   c.Cfg.IPAM.Gateway,
 	}}
 	for i := 0; i < len(c.Cfg.IPAM.Routes); i++ {
