@@ -28,7 +28,7 @@ func CreateInfrastructureContainer(ctx context.Context, app *metadata.DeployedAp
 	if t, err := GetTypeFromCNIConfig(app.App.CniConf.CniConfig); err != nil {
 		return "", err
 	} else if Type(t) == OVN {
-		if err := OVNCNICreatePort(app); err != nil {
+		if _, err := OVNCNICreatePort(app); err != nil {
 			return "", err
 		}
 	}
@@ -104,19 +104,20 @@ func StopInfrastructureContainer(ctx context.Context, app *metadata.DeployedApp)
 }
 
 // OVNCNICreatePort creates OVN port for application
-func OVNCNICreatePort(app *metadata.DeployedApp) error {
+func OVNCNICreatePort(app *metadata.DeployedApp) (ovncni.LPort, error) {
 	lSwitch, err := ovncni.GetCNIArg("subnetID", app.App.CniConf.Args)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get subnetID from CNI args. appId=%s, CNI_ARGS:%s",
+		return ovncni.LPort{}, errors.Wrapf(err, "failed to get subnetID from CNI args. appId=%s, CNI_ARGS:%s",
 			app.App.Id, app.App.CniConf.Args)
 	}
 
 	ovncli := ovncni.GetOVNClient("", 0)
-	if _, err := ovncli.CreatePort(lSwitch, app.App.Id, "" /* empty ip = dynamic */); err != nil {
-		return errors.Wrapf(err, "failed to create OVN port. appId=%s", app.App.Id)
+	port, err := ovncli.CreatePort(lSwitch, app.App.Id, "" /* empty ip = dynamic */)
+	if err != nil {
+		return ovncni.LPort{}, errors.Wrapf(err, "failed to create OVN port. appId=%s", app.App.Id)
 	}
 
-	return nil
+	return port, nil
 }
 
 // OVNCNIDeletePort removes OVN port for application

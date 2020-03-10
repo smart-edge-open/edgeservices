@@ -783,26 +783,7 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 					Target: &libvirtxml.DomainDiskTarget{Dev: "hda"},
 				},
 			},
-			Interfaces: []libvirtxml.DomainInterface{
-				{
-					Source: &libvirtxml.DomainInterfaceSource{
-						Network: &libvirtxml.DomainInterfaceSourceNetwork{
-							Network: "default",
-						},
-					},
-					Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
-				},
-				{
-					Source: &libvirtxml.DomainInterfaceSource{
-						VHostUser: &libvirtxml.DomainChardevSource{
-							UNIX: &libvirtxml.DomainChardevSourceUNIX{
-								Path: s.cfg.VhostSocket, Mode: "client",
-							},
-						},
-					},
-					Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
-				},
-			},
+			Interfaces: []libvirtxml.DomainInterface{},
 		},
 	}
 
@@ -829,10 +810,13 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 
 	if s.cfg.UseCNI {
 		if t, cniErr := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); cniErr != nil {
+			dapp.App.Status = pb.LifecycleStatus_ERROR
 			log.Errf("failed to get CNI type from CniConfig: %s", cniErr.Error())
 			return
 		} else if cni.Type(t) == cni.OVN {
-			if cniErr := cni.OVNCNICreatePort(dapp); cniErr != nil {
+			port, cniErr := cni.OVNCNICreatePort(dapp)
+			if cniErr != nil {
+				dapp.App.Status = pb.LifecycleStatus_ERROR
 				log.Errf("failed to create OVN port: %s", cniErr.Error())
 				return
 			}
@@ -844,8 +828,11 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 
 			domcfg.Devices.Interfaces = append(domcfg.Devices.Interfaces,
 				libvirtxml.DomainInterface{
+					MAC: &libvirtxml.DomainInterfaceMAC{
+						Address: port.MAC.String(),
+					},
 					Source: &libvirtxml.DomainInterfaceSource{
-						Network: &libvirtxml.DomainInterfaceSourceNetwork{Network: "ovs", Bridge: bridge},
+						Bridge: &libvirtxml.DomainInterfaceSourceBridge{Bridge: bridge},
 					},
 
 					VirtualPort: &libvirtxml.DomainInterfaceVirtualPort{
@@ -859,6 +846,28 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 				},
 			)
 		}
+	} else {
+		// Dataplane: NTS
+		domcfg.Devices.Interfaces = append(domcfg.Devices.Interfaces,
+			libvirtxml.DomainInterface{
+				Source: &libvirtxml.DomainInterfaceSource{
+					Network: &libvirtxml.DomainInterfaceSourceNetwork{
+						Network: "default",
+					},
+				},
+				Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
+			},
+			libvirtxml.DomainInterface{
+				Source: &libvirtxml.DomainInterfaceSource{
+					VHostUser: &libvirtxml.DomainChardevSource{
+						UNIX: &libvirtxml.DomainChardevSourceUNIX{
+							Path: s.cfg.VhostSocket, Mode: "client",
+						},
+					},
+				},
+				Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
+			},
+		)
 	}
 
 	// Update domcfg based on EAC configuration
@@ -1030,11 +1039,10 @@ func (s *DeploySrv) libvirtUndeploy(ctx context.Context,
 	if s.cfg.UseCNI {
 		if t, err := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); err != nil {
 			log.Errf("failed to get CNI type from CniConfig: %s", err.Error())
-			return err
+			return errors.Wrapf(err, "failed to get CNI type from CniConfig")
 		} else if cni.Type(t) == cni.OVN {
 			if err := cni.OVNCNIDeletePort(dapp); err != nil {
 				log.Errf("failed to delete OVN port: %s", err.Error())
-				return err
 			}
 		}
 	}
@@ -1093,7 +1101,20 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 	}
 
 	if !dapp.IsDeployed {
-		log.Debugf("Undeploing not deployed app (%v)", app.Id)
+		log.Debugf("Undeploying not deployed app (%v)", app.Id)
+
+		// Because OVN port is created during deployment, it needs to be removed even if app's deployment fails
+		if s.cfg.UseCNI {
+			if t, err := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); err != nil {
+				log.Errf("failed to get CNI type from CniConfig: %s", err.Error())
+				return nil, status.Errorf(codes.FailedPrecondition,
+					"failed to get CNI type from CniConfig: %s", err.Error())
+			} else if cni.Type(t) == cni.OVN {
+				if err := cni.OVNCNIDeletePort(dapp); err != nil {
+					log.Errf("failed to delete OVN port: %s", err.Error())
+				}
+			}
+		}
 
 		if err := os.RemoveAll(dapp.Path); err != nil {
 			log.Debugf("Failed to delete metadata directory of %v because: %+v",

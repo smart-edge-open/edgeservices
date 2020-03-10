@@ -128,27 +128,31 @@ func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
 
 	} else {
 		out, err := NbCtlCommand(c.nbCtlPath, c.timeout, "lsp-add", lSwitch, id, "--",
-
 			"lsp-set-addresses", id, "dynamic", ip)
 		if err != nil {
 			return p, errors.Wrapf(err, "Failed to create a dynamic port(%s): %s", id, out)
 		}
 	}
 	p, err := c.GetPort(lSwitch, id)
-	if err == nil {
-		out, err1 := NbCtlCommand(c.nbCtlPath, c.timeout,
-			"lsp-set-port-security", id, fmt.Sprintf("%s %s", p.MAC, p.Net))
-		if err1 != nil {
-			return p, errors.Wrapf(err1, "Failed to set port security(%s): %s", id, out)
-		}
+	if err != nil {
+		return p, errors.Wrapf(err, "Failed to get port(%s)", id)
+	}
+
+	if out, err := NbCtlCommand(c.nbCtlPath, c.timeout,
+		"lsp-set-port-security", id, fmt.Sprintf("%s %s", p.MAC, p.Net)); err != nil {
+		return p, errors.Wrapf(err, "Failed to set port security(%s): %s", id, out)
 	}
 
 	// Link DHCP options
 	out, err := NbCtlCommand(c.nbCtlPath, c.timeout, "-f", "csv", "--no-headings",
 		"find", "dhcp_options", fmt.Sprintf("cidr=%s", p.Net))
-	if err != nil || len(out) == 0 {
+	if err != nil {
 		return p, errors.Wrapf(err, "Failed to get DHCP option(%s): %s", p.Net, out)
 	}
+	if len(out) == 0 {
+		return p, errors.Errorf("Failed to get DHCP option(%s): no output", p.Net)
+	}
+
 	optID := strings.Split(out, ",")[0]
 	out, err = NbCtlCommand(c.nbCtlPath, c.timeout, "lsp-set-dhcpv4-options", id, optID)
 	if err != nil {
@@ -174,10 +178,6 @@ func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
 
 // DeletePort deletes a logical port from OVN
 func (c *OVNClient) DeletePort(id string) error {
-	if out, err := NbCtlCommand(c.nbCtlPath, c.timeout, "lsp-del", id); err != nil {
-		return errors.Wrapf(err, "Failed to delete port(%s): %s", id, out)
-	}
-
 	// Remove routing
 	out, err := NbCtlCommand(c.nbCtlPath, c.timeout,
 		"wait-until", "logical_switch_port", id, "dynamic_addresses!=[]", "--",
@@ -197,10 +197,13 @@ func (c *OVNClient) DeletePort(id string) error {
 		return errors.Errorf("Failed to parse IP address of OVN port(%s) from: (%s)", id, data[1])
 	}
 
-	out, err = NbCtlCommand(c.nbCtlPath, c.timeout,
-		"lr-route-del", clusterRouter, ip.String())
+	out, err = NbCtlCommand(c.nbCtlPath, c.timeout, "--if-exists", "lr-route-del", clusterRouter, ip.String())
 	if err != nil {
 		return errors.Wrapf(err, "Failed to remove port routing(%s) : %s", id, out)
+	}
+
+	if delOut, err := NbCtlCommand(c.nbCtlPath, c.timeout, "--if-exists", "lsp-del", id); err != nil {
+		return errors.Wrapf(err, "Failed to delete port(%s): %s", id, delOut)
 	}
 	return nil
 }
