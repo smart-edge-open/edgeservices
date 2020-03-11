@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2019 Intel Corporation
+# Copyright (c) 2019-2020 Intel Corporation
 
 ctrl_cert_path="/host_certs/controller-root-ca.pem"
 ctrl_dest_path="/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
 
 check_if_cert_added() {
-    python - << END
+    python3 - << END
 import sys
 bundle = open('${ctrl_dest_path}').read()
 ctrl_cert = open('${ctrl_cert_path}').read()

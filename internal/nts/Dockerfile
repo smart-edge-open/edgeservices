@@ -5,9 +5,9 @@ FROM centos:7.6.1810 AS nts-deps-image
 
 RUN yum upgrade -y ca-certificates && \
     yum install -y epel-release && \
-    yum install -y numactl-devel libhugetlbfs-utils iproute python python-pip sudo && \
-    pip install docker && \
-    pip install configparser
+    yum install -y numactl-devel libhugetlbfs-utils iproute python3 python3-pip sudo && \
+    pip3 install docker && \
+    pip3 install configparser
 
 FROM nts-deps-image
 
