@@ -25,6 +25,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
 
@@ -73,6 +74,7 @@ var EACHandlersDocker = map[string]EACHandler{
 	"hddl":     handleHddl,
 	"env_vars": handleEnvVars,
 	"cmd":      handleCmd,
+	"mount":    handleMountContainer,
 	"cpu_pin":  handleCPUPinContainer,
 }
 
@@ -423,6 +425,44 @@ func handleCmd(cmd string, genericCfg interface{}, additionalCfg interface{}) {
 
 	for _, arg := range strings.Split(cmd, " ") {
 		containerCfg.Cmd = append(containerCfg.Cmd, arg)
+	}
+}
+
+func handleMountContainer(mountString string, genericCfg interface{}, additionalCfg interface{}) {
+	hostCfg := genericCfg.(*container.HostConfig)
+	if mountString == "" {
+		log.Errf("Mount string is empty, ignoring")
+		return
+	}
+
+	log.Infof("Mount settings for Container provided (%v), applying", mountString)
+
+	split := strings.Split(mountString, ";")
+	for _, m := range split {
+		pieces := strings.Split(m, ",")
+		if len(pieces) == 4 {
+			var tb mount.Type
+			if strings.ToLower(pieces[0]) == "bind" {
+				tb = mount.TypeBind
+			} else if strings.ToLower(pieces[0]) == "volume" {
+				tb = mount.TypeVolume
+			} else {
+				log.Errf("Invalid mount type for: %s skipping...", pieces)
+				continue
+			}
+
+			m := mount.Mount{
+				Type:     tb,
+				Source:   pieces[1], // Source is the location on the Host
+				Target:   pieces[2], // Target is the location on the Container
+				ReadOnly: pieces[3] == "true",
+			}
+
+			hostCfg.Mounts = append(hostCfg.Mounts, m)
+		} else {
+			log.Errf("Invalid syntax: ...;type,source,target,readonly;... for entry: %s! skipping...", pieces)
+			continue
+		}
 	}
 }
 
