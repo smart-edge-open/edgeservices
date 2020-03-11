@@ -12,7 +12,7 @@ RUN yum install -y git build-essential cmake gcc-c++ make
 WORKDIR /root/bbdev_config
 COPY bbdev_config_service .
 
-RUN git clone https://github.com/benhoyt/inih
+RUN git clone -b r47 https://github.com/benhoyt/inih 
 RUN cd inih/extra && make -f Makefile.static && cp ../ini.h .
 RUN make
 
