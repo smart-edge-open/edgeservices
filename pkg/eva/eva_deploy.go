@@ -505,7 +505,7 @@ func handleVmNicSriov(value string, genericCfg interface{}, additionalCfg interf
 	log.Infof("SRIOV NIC Settings (%v) provided for VM, setting", value)
 
 	pciAddress := strings.Split(value, ":")
-	if len(pciAddress) != 4 {
+	if len(pciAddress) != 3 {
 		log.Errf("Incorrect pciAddress provided (%v), skipping", value)
 		return
 	}
