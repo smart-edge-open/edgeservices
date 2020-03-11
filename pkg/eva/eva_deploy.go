@@ -18,6 +18,7 @@ import (
 
 	"math"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -73,16 +74,18 @@ type EACHandler func(string, interface{}, interface{})
 
 // EACHandlersDocker - Table of EACHandlers for the Docker backend
 var EACHandlersDocker = map[string]EACHandler{
-	"hddl":     handleHddl,
-	"env_vars": handleEnvVars,
-	"cmd":      handleCmd,
-	"mount":    handleMountContainer,
-	"cpu_pin":  handleCPUPinContainer,
+	"hddl":      handleHddl,
+	"env_vars":  handleEnvVars,
+	"cmd":       handleCmd,
+	"mount":     handleMountContainer,
+	"cpu_pin":   handleCPUPinContainer,
+	"sriov_nic": handleContainerNicSriov,
 }
 
 // EACHandlersVM - Table of EACHandlers for the Libvirt backend
 var EACHandlersVM = map[string]EACHandler{
-	"cpu_pin": handleCPUPinVM,
+	"cpu_pin":   handleCPUPinVM,
+	"sriov_nic": handleVmNicSriov,
 }
 
 func downloadImage(ctx context.Context, url string,
@@ -481,6 +484,100 @@ func handleMountContainer(mountString string, genericCfg interface{}, additional
 			continue
 		}
 	}
+}
+
+func handleContainerNicSriov(value string, genericCfg interface{}, additionalCfg interface{}) {
+	if value == "" {
+		log.Errf("SRIOV NIC string is empty, ignoring")
+		return
+	}
+	log.Infof("SRIOV NIC Settings (%v) provided for container, setting", value)
+
+	hostConfig := genericCfg.(*container.HostConfig)
+	hostConfig.NetworkMode = container.NetworkMode(value)
+}
+
+func handleVmNicSriov(value string, genericCfg interface{}, additionalCfg interface{}) {
+	if value == "" {
+		log.Errf("SRIOV NIC string is empty, ignoring")
+		return
+	}
+	log.Infof("SRIOV NIC Settings (%v) provided for VM, setting", value)
+
+	pciAddress := strings.Split(value, ":")
+	if len(pciAddress) != 4 {
+		log.Errf("Incorrect pciAddress provided (%v), skipping", value)
+		return
+	}
+
+	if len(pciAddress[0]) != 4 {
+		log.Errf("Domain address is incorrect (%v), skipping", pciAddress[0])
+		return
+	}
+	domainAddr, err := strconv.ParseUint(pciAddress[0], 16, 0)
+	if err != nil {
+		log.Errf("Error converting Domain address from string to uint (%v), skipping", err)
+		return
+	}
+	domain := uint(domainAddr)
+
+	if len(pciAddress[1]) != 2 {
+		log.Errf("Bus address is incorrect (%v), skipping", pciAddress[1])
+		return
+	}
+	busAddr, err := strconv.ParseUint(pciAddress[1], 16, 0)
+	if err != nil {
+		log.Errf("Error converting Bus address from string to uint (%v), skipping", err)
+		return
+	}
+	bus := uint(busAddr)
+
+	slotFuncAddr := strings.Split(pciAddress[2], ".")
+	if len(slotFuncAddr) != 2 {
+		log.Errf("Incorrect slot:function provided (%v), skipping", pciAddress[2])
+		return
+	}
+
+	if len(slotFuncAddr[0]) != 2 {
+		log.Errf("Slot address is incorrect (%v), skipping", slotFuncAddr[0])
+		return
+	}
+	slotAddr, err := strconv.ParseUint(slotFuncAddr[0], 16, 0)
+	if err != nil {
+		log.Errf("Error converting Slot address from string to uint (%v), skipping", err)
+		return
+	}
+	slot := uint(slotAddr)
+
+	if len(slotFuncAddr[1]) != 1 {
+		log.Errf("Function address is incorrect (%v), skipping", slotFuncAddr[1])
+		return
+	}
+	functionAddr, err := strconv.ParseUint(slotFuncAddr[1], 16, 0)
+	if err != nil {
+		log.Errf("Error converting Slot address from string to uint (%v), skipping", err)
+		return
+	}
+	function := uint(functionAddr)
+
+	domConfig := genericCfg.(*libvirtxml.Domain)
+	ifCfg := libvirtxml.DomainInterface{
+		Managed: "yes",
+		Source: &libvirtxml.DomainInterfaceSource{
+			Hostdev: &libvirtxml.DomainInterfaceSourceHostdev{
+				PCI: &libvirtxml.DomainHostdevSubsysPCISource{
+					Address: &libvirtxml.DomainAddressPCI{
+						Domain:   &domain,
+						Bus:      &bus,
+						Slot:     &slot,
+						Function: &function,
+					},
+				},
+			},
+		},
+	}
+	domConfig.Devices.Interfaces = append(domConfig.Devices.Interfaces, ifCfg)
+	return
 }
 
 // EPAFeature - we get an array of those in API calls from controller
