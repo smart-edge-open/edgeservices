@@ -43,6 +43,8 @@ import (
 
 	"github.com/digitalocean/go-openvswitch/ovs"
 	"github.com/digitalocean/go-openvswitch/ovsdb"
+
+	"github.com/docker/go-connections/nat"
 )
 
 // DeploySrv describes deplyment
@@ -356,6 +358,21 @@ func handleCPUPinContainer(value string, genericCfg interface{}, additionalCfg i
 	log.Err("Please provide only one input format for CPU pinning, skipping")
 }
 
+func processPorts(ports []*pb.PortProto, cfg *container.Config) {
+	for _, p := range ports {
+		var port nat.Port
+
+		log.Debugf("processing requested port: %d proto: %s\n", p.Port, p.Protocol)
+		port, err := nat.NewPort(p.Protocol, string(p.Port))
+		if err != nil {
+			log.Warning("Failed to parse ports: %v", err)
+			return
+		}
+		cfg.ExposedPorts[port] = struct{}{}
+	}
+
+}
+
 func handleCPUPinVM(value string, genericCfg interface{}, additionalCfg interface{}) {
 	hostCfg := genericCfg.(*libvirtxml.Domain)
 	totalVMCores := hostCfg.VCPU.Value
@@ -562,17 +579,18 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 		hostCfg.NetworkMode = container.NetworkMode(fmt.Sprintf("container:%s", infraCtrID))
 	}
 
-	containCfg := container.Config{
+	containerCfg := container.Config{
 		Image: dapp.App.Id,
 	}
 
-	// Update hostCfg based on EAC configuration
-	processEAC(dapp.App.EACJsonBlob, EACHandlersDocker, &hostCfg, &containCfg)
+	// Update hostCfg and containCfg based on EAC configuration
+	log.Debugf("containerCfg: %+v", containerCfg)
+	processPorts(dapp.App.Ports, &containerCfg)
 	log.Debugf("hostCfg: %+v", hostCfg)
-	log.Debugf("containCfg: %+v", containCfg)
+	processEAC(dapp.App.EACJsonBlob, EACHandlersDocker, &hostCfg, &containerCfg)
 
 	respCreate, err := docker.ContainerCreate(ctx,
-		&containCfg, &hostCfg, nil, dapp.App.Id)
+		&containerCfg, &hostCfg, nil, dapp.App.Id)
 
 	if err != nil {
 		log.Errf("docker.ContainerCreate failed: %+v", err)
