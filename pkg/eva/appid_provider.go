@@ -39,6 +39,11 @@ func (s *IPApplicationLookupServiceServerImpl) GetApplicationByIP(
 			s.cfg.ControllerEndpoint)
 	}
 
+	// TODO: Do proper validation
+	if s.cfg.UseCNI {
+		return &apppb.IPApplicationLookupResult{AppID: "cni"}, nil
+	}
+
 	var result apppb.IPApplicationLookupResult
 	name, err := lookupContainersByIP(ctx, ipAppLookupInfo.GetIpAddress())
 	if err != nil {
