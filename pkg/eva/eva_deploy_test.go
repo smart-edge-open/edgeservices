@@ -14,6 +14,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/go-connections/nat"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/otcshare/edgenode/internal/metadatahelpers"
@@ -356,6 +357,62 @@ var _ = Describe("EVA: Docker tests", func() {
 			})
 		})
 
+		Context("with correct EAC port forwarding arguments", func() {
+			It("responds with no error", func() {
+				body := ioutil.NopCloser(strings.NewReader("TEST IMAGE"))
+				stubs.HTTPCliStub.HTTPResp = http.Response{Status: "200 OK",
+					StatusCode: 200, Proto: "HTTP/1.1", ProtoMajor: 1,
+					ProtoMinor: 1, Body: body, ContentLength: 11}
+				body2 := ioutil.NopCloser(strings.NewReader(
+					`{"stream":"Loaded image ID: sha256:53f3fd8007f76bd23bf66` +
+						`3ad5f5009c8941f63828ae458cef584b5f85dc0a7bf\n"}`))
+				stubs.DockerCliStub.ImLoadResp = types.ImageLoadResponse{
+					Body: body2, JSON: true}
+
+				wrappers.CreateHTTPClient = stubs.CreateHTTPClientStub
+				wrappers.CreateDockerClient = stubs.CreateDockerClientStub
+
+				// Create connection
+				conn := createConnection()
+				defer conn.Close()
+
+				client := evapb.NewApplicationDeploymentServiceClient(conn)
+
+				ctx, cancel := context.WithTimeout(context.Background(),
+					10*time.Second)
+				defer cancel()
+
+				uri := evapb.Application_HttpUri{
+					HttpUri: &evapb.Application_HTTPSource{
+						HttpUri: "https://localhost/test_img.tar.gz"},
+				}
+
+				port := evapb.PortProto{Port: 1234, Protocol: "tcp"}
+				ports := []*evapb.PortProto{&port}
+				app := evapb.Application{Id: "test-app-deploy",
+					Cores: 2, Memory: 40, Source: &uri,
+					Ports: ports,
+				}
+
+				go prefaceLis.Accept()
+				_, err := client.DeployContainer(ctx, &app,
+					grpc.WaitForReady(true))
+				Expect(err).ToNot(HaveOccurred())
+
+				time.Sleep(100 * time.Millisecond)
+
+				// Verify status after deployment
+				appid := evapb.ApplicationID{Id: "test-app-deploy"}
+				go prefaceLis.Accept()
+				alsClient := evapb.NewApplicationLifecycleServiceClient(conn)
+				status, err := alsClient.GetStatus(ctx, &appid,
+					grpc.WaitForReady(true))
+				Expect(err).ToNot(HaveOccurred())
+				Expect(status.Status).To(Equal(evapb.LifecycleStatus_READY))
+
+				Expect(stubs.DockerCliStub.CCreateArgs.Config.ExposedPorts).To(Equal(nat.PortSet{"1234/tcp": {}}))
+			})
+		})
 		Context("with correct EAC mount arguments", func() {
 			It("responds with no error", func() {
 				body := ioutil.NopCloser(strings.NewReader("TEST IMAGE"))

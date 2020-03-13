@@ -362,11 +362,14 @@ func handleCPUPinContainer(value string, genericCfg interface{}, additionalCfg i
 }
 
 func processPorts(ports []*pb.PortProto, cfg *container.Config) {
+	if cfg.ExposedPorts == nil {
+		cfg.ExposedPorts = make(nat.PortSet)
+	}
 	for _, p := range ports {
 		var port nat.Port
 
 		log.Debugf("processing requested port: %d proto: %s\n", p.Port, p.Protocol)
-		port, err := nat.NewPort(p.Protocol, string(p.Port))
+		port, err := nat.NewPort(p.Protocol, fmt.Sprintf("%d", p.Port))
 		if err != nil {
 			log.Warning("Failed to parse ports: %v", err)
 			return
@@ -681,10 +684,10 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	}
 
 	// Update hostCfg and containCfg based on EAC configuration
-	log.Debugf("containerCfg: %+v", containerCfg)
 	processPorts(dapp.App.Ports, &containerCfg)
-	log.Debugf("hostCfg: %+v", hostCfg)
 	processEAC(dapp.App.EACJsonBlob, EACHandlersDocker, &hostCfg, &containerCfg)
+	log.Debugf("containerCfg: %+v", containerCfg)
+	log.Debugf("hostCfg: %+v", hostCfg)
 
 	respCreate, err := docker.ContainerCreate(ctx,
 		&containerCfg, &hostCfg, nil, dapp.App.Id)
