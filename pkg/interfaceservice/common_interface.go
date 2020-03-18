@@ -23,7 +23,7 @@ var devbindInterfacesInfo []string
 // stores lines starting with PCI address like: XXXX:XX:XX.X only.
 func updateDPDKDevbindOutput() {
 	devbindOutput, _ := Devbind("--status")
-	devbindInterfacesInfo = regexp.MustCompile(`\d{4}(:\d{2}){2}.\d .*`).
+	devbindInterfacesInfo = regexp.MustCompile(`[0-9a-fA-F]{4}(:[0-9a-fA-F]{2}){2}.\d .*`).
 		FindAllString(string(devbindOutput), -1)
 	for i := range devbindInterfacesInfo {
 		devbindInterfacesInfo[i] = strings.TrimSpace(devbindInterfacesInfo[i])
@@ -32,7 +32,6 @@ func updateDPDKDevbindOutput() {
 
 // getPortDrivers returns current driver and list of unused drivers
 func getPortDrivers(pci string) (string, []string) {
-
 	if !DpdkEnabled {
 		return "kernel", nil
 	}
