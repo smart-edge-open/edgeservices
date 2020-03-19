@@ -369,6 +369,14 @@ func processPorts(ports []*pb.PortProto, cfg *container.Config) {
 		var port nat.Port
 
 		log.Debugf("processing requested port: %d proto: %s\n", p.Port, p.Protocol)
+		if p.Port <= 0 {
+			log.Infof("processPorts: port %d invalid, skipping", p.Port)
+			continue
+		}
+		if p.Protocol == "" {
+			log.Infof("processPorts: protocol empty, skipping")
+			continue
+		}
 		port, err := nat.NewPort(p.Protocol, fmt.Sprintf("%d", p.Port))
 		if err != nil {
 			log.Warning("Failed to parse ports: %v", err)
