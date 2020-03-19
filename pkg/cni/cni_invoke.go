@@ -19,6 +19,7 @@ import (
 
 var (
 	defaultCniBinDir = "/opt/cni/bin"
+	hostNSPath       = "/var/host_ns/net"
 )
 
 // Action defines CNI Action type
@@ -122,7 +123,7 @@ func (c *Invoker) Invoke() (string, error) {
 	}
 
 	var sout, serr string
-	ns := []nsenter.Namespace{{Path: "/var/host_ns/net", Type: nsenter.NSTypeNet}}
+	ns := []nsenter.Namespace{{Path: hostNSPath, Type: nsenter.NSTypeNet}}
 	err = nsenter.NsEnter(ns, func() error {
 		var err error
 		sout, serr, err = c.runCmdAndGetOutput(cmd)

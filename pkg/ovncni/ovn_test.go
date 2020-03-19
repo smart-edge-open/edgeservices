@@ -170,6 +170,10 @@ var _ = Describe("Ovn", func() {
 				if strings.Contains(concArgs, buildArgList("get", "logical_switch")) {
 					return ipOut + "/24", nil
 				}
+				if strings.Contains(concArgs, buildArgList("dhcp_options")) {
+					return "dhcp_option_id", nil
+				}
+
 				return "", nil
 			}
 

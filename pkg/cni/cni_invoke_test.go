@@ -42,7 +42,10 @@ ENVS=$(env | grep CNI_ | tr '\n' ',')   # get CNI envs and make it one line
 echo "{\"cniVersion\":\"0.4.0\",\"interfaces\":[{\"name\":\"eth1\"}],\"stdin\":\"${STDIN}\",\"envs\":\"${ENVS}\"}"
 >&2 echo "dummy log with stdin on stderr: ${STDIN}"
 `
+	defaultCniBinDir = "/tmp"
+	hostNSPath = "/proc/1/ns/net"
 	testCniScriptName := "openness-cni-test-script"
+
 	cniPath := filepath.Join(defaultCniBinDir, testCniScriptName)
 
 	cniConf := &evapb.CNIConfiguration{
