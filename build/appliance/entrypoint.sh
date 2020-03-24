@@ -9,8 +9,8 @@ ctrl_dest_path="/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
 check_if_cert_added() {
     python3 - << END
 import sys
-bundle = open('${ctrl_dest_path}').read()
-ctrl_cert = open('${ctrl_cert_path}').read()
+bundle = open('${ctrl_dest_path}', 'rb').read()
+ctrl_cert = open('${ctrl_cert_path}', 'rb').read()
 if not ctrl_cert in bundle:
 	sys.exit(1)
 END

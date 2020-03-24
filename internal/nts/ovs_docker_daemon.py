@@ -88,7 +88,7 @@ def create_veth_pair_names(docker_name, name_filter):
 
 def run_command(command, expected_output):
     try:
-        ret = subprocess.check_output(command)
+        ret = subprocess.check_output(command).decode("utf-8")
     except subprocess.CalledProcessError as e:
         _LOG.error("\"{}\" failed[{}]: {}".format(' '.join(e.cmd), e.returncode, e.output))
         return False

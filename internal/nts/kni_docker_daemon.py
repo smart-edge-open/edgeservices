@@ -14,6 +14,7 @@ import ctypes
 import signal
 import sys
 import time
+import traceback
 import re
 
 NES_SUCCESS=0
@@ -121,7 +122,7 @@ def nes_connect(nes_context):
     config = configparser.ConfigParser(strict = False)
     config.read(nes_context.cfg_path)
     try:
-        unix_sock_path.value = config['NES_SERVER']['ctrl_socket']
+        unix_sock_path.value = config['NES_SERVER']['ctrl_socket'].encode('utf-8')
         _LOG.debug("nes_api unix socket path: {}".format(unix_sock_path.value))
     except KeyError as e:
         _LOG.critical("Failed to get unix socket path\n {}".format(e))
@@ -154,7 +155,7 @@ def modify_kni_interface(nes_context, dev_id, delete_if):
 
     try:
         created_if_name = ctypes.create_string_buffer(KNI_NAMESIZE)
-        dev_id_name = ctypes.create_string_buffer(dev_id)
+        dev_id_name = ctypes.create_string_buffer(dev_id.encode('utf-8'))
     except TypeError as e:
         _LOG.critical("ctypes create_string_buffer error\n {}".format(e))
         return (ret, "")
@@ -170,7 +171,7 @@ def modify_kni_interface(nes_context, dev_id, delete_if):
     if not nes_disconnect(nes_context):
         _LOG.info("Failed to disconnect from nes server")
 
-    return (ret, created_if_name.value)
+    return (ret, created_if_name.value.decode("utf-8") )
 
 def add_kni_interface(nes_context, dev_id):
     ret, if_name = modify_kni_interface(nes_context, dev_id, False)
@@ -191,7 +192,7 @@ def del_kni_interface(nes_context, dev_id):
 
 def run_command(command, expected_output):
     try:
-        ret = subprocess.check_output(command)
+        ret = subprocess.check_output(command).decode("utf-8")
     except subprocess.CalledProcessError as e:
         _LOG.error("\"{}\" failed[{}]: {}".format(' '.join(e.cmd), e.returncode, e.output))
         return False
@@ -285,6 +286,7 @@ def docker_poll(nes_context, docker_cli, name_filter):
 
         except Exception as e:
             _LOG.critical("Docker events error {}".format(e))
+            _LOG.critical(traceback.format_exc())
 
 
 def main(options):
