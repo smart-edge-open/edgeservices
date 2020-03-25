@@ -121,8 +121,7 @@ void nes_sq_remove(nes_sq_t *queue, nes_sq_node_t *node)
 
 		nes_free(node);
 		queue->cnt--;
-	}
-	else {
+	} else {
 		NES_SQ_FOREACH(item,queue) {
 			if (item->next == node || item == node) {
 				item->next = item->next->next;
