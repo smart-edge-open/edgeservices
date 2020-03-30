@@ -325,6 +325,7 @@ func handleHddl(value string, genericCfg interface{}, additionalCfg interface{})
 	}
 	hostCfg.Resources.Devices = append(hostCfg.Resources.Devices, devIon)
 	hostCfg.Binds = append(hostCfg.Binds, "/var/tmp:/var/tmp")
+	hostCfg.Binds = append(hostCfg.Binds, "/dev/shm:/dev/shm")
 }
 
 // Checks the received core Id list to see if any letters present

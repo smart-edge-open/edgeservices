@@ -1,56 +1,67 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2019-2020 Intel Corporation
+# Copyright (c) 2020 Intel Corporation
 
-FROM ubuntu:16.04 as hddl-deps-image
+FROM centos:7.6.1810 as builder
+WORKDIR /home
 
-RUN apt-get update && apt-get install -y \
-	sed \
-	sudo \
-	tar \
-	udev \
-	wget \
-	python \
-	usbutils \
-	unzip  \
-	git  \
-	kmod  \
-	libusb-1.0-0-dev libudev-dev libssl-dev rpm cmake libboost-program-options1.58-dev libboost-thread1.58 libboost-filesystem1.58 git vim\
-	build-essential gcc g++ \
-    	cpio \
-    	lsb-core \
-    	autoconf libtool \
-    	ffmpeg libav-tools x264 \
-    	util-linux \
-	&& apt-get clean
+RUN yum update -y
+RUN yum install -y \
+    cpio sudo python3-pip python3-setuptools wget \
+    boost-filesystem-1.53.0-27.el7.x86_64 \
+    boost-thread-1.53.0-27.el7.x86_64 \
+    boost-program-options-1.53.0-27.el7.x86_64 \
+    boost-system-1.53.0-27.el7.x86_64 \
+    boost-chrono-1.53.0-27.el7.x86_64 \
+    boost-date-time-1.53.0-27.el7.x86_64 \
+    boost-atomic-1.53.0-27.el7.x86_64 \
+    build-essential autoconf automake libtool \
+    kmod libelf-dev libusb-1.0-0 lsb-release 
+RUN yum -y install gcc automake autoconf libtool
+RUN yum -y install make
+ARG LIBUSB_VER=v1.0.22
+ARG LIBUSB_REPO=https://github.com/libusb/libusb/archive/${LIBUSB_VER}.tar.gz
+SHELL ["/bin/bash", "-c"]
+RUN wget -O - ${LIBUSB_REPO} | tar xz && \
+    cd libusb* && \
+    ./autogen.sh enable_udev=no && \
+    make -j $(nproc) && \
+    cp ./libusb/.libs/libusb-1.0.so /usr/lib64/libusb-1.0.so.0
 
-RUN useradd -m -s /bin/bash hddl
-RUN adduser hddl sudo
-RUN echo 'hddl:hddl' | chpasswd
-RUN echo "hddl ALL=(ALL) NOPASSWD:ALL" >>/etc/sudoers
-# Set the current working directory to the cloned ncsdk directory
-WORKDIR "/home/hddl/"
-RUN usermod -a -G users,video hddl
+ARG OPENVINO_VER=2019.3.334
+ARG OPENVINO_REPO=http://registrationcenter-download.intel.com/akdlm/irc_nas/15944/l_openvino_toolkit_p_${OPENVINO_VER}.tgz
 
-ARG OPENVINO_LINK=http://registrationcenter-download.intel.com/akdlm/irc_nas/15791/l_openvino_toolkit_fpga_p_2019.2.275.tgz
-
-# OpenVino installation
-RUN cd /home/hddl && \
-    wget $OPENVINO_LINK && \
-    tar xf l_openvino_toolkit*.tgz && \
-    pwd && ls && \
+RUN wget -O - ${OPENVINO_REPO} | tar xz && \
     cd l_openvino_toolkit* && \
     sed -i 's/decline/accept/g' silent.cfg && \
-    ./install_openvino_dependencies.sh && \
-    ./install.sh -s silent.cfg && \
-    rm -rf /home/hddl/l_openvino_toolkit*
-# Edit hddl_autoboot config and hddl_service config in order to stop failing on reset and enabling additional logs for service
-RUN sed -i '/"abort_if_hw_reset_failed"/ s/true/false/' /opt/intel/openvino_2019.2.275/deployment_tools/inference_engine/external/hddl/config/hddl_autoboot.config && \
-    sed -i '/"device_snapshot_mode"/ s/none/full/' /opt/intel/openvino_2019.2.275/deployment_tools/inference_engine/external/hddl/config/hddl_service.config
-USER hddl
-RUN echo "source /opt/intel/openvino/bin/setupvars.sh" >> ~/.bashrc
+    ./install.sh -s silent.cfg
 
-FROM hddl-deps-image
+RUN cd /opt/intel/openvino/deployment_tools/tools/deployment_manager && \
+    python3 deployment_manager.py --targets=hddl --output_dir=/home --archive_name=hddl && \
+    mkdir -p /home/opt/intel && \
+    cd /home/opt/intel && \
+    tar xvf /home/hddl.tar.gz
 
+FROM centos:7.6.1810
+
+SHELL ["/bin/bash", "-c"]
+RUN yum update -y 
+RUN yum install -y sudo
+RUN yum install -y nasm \
+    boost-filesystem-1.53.0-27.el7.x86_64 \
+    boost-program-options-1.53.0-27.el7.x86_64 \
+    boost-thread-1.53.0-27.el7.x86_64 \
+    boost-system-1.53.0-27.el7.x86_64 \
+    boost-chrono-1.53.0-27.el7.x86_64 \
+    boost-date-time-1.53.0-27.el7.x86_64 \
+    boost-atomic-1.53.0-27.el7.x86_64 \
+    libusb-1.0-0 autoconf automake make libtool kmod libelf-dev \
+    redhat-lsb-core-4.1-27.el7.centos.1.x86_64 
+
+COPY --from=builder /usr/lib64/libusb-1.0.so.0 /usr/lib64/libusb-1.0.so.0
+COPY --from=builder /home/opt/intel/openvino /opt/intel/hddl
+RUN sed -i '/"device_snapshot_mode"/ s/none/full/' /opt/intel/hddl/deployment_tools/inference_engine/external/hddl/config/hddl_service.config
+RUN sed -i '/"abort_if_hw_reset_failed"/ s/true/false/' /opt/intel/hddl/deployment_tools/inference_engine/external/hddl/config/hddl_autoboot.config
 COPY start.sh ./
 COPY ./hddllog ./
 CMD ["./start.sh"]
+
