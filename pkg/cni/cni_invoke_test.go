@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	evapb "github.com/otcshare/edgenode/pkg/eva/pb"
+	evapb "github.com/open-ness/edgenode/pkg/eva/pb"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

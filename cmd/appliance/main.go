@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/otcshare/edgenode/pkg/auth"
-	"github.com/otcshare/edgenode/pkg/service"
+	"github.com/open-ness/edgenode/pkg/auth"
+	"github.com/open-ness/edgenode/pkg/service"
 )
 
 const enrollBackoff = time.Second * 10

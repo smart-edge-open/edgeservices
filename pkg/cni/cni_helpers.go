@@ -6,8 +6,8 @@ package cni
 import (
 	"context"
 
-	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
-	ovncni "github.com/otcshare/edgenode/pkg/ovncni"
+	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
+	ovncni "github.com/open-ness/edgenode/pkg/ovncni"
 	"github.com/pkg/errors"
 )
 
@@ -15,7 +15,7 @@ import (
 type Type string
 
 const (
-	// OVN mean that OVN CNI is used (github.com/otcshare/edgenode/pkg/ovncni)
+	// OVN mean that OVN CNI is used (github.com/open-ness/edgenode/pkg/ovncni)
 	OVN Type = "ovn"
 )
 
