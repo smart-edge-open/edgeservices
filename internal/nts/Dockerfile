@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2019 Intel Corporation
+# Copyright (c) 2019-2020 Intel Corporation
 
 FROM centos:7.6.1810 AS nts-deps-image
 
 RUN yum upgrade -y ca-certificates && \
     yum install -y epel-release && \
-    yum install -y numactl-devel libhugetlbfs-utils iproute python python-pip sudo && \
-    pip install docker && \
-    pip install configparser
+    yum install -y numactl-devel libhugetlbfs-utils iproute python3 python3-pip sudo && \
+    pip3 install docker && \
+    pip3 install configparser
 
 FROM nts-deps-image
 
@@ -22,10 +22,10 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER $username
 WORKDIR $user_dir
 
-COPY ./nts/nes-daemon ./
-COPY ./nts/kni_docker_daemon.py ./
-COPY ./nts/ovs_docker_daemon.py ./
-COPY ./nts/entrypoint.sh ./
-COPY ./nts/libnes_api_shared.so ./
+COPY ./build/nes-daemon ./
+COPY ./kni_docker_daemon.py ./
+COPY ./ovs_docker_daemon.py ./
+COPY ./entrypoint.sh ./
+COPY ./build/libnes_api_shared.so ./
 
 ENTRYPOINT ["sudo", "-E", "./entrypoint.sh"]

@@ -13,7 +13,7 @@ extern "C" {
 
 int nes_cmdline_manager(void);
 
-int nes_cmdline_file_manager(const char* path, const char* output_file);
+int nes_cmdline_file_manager(const char *path, const char *output_file);
 
 #ifdef __cplusplus
 }

@@ -14,5 +14,6 @@
   "DownloadTimeout": "10m",
   "ControllerEndpoint": "1.2.3.4:8081",
   "OpenvSwitch": false,
-  "OpenvSwitchBridge": ""
+  "OpenvSwitchBridge": "",
+  "UseCNI": false
 }

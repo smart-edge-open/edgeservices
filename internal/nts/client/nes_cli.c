@@ -1019,7 +1019,7 @@ static void nes_ctrl_mac_show_parsed(void *parsed_result,
 {
 	struct cmd_ctrl_show_mac_result *res = parsed_result;
 	static int MAC_ADDR_STR_LEN = 18;
-	char* mac_addr = malloc(sizeof(char) * (MAC_ADDR_STR_LEN + 1));
+	char *mac_addr = malloc(sizeof(char) * (MAC_ADDR_STR_LEN + 1));
 	if (NULL == mac_addr) {
 		cmdline_printf(nes_cmdline, "Error! Memory allocation failed\n");
 		return;
@@ -1267,7 +1267,7 @@ nes_route_data_add(nes_remote_t *self, nis_routing_data_key_t *routing_key,
 	VERIFY_PTR_OR_RET(api_msg, NES_FAIL);
 	api_msg->message_type = eRequest;
 	api_msg->function_id = eNesAddRouteData;
-	data = (struct routing_msg_s*) api_msg->data;
+	data = (struct routing_msg_s *) api_msg->data;
 
 	memcpy(&data->routing_key, routing_key, sizeof (nis_routing_data_key_t));
 	memcpy(&data->routing_data, routing_data, sizeof (nis_routing_data_t));
@@ -1310,7 +1310,7 @@ nes_route_data_del(nes_remote_t *self, nis_routing_data_key_t *routing_key) {
 	VERIFY_PTR_OR_RET(api_msg, NES_FAIL);
 	api_msg->message_type = eRequest;
 	api_msg->function_id = eNesDelRouteData;
-	data = (nis_routing_data_key_t*) api_msg->data;
+	data = (nis_routing_data_key_t *) api_msg->data;
 
 	memcpy(data, routing_key, sizeof (nis_routing_data_key_t));
 
@@ -1352,7 +1352,7 @@ nes_route_data_show(nes_remote_t *self, nis_routing_data_key_t *routing_key,
 	VERIFY_PTR_OR_RET(api_msg, NES_FAIL);
 	api_msg->message_type = eRequest;
 	api_msg->function_id = eNesShowRouteData;
-	data = (nis_routing_data_key_t*) api_msg->data;
+	data = (nis_routing_data_key_t *) api_msg->data;
 	memcpy(data, routing_key, sizeof (nis_routing_data_key_t));
 
 	api_msg->data_size = data_len;
@@ -1399,7 +1399,7 @@ nes_flow_add(nes_remote_t *self, nes_cli_param_flow_t *flow, nes_cli_param_rab_t
 	VERIFY_PTR_OR_RET(api_msg, NES_FAIL);
 	api_msg->message_type = eRequest;
 	api_msg->function_id = eNesAddFlow;
-	data = (struct add_flow_data*) api_msg->data;
+	data = (struct add_flow_data *) api_msg->data;
 	memcpy(&data->flow_params, flow, sizeof (nes_cli_param_flow_t));
 	memcpy(&data->rab_params, entry, sizeof (nes_cli_param_rab_t));
 
@@ -1450,7 +1450,7 @@ nes_flow_show(nes_remote_t *self, nes_cli_param_flow_t *flow, nes_cli_param_rab_
 	}
 	api_msg->message_type = eRequest;
 	api_msg->function_id = eNesShowFlow;
-	data = (struct show_flow_data*) api_msg->data;
+	data = (struct show_flow_data *) api_msg->data;
 	memcpy(&data->flow_params, flow, sizeof (nes_cli_param_flow_t));
 
 	api_msg->data_size = data_len;
@@ -1500,7 +1500,7 @@ nes_flow_del(nes_remote_t *self, nes_cli_param_flow_t *flow) {
 	VERIFY_PTR_OR_RET(api_msg, NES_FAIL);
 	api_msg->message_type = eRequest;
 	api_msg->function_id = eNesDelFlow;
-	data = (struct del_flow_data*) api_msg->data;
+	data = (struct del_flow_data *) api_msg->data;
 	memcpy(&data->flow_params, flow, sizeof (nes_cli_param_flow_t));
 
 	api_msg->data_size = data_len;
@@ -2220,7 +2220,7 @@ nes_cmdline_manager(void) {
 }
 
 int
-nes_cmdline_file_manager(const char* path, const char* output_file) {
+nes_cmdline_file_manager(const char *path, const char *output_file) {
 	int fd, fd_out;
 	if (NULL == path)
 		return NES_FAIL;

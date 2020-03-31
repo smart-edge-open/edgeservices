@@ -94,7 +94,7 @@ nes_dev_kni_mempool_init(void) {
 }
 
 NES_STATIC struct rte_kni *
-nes_dev_kni_alloc(uint16_t port_id, const char* if_id)
+nes_dev_kni_alloc(uint16_t port_id, const char *if_id)
 {
 	struct rte_kni_conf conf;
 	uint8_t mac_addr[ETHER_ADDR_LEN];

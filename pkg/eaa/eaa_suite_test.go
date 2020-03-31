@@ -403,7 +403,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred(), "Unable to start fake AppID provider")
 
 	By("Building appliance")
-	cmd := exec.Command("make", "BUILD_DIR="+tempdir, "appliance")
+	cmd := exec.Command("make", "BUILD_DIR="+tempdir, "SKIP_DOCKER_IMAGES=1", "appliance-nts")
 	cmd.Dir = cfg.Dir
 	err = cmd.Run()
 	Expect(err).ToNot(HaveOccurred(), "Error when building appliance!")

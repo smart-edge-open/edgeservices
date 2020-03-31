@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 
 package eva
 
@@ -18,18 +18,23 @@ import (
 
 	"math"
 	"regexp"
+	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
 
 	"github.com/open-ness/edgenode/internal/wrappers"
 	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
+	"github.com/open-ness/edgenode/pkg/cni"
 	pb "github.com/open-ness/edgenode/pkg/eva/pb"
+	"github.com/open-ness/edgenode/pkg/ovncni"
 	"github.com/pkg/errors"
 
 	"google.golang.org/grpc/codes"
@@ -39,6 +44,8 @@ import (
 
 	"github.com/digitalocean/go-openvswitch/ovs"
 	"github.com/digitalocean/go-openvswitch/ovsdb"
+
+	"github.com/docker/go-connections/nat"
 )
 
 // DeploySrv describes deplyment
@@ -63,15 +70,23 @@ var httpMatcher = regexp.MustCompile("^http://.")
 var httpsMatcher = regexp.MustCompile("^https://.")
 
 // EACHandler - the type for the generic Enhanced App Confuration handler
-type EACHandler func(string, interface{})
+type EACHandler func(string, interface{}, interface{})
 
 // EACHandlersDocker - Table of EACHandlers for the Docker backend
 var EACHandlersDocker = map[string]EACHandler{
-	"hddl": handleHddl,
+	"hddl":      handleHddl,
+	"env_vars":  handleEnvVars,
+	"cmd":       handleCmd,
+	"mount":     handleMountContainer,
+	"cpu_pin":   handleCPUPinContainer,
+	"sriov_nic": handleContainerNicSriov,
 }
 
 // EACHandlersVM - Table of EACHandlers for the Libvirt backend
-var EACHandlersVM = map[string]EACHandler{}
+var EACHandlersVM = map[string]EACHandler{
+	"cpu_pin":   handleCPUPinVM,
+	"sriov_nic": handleVmNicSriov,
+}
 
 func downloadImage(ctx context.Context, url string,
 	target string) error {
@@ -294,7 +309,7 @@ func (s *DeploySrv) DeployContainer(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
-func handleHddl(value string, genericCfg interface{}) {
+func handleHddl(value string, genericCfg interface{}, additionalCfg interface{}) {
 	turnedOn := map[string]bool{"on": true, "yes": true, "enabled": true,
 		"y": true, "true": true}
 	if _, on := turnedOn[strings.ToLower(value)]; !on {
@@ -310,6 +325,271 @@ func handleHddl(value string, genericCfg interface{}) {
 	}
 	hostCfg.Resources.Devices = append(hostCfg.Resources.Devices, devIon)
 	hostCfg.Binds = append(hostCfg.Binds, "/var/tmp:/var/tmp")
+	hostCfg.Binds = append(hostCfg.Binds, "/dev/shm:/dev/shm")
+}
+
+// Checks the received core Id list to see if any letters present
+func checkForLetters(input string) bool {
+	convStrToRune := []rune(input)
+
+	for loopCount := 0; loopCount < len(convStrToRune); loopCount++ {
+		if unicode.IsLetter(convStrToRune[loopCount]) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func handleCPUPinContainer(value string, genericCfg interface{}, additionalCfg interface{}) {
+	isCommaFound := strings.Contains(value, ",")
+	isDashFound := strings.Contains(value, "-")
+
+	log.Infof("CPU Pinning settings for Container provided (%v), applying", value)
+
+	// Check that one of the correct string formats was provided
+	if (isCommaFound && !isDashFound) || (!isCommaFound && isDashFound) || (!isCommaFound && !isDashFound) {
+		// Check that only numbers were provided
+		if checkForLetters(value) {
+			log.Err("Incorrect core Id found in input, skipping")
+			return
+		}
+		hostCfg := genericCfg.(*container.HostConfig)
+		hostCfg.Resources.CpusetCpus = value
+		return
+	}
+
+	log.Err("Please provide only one input format for CPU pinning, skipping")
+}
+
+func processPorts(ports []*pb.PortProto, cfg *container.Config) {
+	if cfg.ExposedPorts == nil {
+		cfg.ExposedPorts = make(nat.PortSet)
+	}
+	for _, p := range ports {
+		var port nat.Port
+
+		log.Debugf("processing requested port: %d proto: %s\n", p.Port, p.Protocol)
+		if p.Port <= 0 {
+			log.Infof("processPorts: port %d invalid, skipping", p.Port)
+			continue
+		}
+		if p.Protocol == "" {
+			log.Infof("processPorts: protocol empty, skipping")
+			continue
+		}
+		port, err := nat.NewPort(p.Protocol, fmt.Sprintf("%d", p.Port))
+		if err != nil {
+			log.Warning("Failed to parse ports: %v", err)
+			return
+		}
+		cfg.ExposedPorts[port] = struct{}{}
+	}
+
+}
+
+func handleCPUPinVM(value string, genericCfg interface{}, additionalCfg interface{}) {
+	hostCfg := genericCfg.(*libvirtxml.Domain)
+	totalVMCores := hostCfg.VCPU.Value
+	isCommaFound := strings.Contains(value, ",")
+	isDashFound := strings.Contains(value, "-")
+
+	log.Infof("CPU Pinning settings for VM provided (%v), applying", value)
+
+	// Check that one of the correct string formats was provided
+	if (isCommaFound && !isDashFound) || (!isCommaFound && isDashFound) || (!isCommaFound && !isDashFound) {
+		// Check the only numbers were provided
+		if checkForLetters(value) {
+			log.Err("Incorrect core Id found in input, skipping")
+			return
+		}
+		for coreIDIndex := 0; coreIDIndex < totalVMCores; coreIDIndex++ {
+			vcpuPin := libvirtxml.DomainCPUTuneVCPUPin{
+				VCPU:   uint(coreIDIndex),
+				CPUSet: value,
+			}
+			hostCfg.CPUTune.VCPUPin = append(hostCfg.CPUTune.VCPUPin, vcpuPin)
+		}
+		return
+	}
+
+	log.Err("Please provide only one input format for CPU Pinning, skipping")
+}
+
+func handleEnvVars(value string, genericCfg interface{}, additionalCfg interface{}) {
+	envSettings := strings.Split(value, ";")
+	log.Infof("Environment settings provided (%v), setting", value)
+
+	for _, setting := range envSettings {
+		// Check that each variable provided is set to a value and
+		// only one variable has been provided per semi-colon
+		if strings.Count(setting, "=") != 1 {
+			log.Errf("Variable is not set correctly (%v), skipping", setting)
+			continue
+		}
+
+		// Check that the environment variable name has been set
+		isVarNameSet := strings.Index(setting, "=")
+		if isVarNameSet == 0 {
+			log.Errf("Variable name is not provided (%v), skipping", setting)
+			continue
+		}
+
+		// Check that the environment variable value has been set
+		if isVarNameSet == len(setting)-1 {
+			log.Errf("Variable value is not provided (%v), skipping", setting)
+			continue
+		}
+
+		containCfg := additionalCfg.(*container.Config)
+		containCfg.Env = append(containCfg.Env, setting)
+	}
+}
+
+func handleCmd(cmd string, genericCfg interface{}, additionalCfg interface{}) {
+	log.Infof("Using command override: %v", cmd)
+
+	containerCfg := additionalCfg.(*container.Config)
+	if cmd == "" {
+		log.Errf("Command override string is empty, ignoring")
+		return
+	}
+
+	for _, arg := range strings.Split(cmd, " ") {
+		containerCfg.Cmd = append(containerCfg.Cmd, arg)
+	}
+}
+
+func handleMountContainer(mountString string, genericCfg interface{}, additionalCfg interface{}) {
+	hostCfg := genericCfg.(*container.HostConfig)
+	if mountString == "" {
+		log.Errf("Mount string is empty, ignoring")
+		return
+	}
+
+	log.Infof("Mount settings for Container provided (%v), applying", mountString)
+
+	split := strings.Split(mountString, ";")
+	for _, m := range split {
+		pieces := strings.Split(m, ",")
+		if len(pieces) == 4 {
+			var tb mount.Type
+			if strings.ToLower(pieces[0]) == "bind" {
+				tb = mount.TypeBind
+			} else if strings.ToLower(pieces[0]) == "volume" {
+				tb = mount.TypeVolume
+			} else {
+				log.Errf("Invalid mount type for: %s skipping...", pieces)
+				continue
+			}
+
+			m := mount.Mount{
+				Type:     tb,
+				Source:   pieces[1], // Source is the location on the Host
+				Target:   pieces[2], // Target is the location on the Container
+				ReadOnly: pieces[3] == "true",
+			}
+
+			hostCfg.Mounts = append(hostCfg.Mounts, m)
+		} else {
+			log.Errf("Invalid syntax: ...;type,source,target,readonly;... for entry: %s! skipping...", pieces)
+			continue
+		}
+	}
+}
+
+func handleContainerNicSriov(value string, genericCfg interface{}, additionalCfg interface{}) {
+	if value == "" {
+		log.Errf("SRIOV NIC string is empty, ignoring")
+		return
+	}
+	log.Infof("SRIOV NIC Settings (%v) provided for container, setting", value)
+
+	hostConfig := genericCfg.(*container.HostConfig)
+	hostConfig.NetworkMode = container.NetworkMode(value)
+}
+
+func handleVmNicSriov(value string, genericCfg interface{}, additionalCfg interface{}) {
+	if value == "" {
+		log.Errf("SRIOV NIC string is empty, ignoring")
+		return
+	}
+	log.Infof("SRIOV NIC Settings (%v) provided for VM, setting", value)
+
+	pciAddress := strings.Split(value, ":")
+	if len(pciAddress) != 3 {
+		log.Errf("Incorrect pciAddress provided (%v), skipping", value)
+		return
+	}
+
+	if len(pciAddress[0]) != 4 {
+		log.Errf("Domain address is incorrect (%v), skipping", pciAddress[0])
+		return
+	}
+	domainAddr, err := strconv.ParseUint(pciAddress[0], 16, 0)
+	if err != nil {
+		log.Errf("Error converting Domain address from string to uint (%v), skipping", err)
+		return
+	}
+	domain := uint(domainAddr)
+
+	if len(pciAddress[1]) != 2 {
+		log.Errf("Bus address is incorrect (%v), skipping", pciAddress[1])
+		return
+	}
+	busAddr, err := strconv.ParseUint(pciAddress[1], 16, 0)
+	if err != nil {
+		log.Errf("Error converting Bus address from string to uint (%v), skipping", err)
+		return
+	}
+	bus := uint(busAddr)
+
+	slotFuncAddr := strings.Split(pciAddress[2], ".")
+	if len(slotFuncAddr) != 2 {
+		log.Errf("Incorrect slot:function provided (%v), skipping", pciAddress[2])
+		return
+	}
+
+	if len(slotFuncAddr[0]) != 2 {
+		log.Errf("Slot address is incorrect (%v), skipping", slotFuncAddr[0])
+		return
+	}
+	slotAddr, err := strconv.ParseUint(slotFuncAddr[0], 16, 0)
+	if err != nil {
+		log.Errf("Error converting Slot address from string to uint (%v), skipping", err)
+		return
+	}
+	slot := uint(slotAddr)
+
+	if len(slotFuncAddr[1]) != 1 {
+		log.Errf("Function address is incorrect (%v), skipping", slotFuncAddr[1])
+		return
+	}
+	functionAddr, err := strconv.ParseUint(slotFuncAddr[1], 16, 0)
+	if err != nil {
+		log.Errf("Error converting Slot address from string to uint (%v), skipping", err)
+		return
+	}
+	function := uint(functionAddr)
+
+	domConfig := genericCfg.(*libvirtxml.Domain)
+	ifCfg := libvirtxml.DomainInterface{
+		Managed: "yes",
+		Source: &libvirtxml.DomainInterfaceSource{
+			Hostdev: &libvirtxml.DomainInterfaceSourceHostdev{
+				PCI: &libvirtxml.DomainHostdevSubsysPCISource{
+					Address: &libvirtxml.DomainAddressPCI{
+						Domain:   &domain,
+						Bus:      &bus,
+						Slot:     &slot,
+						Function: &function,
+					},
+				},
+			},
+		},
+	}
+	domConfig.Devices.Interfaces = append(domConfig.Devices.Interfaces, ifCfg)
+	return
 }
 
 // EPAFeature - we get an array of those in API calls from controller
@@ -324,7 +604,7 @@ type EPAFeature struct {
 // If match is found, it will call the handler with the value
 // as entered on the UI. (EPA Feature Value)
 func processEAC(EACJson string, EACHandlers map[string]EACHandler,
-	genericCfg interface{}) {
+	genericCfg interface{}, genericHostCfg interface{}) {
 	var EPAFeatures []EPAFeature
 
 	if err := json.Unmarshal([]byte(EACJson), &EPAFeatures); err != nil {
@@ -340,7 +620,7 @@ func processEAC(EACJson string, EACHandlers map[string]EACHandler,
 		handler, ok := EACHandlers[entry.Key]
 		if ok {
 			log.Debugf("calling handler for %v", entry.Key)
-			handler(entry.Value, genericCfg)
+			handler(entry.Value, genericCfg, genericHostCfg)
 		}
 	}
 }
@@ -398,13 +678,28 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 		Resources: resources,
 		CapAdd:    []string{"NET_ADMIN"}}
 
-	// Update hostCfg based on EAC configuration
-	processEAC(dapp.App.EACJsonBlob, EACHandlersDocker, &hostCfg)
+	if s.cfg.UseCNI {
+		infraCtrID, cniErr := cni.CreateInfrastructureContainer(ctx, dapp)
+		if cniErr != nil {
+			log.Errf("Failed to create infrastructure container. AppID=%s, Reason=%s", dapp.App.Id, cniErr.Error())
+			return
+		}
+
+		hostCfg.NetworkMode = container.NetworkMode(fmt.Sprintf("container:%s", infraCtrID))
+	}
+
+	containerCfg := container.Config{
+		Image: dapp.App.Id,
+	}
+
+	// Update hostCfg and containCfg based on EAC configuration
+	processPorts(dapp.App.Ports, &containerCfg)
+	processEAC(dapp.App.EACJsonBlob, EACHandlersDocker, &hostCfg, &containerCfg)
+	log.Debugf("containerCfg: %+v", containerCfg)
 	log.Debugf("hostCfg: %+v", hostCfg)
 
 	respCreate, err := docker.ContainerCreate(ctx,
-		&container.Config{Image: dapp.App.Id},
-		&hostCfg, nil, dapp.App.Id)
+		&containerCfg, &hostCfg, nil, dapp.App.Id)
 
 	if err != nil {
 		log.Errf("docker.ContainerCreate failed: %+v", err)
@@ -628,6 +923,10 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 		},
 		VCPU: &libvirtxml.DomainVCPU{Value: int(dapp.App.Cores)},
 
+		CPUTune: &libvirtxml.DomainCPUTune{
+			VCPUPin: []libvirtxml.DomainCPUTuneVCPUPin{},
+		},
+
 		MemoryBacking: &libvirtxml.DomainMemoryBacking{
 			MemoryHugePages: &libvirtxml.DomainMemoryHugepages{
 				Hugepages: []libvirtxml.DomainMemoryHugepage{
@@ -651,26 +950,7 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 					Target: &libvirtxml.DomainDiskTarget{Dev: "hda"},
 				},
 			},
-			Interfaces: []libvirtxml.DomainInterface{
-				{
-					Source: &libvirtxml.DomainInterfaceSource{
-						Network: &libvirtxml.DomainInterfaceSourceNetwork{
-							Network: "default",
-						},
-					},
-					Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
-				},
-				{
-					Source: &libvirtxml.DomainInterfaceSource{
-						VHostUser: &libvirtxml.DomainChardevSource{
-							UNIX: &libvirtxml.DomainChardevSourceUNIX{
-								Path: s.cfg.VhostSocket, Mode: "client",
-							},
-						},
-					},
-					Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
-				},
-			},
+			Interfaces: []libvirtxml.DomainInterface{},
 		},
 	}
 
@@ -694,8 +974,71 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 			return
 		}
 	}
+
+	if s.cfg.UseCNI {
+		if t, cniErr := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); cniErr != nil {
+			dapp.App.Status = pb.LifecycleStatus_ERROR
+			log.Errf("failed to get CNI type from CniConfig: %s", cniErr.Error())
+			return
+		} else if cni.Type(t) == cni.OVN {
+			port, cniErr := cni.OVNCNICreatePort(dapp)
+			if cniErr != nil {
+				dapp.App.Status = pb.LifecycleStatus_ERROR
+				log.Errf("failed to create OVN port: %s", cniErr.Error())
+				return
+			}
+
+			bridge, cniErr := ovncni.GetCNIArg("ovsBrName", dapp.App.CniConf.Args)
+			if cniErr != nil {
+				bridge = ovncni.DefaultOvsBrName
+			}
+
+			domcfg.Devices.Interfaces = append(domcfg.Devices.Interfaces,
+				libvirtxml.DomainInterface{
+					MAC: &libvirtxml.DomainInterfaceMAC{
+						Address: port.MAC.String(),
+					},
+					Source: &libvirtxml.DomainInterfaceSource{
+						Bridge: &libvirtxml.DomainInterfaceSourceBridge{Bridge: bridge},
+					},
+
+					VirtualPort: &libvirtxml.DomainInterfaceVirtualPort{
+						Params: &libvirtxml.DomainInterfaceVirtualPortParams{
+							OpenVSwitch: &libvirtxml.DomainInterfaceVirtualPortParamsOpenVSwitch{
+								InterfaceID: dapp.App.Id,
+							},
+						},
+					},
+					Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
+				},
+			)
+		}
+	} else {
+		// Dataplane: NTS
+		domcfg.Devices.Interfaces = append(domcfg.Devices.Interfaces,
+			libvirtxml.DomainInterface{
+				Source: &libvirtxml.DomainInterfaceSource{
+					Network: &libvirtxml.DomainInterfaceSourceNetwork{
+						Network: "default",
+					},
+				},
+				Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
+			},
+			libvirtxml.DomainInterface{
+				Source: &libvirtxml.DomainInterfaceSource{
+					VHostUser: &libvirtxml.DomainChardevSource{
+						UNIX: &libvirtxml.DomainChardevSourceUNIX{
+							Path: s.cfg.VhostSocket, Mode: "client",
+						},
+					},
+				},
+				Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
+			},
+		)
+	}
+
 	// Update domcfg based on EAC configuration
-	processEAC(dapp.App.EACJsonBlob, EACHandlersVM, &domcfg)
+	processEAC(dapp.App.EACJsonBlob, EACHandlersVM, &domcfg, nil)
 	xmldoc, err := domcfg.Marshal()
 	if err != nil {
 		dapp.App.Status = pb.LifecycleStatus_ERROR
@@ -803,6 +1146,14 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 	}
 	log.Infof("Docker image '%v' removed", dapp.App.Id)
 
+	if s.cfg.UseCNI {
+		err = cni.RemoveInfrastructureContainer(ctx, dapp)
+		if err != nil {
+			log.Errf("Failed to remove the Infra Container. AppID=%s, Reason=%s",
+				dapp.App.Id, err.Error())
+		}
+	}
+
 	return dapp.SetUndeployed()
 }
 
@@ -849,6 +1200,17 @@ func (s *DeploySrv) libvirtUndeploy(ctx context.Context,
 		if err = removeOVSPort(s.cfg.OpenvSwitchBridge,
 			dapp.App.Id); err != nil {
 			log.Errf("Undeploy(%v) failed: %+v", dapp.App.Id, err)
+		}
+	}
+
+	if s.cfg.UseCNI {
+		if t, err := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); err != nil {
+			log.Errf("failed to get CNI type from CniConfig: %s", err.Error())
+			return errors.Wrapf(err, "failed to get CNI type from CniConfig")
+		} else if cni.Type(t) == cni.OVN {
+			if err := cni.OVNCNIDeletePort(dapp); err != nil {
+				log.Errf("failed to delete OVN port: %s", err.Error())
+			}
 		}
 	}
 
@@ -906,7 +1268,20 @@ func (s *DeploySrv) Undeploy(ctx context.Context,
 	}
 
 	if !dapp.IsDeployed {
-		log.Debugf("Undeploing not deployed app (%v)", app.Id)
+		log.Debugf("Undeploying not deployed app (%v)", app.Id)
+
+		// Because OVN port is created during deployment, it needs to be removed even if app's deployment fails
+		if s.cfg.UseCNI {
+			if t, err := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); err != nil {
+				log.Errf("failed to get CNI type from CniConfig: %s", err.Error())
+				return nil, status.Errorf(codes.FailedPrecondition,
+					"failed to get CNI type from CniConfig: %s", err.Error())
+			} else if cni.Type(t) == cni.OVN {
+				if err := cni.OVNCNIDeletePort(dapp); err != nil {
+					log.Errf("failed to delete OVN port: %s", err.Error())
+				}
+			}
+		}
 
 		if err := os.RemoveAll(dapp.Path); err != nil {
 			log.Debugf("Failed to delete metadata directory of %v because: %+v",

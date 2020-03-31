@@ -334,7 +334,7 @@ nts_acl_lookup_add_impl(nes_acl_ctx_t* lookup_ctx, char* lookup_str, const char*
 }
 
 static int
-nts_acl_lookup_add_one_dir(nes_acl_ctx_t* lookup_ctx, char* lookup_str, const char* ring_name,
+nts_acl_lookup_add_one_dir(nes_acl_ctx_t *lookup_ctx, char *lookup_str, const char *ring_name,
 	struct ether_addr mac_addr, nts_edit_modes_t edit_mode) {
 	assert(lookup_ctx);
 
@@ -371,7 +371,7 @@ nts_acl_lookup_add_one_dir(nes_acl_ctx_t* lookup_ctx, char* lookup_str, const ch
 		return NES_FAIL;
 	}
 
-	rule_id = nes_acl_find_rule_id(lookup_ctx, (struct rte_acl_rule*) &rule);
+	rule_id = nes_acl_find_rule_id(lookup_ctx, (struct rte_acl_rule *) &rule);
 	if (rule_id >= 0) {
 		entry = lookup_ctx->entries[
 			lookup_ctx->rules[rule_id]->data.userdata - USER_DATA_OFFSET];
@@ -386,13 +386,13 @@ nts_acl_lookup_add_one_dir(nes_acl_ctx_t* lookup_ctx, char* lookup_str, const ch
 		nes_sq_ctor(entry);
 
 		rule_ptr = &rule;
-		if (NES_SUCCESS != nes_acl_add_entries(lookup_ctx, (void**) &entry,
-				(struct rte_acl_rule**) &rule_ptr, 1))
+		if (NES_SUCCESS != nes_acl_add_entries(lookup_ctx, (void **) &entry,
+				(struct rte_acl_rule **) &rule_ptr, 1))
 			NES_LOG(ERR, "Failed to add upstream entry\n");
 
 		// entry is copied and not used anymore
 		rte_free(entry);
-		rule_id = nes_acl_find_rule_id(lookup_ctx, (struct rte_acl_rule*) &rule);
+		rule_id = nes_acl_find_rule_id(lookup_ctx, (struct rte_acl_rule *) &rule);
 		entry = lookup_ctx->entries[
 			lookup_ctx->rules[rule_id]->data.userdata - USER_DATA_OFFSET];
 	}
@@ -405,7 +405,7 @@ nts_acl_lookup_add_one_dir(nes_acl_ctx_t* lookup_ctx, char* lookup_str, const ch
 }
 
 static int
-nts_acl_add_single_dataplane_entry(nes_acl_ctx_t* lookup_ctx, char *port_name, char *tx_ring_name)
+nts_acl_add_single_dataplane_entry(nes_acl_ctx_t *lookup_ctx, char *port_name, char *tx_ring_name)
 {
 	struct rte_cfgfile_entry  cfg_entries[MAX_LOOKUPS_PER_VM];
 	int i;
@@ -464,7 +464,7 @@ nts_acl_add_single_lbp_entry(nes_acl_ctx_t* lookup_ctx, char *port_name, char *t
 	return NES_SUCCESS;
 }
 
-int nts_acl_add_dataplane_entries(nes_acl_ctx_t* lookup_ctx)
+int nts_acl_add_dataplane_entries(nes_acl_ctx_t *lookup_ctx)
 {
 	assert(entries);
 	assert(rules);
@@ -481,17 +481,16 @@ int nts_acl_add_dataplane_entries(nes_acl_ctx_t* lookup_ctx)
 			break;
 
 		if (NES_SUCCESS == nes_cfgfile_entry(port_name, TRAFFIC_DIRECTION, &buffer)) {
-            snprintf(tx_ring_name, sizeof(tx_ring_name),
-                PORT_TX_QUEUE_NAME_TEMPLATE, portid);
+			snprintf(tx_ring_name, sizeof(tx_ring_name),
+			PORT_TX_QUEUE_NAME_TEMPLATE, portid);
 			if (0 == strncmp(buffer, TRAFFIC_DIRECTION_LBP,
 					sizeof(TRAFFIC_DIRECTION_LBP))) {
 				if (NES_SUCCESS != nts_acl_add_single_lbp_entry(lookup_ctx,
 						port_name, tx_ring_name))
-						return NES_FAIL;
+					return NES_FAIL;
 			} else if (NES_SUCCESS != nts_acl_add_single_dataplane_entry(lookup_ctx,
-                    port_name, tx_ring_name))
-                return NES_FAIL;
-
+					port_name, tx_ring_name))
+				return NES_FAIL;
 		}
 		portid++;
 	}

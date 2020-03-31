@@ -296,7 +296,7 @@ nes_sq_t *nes_stats_all_dev(nes_remote_t *self)
 	nes_sq_ctor(device_list);
 
 	nes_api_dev_t *new_elem;
-	nes_api_dev_t *dev_stats = (nes_api_dev_t*)response->data;
+	nes_api_dev_t *dev_stats = (nes_api_dev_t *)response->data;
 	size_t i = response->data_size / sizeof(nes_api_dev_t);
 
 	while (i--) {
@@ -349,7 +349,7 @@ int nes_stats_dev(nes_remote_t *self, uint16_t id, nes_dev_stats_t *stats)
 
 		return NES_FAIL;
 	}
-	nes_dev_stats_t *dev_stats = (nes_dev_stats_t*)response->data;
+	nes_dev_stats_t *dev_stats = (nes_dev_stats_t *)response->data;
 	*stats = *dev_stats;
 
 	free(response);
@@ -448,7 +448,7 @@ int nes_stats_ring(nes_remote_t *self, uint16_t id, nes_ring_stats_t *stats)
 
 		return NES_FAIL;
 	}
-	nes_ring_stats_t *data_ptr = (nes_ring_stats_t*)response->data;
+	nes_ring_stats_t *data_ptr = (nes_ring_stats_t *)response->data;
 	*stats = *data_ptr;
 
 	free(response);
@@ -522,7 +522,7 @@ int nes_dev_port_mac_addr(nes_remote_t *self, uint8_t port_id, char **mac_addr_s
 		free(api_msg);
 		return NES_FAIL;
 	}
-	struct ether_addr *mac_addr = (struct ether_addr*)api_response->data;
+	struct ether_addr *mac_addr = (struct ether_addr *)api_response->data;
 	if ((MAC_ADDR_STR_LEN - 1) != snprintf(*mac_addr_str, MAC_ADDR_STR_LEN,
 			"%02x:%02x:%02x:%02x:%02x:%02x",
 			mac_addr->ether_addr_octet[0], mac_addr->ether_addr_octet[1],
@@ -566,7 +566,7 @@ nes_route_add_impl(nes_remote_t *self, struct ether_addr vm_mac_addr, char *look
 	VERIFY_PTR_OR_RET(api_msg, NES_FAIL);
 	api_msg->message_type = eRequest;
 	api_msg->function_id = is_mirror ? eNesAddMirror : eNesAddRoute;
-	data = (struct add_route_data*)api_msg->data;
+	data = (struct add_route_data *)api_msg->data;
 	data->vm_mac_addr = vm_mac_addr;
 
 	strncpy(data->lookup, lookup_keys, keys_len);
@@ -590,7 +590,7 @@ nes_route_add_impl(nes_remote_t *self, struct ether_addr vm_mac_addr, char *look
 }
 
 static int
-nes_kni_modify(nes_remote_t *self, const char *dev_id_name, int kni_action, char* if_name)
+nes_kni_modify(nes_remote_t *self, const char *dev_id_name, int kni_action, char *if_name)
 {
 	assert(self);
 
@@ -611,7 +611,7 @@ nes_kni_modify(nes_remote_t *self, const char *dev_id_name, int kni_action, char
 	api_msg->function_id = (kni_action == KNI_DEL) ? eNesDelKni : eNesAddKni;
 
 
-	strncpy((char*)api_msg->data, dev_id_name, keys_len);
+	strncpy((char *)api_msg->data, dev_id_name, keys_len);
 	api_msg->data_size = data_len;
 
 	if (NES_SUCCESS != nes_send_api_msg(self, api_msg, &api_response)) {
@@ -703,7 +703,7 @@ int nes_route_show(nes_remote_t *self, char *lookup_keys, nes_sq_t *upstream_rou
 	}
 
 	for (i = 0; i < upstream_routes_cnt + downstream_routes_cnt; i++) {
-		nes_route_entry_data_t* route = malloc(sizeof(nes_route_entry_data_t));
+		nes_route_entry_data_t *route = malloc(sizeof(nes_route_entry_data_t));
 		if (NULL == route) {
 			nes_sq_dtor_free(upstream_route);
 			nes_sq_dtor_free(downstream_route);
@@ -725,7 +725,7 @@ int nes_route_show(nes_remote_t *self, char *lookup_keys, nes_sq_t *upstream_rou
 }
 
 int nes_route_list(nes_remote_t *self, uint16_t entry_offset, uint16_t max_entry_cnt,
-	nes_route_data_t** routes, uint16_t *route_cnt)
+	nes_route_data_t **routes, uint16_t *route_cnt)
 {
 	assert(NULL != self);
 

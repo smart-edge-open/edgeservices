@@ -431,8 +431,8 @@ nts_get_dst_ring(struct rte_mbuf *m, uint8_t is_gtp) {
 	else
 		nts_edit_hdr_parse_ip(m, &ignored.upstream, &tuple, &inner_ipv4_hdr);
 
-	nes_acl_lookup(&nes_ctrl_acl_ctx, (const uint8_t**) &tuple_ptr,
-		1, (void**)&route_entry);
+	nes_acl_lookup(&nes_ctrl_acl_ctx, (const uint8_t **) &tuple_ptr,
+		1, (void **)&route_entry);
 	if (NULL == route_entry)
 		return NULL;
 	nts_route_entry_t *entry = nes_sq_data(nes_sq_head(route_entry));

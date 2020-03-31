@@ -18,6 +18,11 @@ import (
 )
 
 var _ = Describe("gRPC InterfacePolicyService", func() {
+
+	BeforeEach(func() {
+		ela.InterfaceConfigurationData.TrafficPolicies = make(map[string]*pb.TrafficPolicy)
+	})
+
 	Context("Set method", func() {
 		Specify("will store received TrafficPolicy", func() {
 			By("dialing to ELA and calling InterfacePolicyService's Set method")
@@ -81,6 +86,98 @@ var _ = Describe("gRPC InterfacePolicyService", func() {
 			Expect(tr.Source.Ip).ToNot(BeNil())
 			Expect(tr.Source.Ip.Address).To(Equal(expTr.Source.Ip.Address))
 			Expect(tr.Source.Ip.Mask).To(Equal(expTr.Source.Ip.Mask))
+		})
+		When("received TrafficPolicy with EMPTY Id", func() {
+			It("will fail", func() {
+
+				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				Expect(err).ShouldNot(HaveOccurred())
+				prefaceLis := progutil.NewPrefaceListener(lis)
+				defer prefaceLis.Close()
+
+				prefaceLis.RegisterHost("127.0.0.1")
+				go prefaceLis.Accept() // we only expect 1 connection
+
+				// Then connecting to it from this thread
+				// OP-1742: ContextDialler not supported by Gateway
+				//nolint:staticcheck
+				conn, err := grpc.Dial("127.0.0.1",
+					grpc.WithTransportCredentials(transportCreds),
+					grpc.WithDialer(prefaceLis.DialEla))
+				Expect(err).NotTo(HaveOccurred())
+				defer conn.Close()
+
+				client := pb.NewInterfacePolicyServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					3*time.Second)
+				defer cancel()
+
+				expectedTp := &pb.TrafficPolicy{
+					Id: "",
+					TrafficRules: []*pb.TrafficRule{{
+						Description: "dummy desc",
+						Priority:    15,
+						Source: &pb.TrafficSelector{
+							Ip: &pb.IPFilter{
+								Address: "1.1.1.1",
+								Mask:    32,
+							}},
+						Target: &pb.TrafficTarget{},
+					}}}
+
+				_, err = client.Set(ctx, expectedTp, grpc.WaitForReady(true))
+
+				Expect(err).Should(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("TrafficPolicy.Id is empty"))
+				Expect(ela.InterfaceConfigurationData).ToNot(BeNil())
+				Expect(ela.InterfaceConfigurationData.TrafficPolicies).
+					ToNot(BeNil())
+				Expect(ela.InterfaceConfigurationData.TrafficPolicies).
+					To(HaveLen(0))
+
+				_, ok := ela.InterfaceConfigurationData.
+					TrafficPolicies[""]
+
+				Expect(ok).To(BeFalse())
+			})
+		})
+		When("received EMPTY TrafficPolicy", func() {
+			It("will fail", func() {
+
+				lis, err := net.Listen("tcp", ela.Config.ControllerEndpoint)
+				Expect(err).ShouldNot(HaveOccurred())
+				prefaceLis := progutil.NewPrefaceListener(lis)
+				defer prefaceLis.Close()
+
+				prefaceLis.RegisterHost("127.0.0.1")
+				go prefaceLis.Accept() // we only expect 1 connection
+
+				// Then connecting to it from this thread
+				// OP-1742: ContextDialler not supported by Gateway
+				//nolint:staticcheck
+				conn, err := grpc.Dial("127.0.0.1",
+					grpc.WithTransportCredentials(transportCreds),
+					grpc.WithDialer(prefaceLis.DialEla))
+				Expect(err).NotTo(HaveOccurred())
+				defer conn.Close()
+
+				client := pb.NewInterfacePolicyServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					3*time.Second)
+				defer cancel()
+
+				expectedTp := &pb.TrafficPolicy{}
+
+				_, err = client.Set(ctx, expectedTp, grpc.WaitForReady(true))
+
+				Expect(err).Should(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("is empty"))
+				Expect(ela.InterfaceConfigurationData).ToNot(BeNil())
+				Expect(ela.InterfaceConfigurationData.TrafficPolicies).
+					ToNot(BeNil())
+				Expect(ela.InterfaceConfigurationData.TrafficPolicies).
+					To(HaveLen(0))
+			})
 		})
 	})
 })

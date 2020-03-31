@@ -5,6 +5,7 @@ package interfaceservice_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -13,11 +14,71 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
-	k "github.com/open-ness/edgenode/pkg/interfaceservice"
-
-	h "github.com/open-ness/edgenode/pkg/ela/helpers"
-	pb "github.com/open-ness/edgenode/pkg/ela/pb"
+	elahelpers "github.com/open-ness/edgenode/pkg/ela/helpers"
+	ifs "github.com/open-ness/edgenode/pkg/interfaceservice"
+	pb "github.com/open-ness/edgenode/pkg/interfaceservice/pb"
 )
+
+var (
+	vsctlMock   VsctlMock
+	devbindMock DevbindMock
+	debugMocks  = false
+)
+
+var bindOut = `Network devices using DPDK-compatible driver
+============================================
+0000:00:01.0 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb' drv=igb_uio unused=
+
+Network devices using kernel driver
+===================================
+0000:00:00.0 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb' if=eth0 drv=ixgbe unused=igb_uio
+0000:00:00.1 'I350 Gigabit Network Connection 1521' if=eth1 drv=igb unused=igb_uio
+0000:00:00.2 'I350 Gigabit Network Connection 1521' if=eth2 drv=igb unused=igb_uio
+0000:00:00.3 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb' if=eth3 drv=ixgbe unused=igb_uio
+
+Other Network devices
+=====================
+0000:00:02.0 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb' unused=igb_uio
+
+No 'Crypto' devices detected
+============================
+
+No 'Eventdev' devices detected
+==============================
+
+No 'Mempool' devices detected
+=============================
+
+No 'Compress' devices detected
+==============================
+`
+
+var elaInterfacesMock = []elahelpers.NetworkDevice{
+	{
+		PCI:  "0000:00:01.0",
+		Name: "",
+	},
+	{
+		PCI:  "0000:00:00.0",
+		Name: "eth0",
+	},
+	{
+		PCI:  "0000:00:00.1",
+		Name: "eth1",
+	},
+	{
+		PCI:  "0000:00:00.2",
+		Name: "eth2",
+	},
+	{
+		PCI:  "0000:00:00.3",
+		Name: "eth3",
+	},
+	{
+		PCI:  "0000:00:02.0",
+		Name: "",
+	},
+}
 
 type vsctlResult struct {
 	// ResultOutcome is a string which will be provided as ovs-vsctl output
@@ -37,6 +98,9 @@ type VsctlMock struct {
 
 // Exec saves given args and returns output and error set by test
 func (v *VsctlMock) Exec(args ...string) ([]byte, error) {
+	if debugMocks {
+		fmt.Printf("MOCK [Vsctl received: ovs-vsctl %s]\n", args)
+	}
 	v.ReceivedArgs = append(v.ReceivedArgs, args)
 
 	if len(v.VsctlResults) == 0 {
@@ -45,7 +109,9 @@ func (v *VsctlMock) Exec(args ...string) ([]byte, error) {
 
 	out, err := v.VsctlResults[0].ResultOutcome, v.VsctlResults[0].ResultError
 	v.VsctlResults = v.VsctlResults[1:]
-
+	if debugMocks {
+		fmt.Printf("MOCK [Vsctl response: %s]\n", out)
+	}
 	return []byte(out), err
 }
 
@@ -59,431 +125,266 @@ func (v *VsctlMock) AddResult(outcome string, err error) {
 	v.VsctlResults = append(v.VsctlResults, vsctlResult{outcome, err})
 }
 
+type devbindResult struct {
+	// ResultOutcome is a string which will be provided as ovs-vsctl output
+	resultOutcome string
+
+	// ResultError is an error for simulating command's Run() errors
+	resultError error
+}
+
+type DevbindMock struct {
+	// ReceivedArgs stores received argument which would be passed to ovs-vsctl
+	receivedArgs [][]string
+
+	// VsctlResponses contain list of vsctl's exec results
+	devbindResults []devbindResult
+}
+
+// Exec saves given args and returns output and error set by test
+func (v *DevbindMock) Exec(args ...string) ([]byte, error) {
+	if debugMocks {
+		fmt.Printf("MOCK [Devind received: ./dpdk-devbind.py %s]\n", args)
+	}
+	v.receivedArgs = append(v.receivedArgs, args)
+
+	if len(v.devbindResults) == 0 {
+		return nil, errors.New("DevbindMock - results not set")
+	}
+
+	out, err := v.devbindResults[0].resultOutcome, v.devbindResults[0].resultError
+	v.devbindResults = v.devbindResults[1:]
+	if debugMocks {
+		fmt.Printf("MOCK [Devind response: %s]\n", out)
+	}
+	return []byte(out), err
+}
+
+// Reset clears mock - Called flag and ReceivedArgs slice
+func (v *DevbindMock) Reset() {
+	v.receivedArgs = [][]string{}
+}
+
+// AddResult add next result for vsctl mock
+func (v *DevbindMock) AddResult(outcome string, err error) {
+	v.devbindResults = append(v.devbindResults, devbindResult{outcome, err})
+}
+
+func elaHelperKernelNetworkDevicesProvider() ([]elahelpers.NetworkDevice, error) {
+	return elaInterfacesMock, nil
+}
+
+func get() (*pb.Ports, error) {
+	conn, err := grpc.Dial(testEndpoint,
+		grpc.WithTransportCredentials(transportCreds))
+	Expect(err).NotTo(HaveOccurred())
+	defer conn.Close()
+
+	interfaceServiceClient := pb.NewInterfaceServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(),
+		3*time.Second)
+	defer cancel()
+
+	return interfaceServiceClient.Get(ctx, &empty.Empty{},
+		grpc.WaitForReady(true))
+}
+
+func attach(in *pb.Ports) error {
+	conn, err := grpc.Dial(testEndpoint,
+		grpc.WithTransportCredentials(transportCreds))
+	Expect(err).NotTo(HaveOccurred())
+	defer conn.Close()
+
+	interfaceServiceClient := pb.NewInterfaceServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(),
+		3*time.Second)
+	defer cancel()
+
+	_, err = interfaceServiceClient.Attach(ctx, in, grpc.WaitForReady(true))
+	return err
+}
+
+func detach(in *pb.Ports) error {
+	conn, err := grpc.Dial(testEndpoint,
+		grpc.WithTransportCredentials(transportCreds))
+	Expect(err).NotTo(HaveOccurred())
+	defer conn.Close()
+
+	interfaceServiceClient := pb.NewInterfaceServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(),
+		3*time.Second)
+	defer cancel()
+
+	_, err = interfaceServiceClient.Detach(ctx, in, grpc.WaitForReady(true))
+	return err
+}
+
+func prepareMocks() {
+	vsctlMock = VsctlMock{}
+	ifs.Vsctl = vsctlMock.Exec
+	devbindMock = DevbindMock{}
+	ifs.Devbind = devbindMock.Exec
+	ifs.KernelNetworkDevicesProvider = elaHelperKernelNetworkDevicesProvider
+}
+
 var _ = Describe("InterfaceService", func() {
-	var vsctlMock VsctlMock
 
 	BeforeEach(func() {
-		vsctlMock = VsctlMock{}
-		k.Vsctl = vsctlMock.Exec
-
-		k.KernelNetworkDevicesProvider = func() ([]h.NetworkDevice,
-			error) {
-			return []h.NetworkDevice{
-				{
-					PCI:    "0000:00:00.0",
-					Name:   "eth0",
-					Driver: pb.NetworkInterface_KERNEL,
-				},
-				{
-					PCI:    "0000:00:00.1",
-					Name:   "eth1",
-					Driver: pb.NetworkInterface_KERNEL,
-				},
-				{
-					PCI:    "0000:00:00.2",
-					Name:   "eth2",
-					Driver: pb.NetworkInterface_KERNEL,
-				},
-				{
-					PCI:    "0000:00:00.3",
-					Name:   "eth3",
-					Driver: pb.NetworkInterface_KERNEL,
-				},
-			}, nil
-		}
-	})
-
-	Describe("GetAll", func() {
-		interfaceServiceGetAll := func() (*pb.NetworkInterfaces, error) {
-			conn, err := grpc.Dial(testEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
-			Expect(err).NotTo(HaveOccurred())
-			defer conn.Close()
-
-			client := pb.NewInterfaceServiceClient(conn)
-			ctx, cancel := context.WithTimeout(context.Background(),
-				3*time.Second)
-			defer cancel()
-
-			return client.GetAll(ctx, &empty.Empty{}, grpc.WaitForReady(true))
-		}
-
-		Context("no error occurred", func() {
-			It("should return all the interfaces", func() {
-				vsctlMock.AddResult("eth2\neth3", nil)
-
-				ifs, err := interfaceServiceGetAll()
-				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
-				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-local"}))
-				Expect(err).ToNot(HaveOccurred())
-				Expect(ifs).ToNot(BeNil())
-				Expect(ifs.NetworkInterfaces).To(HaveLen(4))
-
-				Expect(ifs.NetworkInterfaces[0].Id).To(Equal("0000:00:00.0"))
-				Expect(ifs.NetworkInterfaces[0].Driver).
-					To(Equal(pb.NetworkInterface_KERNEL))
-
-				Expect(ifs.NetworkInterfaces[1].Id).To(Equal("0000:00:00.1"))
-				Expect(ifs.NetworkInterfaces[1].Driver).
-					To(Equal(pb.NetworkInterface_KERNEL))
-
-				Expect(ifs.NetworkInterfaces[2].Id).To(Equal("0000:00:00.2"))
-				Expect(ifs.NetworkInterfaces[2].Driver).
-					To(Equal(pb.NetworkInterface_USERSPACE))
-
-				Expect(ifs.NetworkInterfaces[3].Id).To(Equal("0000:00:00.3"))
-				Expect(ifs.NetworkInterfaces[3].Driver).
-					To(Equal(pb.NetworkInterface_USERSPACE))
-			})
-		})
-
-		Context("no error occurred, but 0 ports attached to OVS", func() {
-			It("all interfaces should be with kernel driver", func() {
-				vsctlMock.AddResult("", nil)
-
-				ifs, err := interfaceServiceGetAll()
-				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
-				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-local"}))
-				Expect(err).ToNot(HaveOccurred())
-				Expect(ifs).ToNot(BeNil())
-				Expect(ifs.NetworkInterfaces).To(HaveLen(4))
-
-				Expect(ifs.NetworkInterfaces[0].Id).To(Equal("0000:00:00.0"))
-				Expect(ifs.NetworkInterfaces[0].Driver).
-					To(Equal(pb.NetworkInterface_KERNEL))
-
-				Expect(ifs.NetworkInterfaces[1].Id).To(Equal("0000:00:00.1"))
-				Expect(ifs.NetworkInterfaces[1].Driver).
-					To(Equal(pb.NetworkInterface_KERNEL))
-
-				Expect(ifs.NetworkInterfaces[2].Id).To(Equal("0000:00:00.2"))
-				Expect(ifs.NetworkInterfaces[2].Driver).
-					To(Equal(pb.NetworkInterface_KERNEL))
-
-				Expect(ifs.NetworkInterfaces[3].Id).To(Equal("0000:00:00.3"))
-				Expect(ifs.NetworkInterfaces[3].Driver).
-					To(Equal(pb.NetworkInterface_KERNEL))
-			})
-		})
-
-		Context("failed to obtain kernel interfaces", func() {
-			It("should return an error", func() {
-				k.KernelNetworkDevicesProvider = func() ([]h.NetworkDevice,
-					error) {
-					return nil, errors.New("failed to exec lspci command")
-				}
-
-				ifs, err := interfaceServiceGetAll()
-				Expect(vsctlMock.ReceivedArgs).To(HaveLen(0))
-				Expect(err).To(HaveOccurred())
-				Expect(ifs).To(BeNil())
-				Expect(err.Error()).To(ContainSubstring("failed to exec lspci"))
-				Expect(err.Error()).To(ContainSubstring(
-					"failed to obtain kernel devices"))
-			})
-		})
-
-		Context("failed to call ovs-vsctl", func() {
-			It("should return an error", func() {
-				vsctlMock.AddResult("", errors.New("command not found"))
-
-				ifs, err := interfaceServiceGetAll()
-				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
-				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-local"}))
-				Expect(err).To(HaveOccurred())
-				Expect(ifs).To(BeNil())
-				Expect(err.Error()).To(ContainSubstring("command not found"))
-			})
-		})
+		prepareMocks()
 	})
 
 	Describe("Get", func() {
-		interfaceServiceGet := func(pci string) (*pb.NetworkInterface, error) {
-			conn, err := grpc.Dial(testEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
-			Expect(err).NotTo(HaveOccurred())
-			defer conn.Close()
-
-			client := pb.NewInterfaceServiceClient(conn)
-			ctx, cancel := context.WithTimeout(context.Background(),
-				3*time.Second)
-			defer cancel()
-
-			return client.Get(ctx, &pb.InterfaceID{Id: pci},
-				grpc.WaitForReady(true))
-		}
-
 		Context("no error occurred", func() {
-			It("should return requested interface", func() {
-				vsctlMock.AddResult("eth2\neth3", nil)
-				vsctlMock.AddResult("eth2\neth3", nil)
+			It("should return 6 interfaces:"+
+				"1 dpdk, 4 kernel, 1 no driver attached", func() {
 
-				iface, err := interfaceServiceGet("0000:00:00.0")
-				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
-				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-local"}))
-				Expect(err).ToNot(HaveOccurred())
-				Expect(iface).ToNot(BeNil())
-				Expect(iface.Id).To(Equal("0000:00:00.0"))
-				Expect(iface.Driver).To(Equal(pb.NetworkInterface_KERNEL))
-
-				vsctlMock.Reset()
-
-				iface, err = interfaceServiceGet("0000:00:00.2")
-				Expect(vsctlMock.ReceivedArgs).To(HaveLen(1))
-				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-local"}))
-				Expect(err).ToNot(HaveOccurred())
-				Expect(iface).ToNot(BeNil())
-
-				Expect(iface.Id).To(Equal("0000:00:00.2"))
-				Expect(iface.Driver).To(Equal(pb.NetworkInterface_USERSPACE))
-			})
-		})
-
-		Context("failed to obtain interfaces", func() {
-			It("should return an error", func() {
-				k.KernelNetworkDevicesProvider = func() ([]h.NetworkDevice,
-					error) {
-					return nil, errors.New("failed to exec lspci command")
+				devbindMock.AddResult(bindOut, nil)
+				Expect(ifs.DpdkEnabled).To(Equal(true))
+				// 13 times ovs-vsctl is called
+				for i := 0; i < 13; i++ {
+					vsctlMock.AddResult("", nil)
 				}
 
-				ifs, err := interfaceServiceGet("0000:00:00.0")
-				Expect(vsctlMock.ReceivedArgs).To(HaveLen(0))
-				Expect(err).To(HaveOccurred())
-				Expect(ifs).To(BeNil())
-				Expect(err.Error()).To(ContainSubstring("failed to exec lspci"))
-				Expect(err.Error()).To(ContainSubstring(
-					"failed to obtain kernel devices"))
-			})
-		})
+				respPorts, err := get()
 
-		Context("given ID is empty", func() {
-			It("should return an error", func() {
-				ifs, err := interfaceServiceGet("")
-				Expect(vsctlMock.ReceivedArgs).To(HaveLen(0))
-				Expect(err).To(HaveOccurred())
-				Expect(ifs).To(BeNil())
-				Expect(err.Error()).To(ContainSubstring("empty id"))
-			})
-		})
-	})
-
-	Describe("BulkUpdate", func() {
-		interfaceServiceBulkUpdate := func(ifs *pb.NetworkInterfaces) error {
-			conn, err := grpc.Dial(testEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
-			Expect(err).NotTo(HaveOccurred())
-			defer conn.Close()
-
-			client := pb.NewInterfaceServiceClient(conn)
-			ctx, cancel := context.WithTimeout(context.Background(),
-				3*time.Second)
-			defer cancel()
-
-			_, err = client.BulkUpdate(ctx, ifs, grpc.WaitForReady(true))
-			return err
-		}
-
-		Context("invalid request parameter", func() {
-			When("given NetworkInterfaces is invalid", func() {
-				It("should return error", func() {
-					By("testing if Driver is either KERNEL or USERSPACE")
-					err := interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
-						NetworkInterfaces: []*pb.NetworkInterface{
-							{
-								Driver: 3,
-							},
-						}})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"Driver is expected to be KERNEL or USERSPACE"))
-
-					By("testing if Type is NONE")
-					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
-						NetworkInterfaces: []*pb.NetworkInterface{
-							{
-								Type: pb.NetworkInterface_BIDIRECTIONAL,
-							},
-						}})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"Type is expected to be NONE"))
-
-					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
-						NetworkInterfaces: []*pb.NetworkInterface{
-							{
-								Type: pb.NetworkInterface_UPSTREAM,
-							},
-						}})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"Type is expected to be NONE"))
-
-					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
-						NetworkInterfaces: []*pb.NetworkInterface{
-							{
-								Type: pb.NetworkInterface_DOWNSTREAM,
-							},
-						}})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"Type is expected to be NONE"))
-
-					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
-						NetworkInterfaces: []*pb.NetworkInterface{
-							{
-								Type: pb.NetworkInterface_BREAKOUT,
-							},
-						}})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"Type is expected to be NONE"))
-
-					By("testing if Vlan is set")
-					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
-						NetworkInterfaces: []*pb.NetworkInterface{
-							{
-								Vlan: 1,
-							},
-						}})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"Vlan is not supported"))
-
-					By("testing if Zones are set")
-					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
-						NetworkInterfaces: []*pb.NetworkInterface{
-							{
-								Zones: []string{""},
-							},
-						}})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"Zones are not supported"))
-
-					By("testing if FallbackInterface is set")
-					err = interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
-						NetworkInterfaces: []*pb.NetworkInterface{
-							{
-								FallbackInterface: "0000:00:00.5",
-							},
-						}})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"FallbackInterface is expected to be empty"))
-				})
-			})
-		})
-
-		Context("valid request parameters", func() {
-			It("should detach/attach ports", func() {
-				vsctlMock.AddResult("eth2\neth3", nil) // list-ports br-local
-				vsctlMock.AddResult("", nil)           // add-port br-local eth0
-				vsctlMock.AddResult("", nil)           // add-port br-local eth1
-				vsctlMock.AddResult("", nil)           // del-port br-local eth2
-
-				err := interfaceServiceBulkUpdate(&pb.NetworkInterfaces{
-					NetworkInterfaces: []*pb.NetworkInterface{
-						{
-							Id:     "0000:00:00.0",
-							Driver: pb.NetworkInterface_USERSPACE,
-						},
-						{
-							Id:     "0000:00:00.1",
-							Driver: pb.NetworkInterface_USERSPACE,
-						},
-						{
-							Id:     "0000:00:00.2",
-							Driver: pb.NetworkInterface_KERNEL,
-						},
-						{
-							Id:     "0000:00:00.3",
-							Driver: pb.NetworkInterface_USERSPACE,
-						},
-					}})
 				Expect(err).ToNot(HaveOccurred())
+				Expect(respPorts).ToNot(BeNil())
 
-				Expect(vsctlMock.ReceivedArgs).To(HaveLen(4))
-				Expect(vsctlMock.ReceivedArgs[0]).
-					To(Equal([]string{"list-ports", "br-local"}))
+				Expect(respPorts.Ports).To(HaveLen(6))
 
-				Expect(vsctlMock.ReceivedArgs[1]).To(Equal(
-					[]string{"--may-exist", "add-port", "br-local", "eth0"}))
-				Expect(vsctlMock.ReceivedArgs[2]).To(Equal(
-					[]string{"--may-exist", "add-port", "br-local", "eth1"}))
-				Expect(vsctlMock.ReceivedArgs[3]).To(Equal(
-					[]string{"--if-exist", "del-port", "br-local", "eth2"}))
+				Expect(respPorts.Ports[0].GetPci()).To(Equal("0000:00:01.0"))
+				Expect(respPorts.Ports[0].GetDriver()).To(Equal(pb.Port_USERSPACE))
+
+				Expect(respPorts.Ports[1].GetPci()).To(Equal("0000:00:00.0"))
+				Expect(respPorts.Ports[1].GetDriver()).To(Equal(pb.Port_KERNEL))
+
+				Expect(respPorts.Ports[2].GetPci()).To(Equal("0000:00:00.1"))
+				Expect(respPorts.Ports[2].GetDriver()).To(Equal(pb.Port_KERNEL))
+
+				Expect(respPorts.Ports[3].GetPci()).To(Equal("0000:00:00.2"))
+				Expect(respPorts.Ports[3].GetDriver()).To(Equal(pb.Port_KERNEL))
+
+				Expect(respPorts.Ports[4].GetPci()).To(Equal("0000:00:00.3"))
+				Expect(respPorts.Ports[4].GetDriver()).To(Equal(pb.Port_KERNEL))
+
+				Expect(respPorts.Ports[5].GetPci()).To(Equal("0000:00:02.0"))
+				Expect(respPorts.Ports[5].GetDriver()).To(Equal(pb.Port_NONE))
 			})
 		})
 	})
 
-	Describe("Update", func() {
-		interfaceServiceUpdate := func(iface *pb.NetworkInterface) error {
-			conn, err := grpc.Dial(testEndpoint,
-				grpc.WithTransportCredentials(transportCreds))
-			Expect(err).NotTo(HaveOccurred())
-			defer conn.Close()
+	Describe("Attach", func() {
+		Context("already attached 0000:00:00.0 to Port_KERNEL", func() {
+			It("should return no error", func() {
 
-			client := pb.NewInterfaceServiceClient(conn)
-			ctx, cancel := context.WithTimeout(context.Background(),
-				3*time.Second)
-			defer cancel()
+				devbindMock.AddResult(bindOut, nil)
+				vsctlMock.AddResult("", nil)
+				vsctlMock.AddResult("", nil)
 
-			_, err = client.Update(ctx, iface, grpc.WaitForReady(true))
-			return err
-		}
+				Expect(ifs.DpdkEnabled).To(Equal(true))
 
-		Context("valid request parameters", func() {
-			When("ovs-vsctl failes", func() {
-				It("should return error", func() {
-					By("testing ovs-vsctl del-port")
-					vsctlMock.AddResult("eth0", nil) // list-ports br-local
-					vsctlMock.AddResult("",          // del-port br-local eth0
-						errors.New("failed to delete port"))
-
-					err := interfaceServiceUpdate(&pb.NetworkInterface{
-						Id:     "0000:00:00.0",
-						Driver: pb.NetworkInterface_KERNEL,
-					})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"failed to detach " +
-							"interface 0000:00:00.0 (eth0) from OVS"))
-
-					Expect(vsctlMock.ReceivedArgs).To(HaveLen(2))
-					Expect(vsctlMock.ReceivedArgs[0]).
-						To(Equal([]string{"list-ports", "br-local"}))
-					Expect(vsctlMock.ReceivedArgs[1]).To(Equal(
-						[]string{"--if-exist", "del-port", "br-local", "eth0"}))
-
-					vsctlMock.Reset()
-
-					By("testing ovs-vsctl add-port")
-					vsctlMock.AddResult("", nil) // list-ports br-local
-					vsctlMock.AddResult("",      // add-port br-local eth0
-						errors.New("failed to add port"))
-
-					err = interfaceServiceUpdate(&pb.NetworkInterface{
-						Id:     "0000:00:00.0",
-						Driver: pb.NetworkInterface_USERSPACE,
-					})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"failed to attach " +
-							"interface 0000:00:00.0 (eth0) to OVS"))
-
-					Expect(vsctlMock.ReceivedArgs).To(HaveLen(2))
-					Expect(vsctlMock.ReceivedArgs[0]).
-						To(Equal([]string{"list-ports", "br-local"}))
-					Expect(vsctlMock.ReceivedArgs[1]).To(Equal(
-						[]string{"--may-exist", "add-port", "br-local",
-							"eth0"}))
+				err := attach(&pb.Ports{
+					Ports: []*pb.Port{
+						{
+							Pci:    "0000:00:00.0",
+							Driver: pb.Port_KERNEL,
+							Bridge: "br-test",
+						},
+					},
 				})
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})
+
+	Describe("Attach", func() {
+		Context("already attached 0000:00:00.0 to Port_KERNEL", func() {
+			It("should return no error", func() {
+
+				devbindMock.AddResult(bindOut, nil)
+				vsctlMock.AddResult("", nil)
+				vsctlMock.AddResult("", nil)
+
+				Expect(ifs.DpdkEnabled).To(Equal(true))
+
+				err := attach(&pb.Ports{
+					Ports: []*pb.Port{
+						{
+							Pci:    "0000:00:00.0",
+							Driver: pb.Port_KERNEL,
+							Bridge: "br-test",
+						},
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("Attach", func() {
+		Context("0000:00:00.0 to Port_USERSPACE", func() {
+			It("should return no error", func() {
+
+				str := `Bridge br-test
+		datapath_type: netdev
+		Port eth0
+			Interface eth0
+				type: dpdk
+				options: {dpdk-devargs="0000:00:00.0"}`
+
+				devbindMock.AddResult(bindOut, nil)
+				vsctlMock.AddResult("netdev", nil)
+				vsctlMock.AddResult(str, nil)
+				devbindMock.AddResult("2", nil)
+
+				Expect(ifs.DpdkEnabled).To(Equal(true))
+
+				err := attach(&pb.Ports{
+					Ports: []*pb.Port{
+						{
+							Pci:    "0000:00:00.0",
+							Driver: pb.Port_USERSPACE,
+							Bridge: "br-test",
+						},
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("Detach", func() {
+		Context("0000:00:01.0 to Port_KERNEL", func() {
+			It("should return no error", func() {
+
+				str := `Bridge br-test
+				datapath_type: netdev
+				Port eth0
+					Interface eth0
+						type: dpdk
+						options: {dpdk-devargs="0000:00:01.0"}`
+
+				devbindMock.AddResult(bindOut, nil)
+
+				vsctlMock.AddResult(str, nil)  // resp for show
+				vsctlMock.AddResult("", nil)   // respo for del-port
+				devbindMock.AddResult("", nil) // resp for bind
+
+				Expect(ifs.DpdkEnabled).To(Equal(true))
+
+				err := detach(&pb.Ports{
+					Ports: []*pb.Port{
+						{
+							Pci:    "0000:00:01.0",
+							Driver: pb.Port_KERNEL,
+							Bridge: "br-test",
+						},
+					},
+				})
+
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+	})
+
 })

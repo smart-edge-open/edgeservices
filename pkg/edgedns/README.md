@@ -60,4 +60,3 @@ The following operations are available via the gRPC inteface on the UNIX domain 
 
 * Set(Create/Update) and Delete operations for an A record
 
-Copyright 2019 Smart-Edge.com, Inc. All rights reserved.

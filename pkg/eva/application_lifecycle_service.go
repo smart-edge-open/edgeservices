@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 
 package eva
 
@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/open-ness/edgenode/internal/wrappers"
 	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
+	"github.com/open-ness/edgenode/pkg/cni"
 	pb "github.com/open-ness/edgenode/pkg/eva/pb"
 
 	"github.com/docker/docker/api/types"
@@ -34,7 +35,8 @@ type ApplicationLifecycleServiceServer struct {
 
 // ContainerHandler describes handler for container
 type ContainerHandler struct {
-	meta *metadata.DeployedApp
+	meta   *metadata.DeployedApp
+	useCNI bool
 }
 
 // VMHandler VM Handler interface
@@ -91,6 +93,15 @@ func updateStatus(m *metadata.DeployedApp,
 func (c ContainerHandler) StartHandler(ctx context.Context,
 	timeout time.Duration) error {
 
+	if c.useCNI {
+		err := cni.StartInfrastructureContainer(ctx, c.meta)
+
+		if err != nil {
+			log.Errf("Failed to start infrastructure container. AppID=%s, Reason=%s", c.meta.App.Id, err.Error())
+			return err
+		}
+	}
+
 	cli, err := wrappers.CreateDockerClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
@@ -123,6 +134,15 @@ func (c ContainerHandler) StopHandler(ctx context.Context,
 	}
 
 	log.Infof("Container ID:%v stopped", c.meta.DeployedID)
+
+	if c.useCNI {
+		err := cni.StopInfrastructureContainer(ctx, c.meta)
+		if err != nil {
+			log.Errf("Failed to start infrastructure container. AppID=%s, Reason=%s", c.meta.App.Id, err.Error())
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -460,7 +480,7 @@ func (s *ApplicationLifecycleServiceServer) GetStatus(ctx context.Context,
 		return nil, status.Errorf(codes.NotFound, "App %v not found: %v",
 			app.Id, err)
 	}
-	log.Debugf("GetStatus(%v): returnig %v", app.Id, dapp.App.Status)
+	log.Debugf("GetStatus(%v): returning %v", app.Id, dapp.App.Status)
 
 	return &pb.LifecycleStatus{Status: dapp.App.Status}, nil
 }
@@ -478,7 +498,7 @@ func (s *ApplicationLifecycleServiceServer) getAppLifecycleHandler(
 
 	var handler ApplicationLifecycleServiceHandler
 	if a.Type == metadata.Container {
-		handler = &ContainerHandler{a}
+		handler = &ContainerHandler{a, s.cfg.UseCNI}
 	} else {
 		handler = &VMHandler{a}
 	}

@@ -35,6 +35,9 @@ func TestInterfaceService(t *testing.T) {
 	transportCreds, err = authtest.ClientCredentialsStub()
 	Expect(err).NotTo(HaveOccurred())
 
+	prepareMocks()
+	vsctlMock.AddResult("", nil) //resp for reattachDpdkPorts()
+
 	// Write ELA's config
 	err = ioutil.WriteFile("interfaceservice.json", []byte(fmt.Sprintf(`
 	{
@@ -47,7 +50,9 @@ func TestInterfaceService(t *testing.T) {
 	srvErrChan := make(chan error)
 	srvCtx, srvCancel := context.WithCancel(context.Background())
 	go func() {
-		err := interfaceservice.Run(srvCtx, "interfaceservice.json")
+		err := ioutil.WriteFile("./dpdk-devbind.py", []byte{}, os.ModePerm)
+		Expect(err).NotTo(HaveOccurred())
+		err = interfaceservice.Run(srvCtx, "interfaceservice.json")
 		if err != nil {
 			log.Errf("interfaceservice.Run exited with error: %+v", err)
 		}
@@ -74,4 +79,5 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	os.Remove("interfaceservice.json")
+	os.Remove("./dpdk-devbind.py")
 })

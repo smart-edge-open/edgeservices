@@ -14,7 +14,7 @@
 #include "nes_cli.h"
 #include "nes_client.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	if (argc > 3) {
 		printf("Usage: %s [commands_file] [commands_output_file]\n", argv[0]);

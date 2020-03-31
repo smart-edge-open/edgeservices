@@ -43,7 +43,7 @@ typedef struct nes_remote_s
 {
 	int socket_fd;
 	nes_remote_state_t state;
-	char*    ip_address;
+	char     *ip_address;
 	uint16_t port_nr;
 
 	nes_connection_closed_cb on_connection_closed;
@@ -286,7 +286,7 @@ int nes_route_show(nes_remote_t *self, char *lookup_keys, nes_sq_t *upstream_rou
  * @return NES_SUCCESS on success and NES_FAIL on fail.
  */
 int nes_route_list(nes_remote_t *self, uint16_t entry_offset, uint16_t max_entry_cnt,
-	nes_route_data_t** routes, uint16_t *route_cnt);
+	nes_route_data_t **routes, uint16_t *route_cnt);
 
 /**
  * @brief Show mirror route entry.<br>
