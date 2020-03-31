@@ -9,7 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/otcshare/edgenode/pkg/ovncni"
+	. "github.com/open-ness/edgenode/pkg/ovncni"
 	"github.com/pkg/errors"
 )
 

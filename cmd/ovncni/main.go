@@ -6,7 +6,7 @@ package main
 // This CNI relies on a preconfigured OVN infrastructure.
 // Prior to calling ADD request it is required to configure the logical OVN interface with appID used as its ID
 // After calling DEL request it is required to remove the logical OVN interface with appID used as its ID
-// "github.com/otcshare/edgenode/pkg/ovncni" package provides helper functions that could be used for creating
+// "github.com/open-ness/edgenode/pkg/ovncni" package provides helper functions that could be used for creating
 // and removing the port: CreatePort/DeletePort
 //
 // Currently this CNI has to be the first one in a chain
@@ -36,7 +36,7 @@ import (
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/version"
 	bv "github.com/containernetworking/plugins/pkg/utils/buildversion"
-	"github.com/otcshare/edgenode/pkg/ovncni"
+	"github.com/open-ness/edgenode/pkg/ovncni"
 	"github.com/pkg/errors"
 )
 

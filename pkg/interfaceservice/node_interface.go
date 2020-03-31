@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/otcshare/edgenode/pkg/interfaceservice/pb"
+	pb "github.com/open-ness/edgenode/pkg/interfaceservice/pb"
 )
 
 var (
