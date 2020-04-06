@@ -215,7 +215,7 @@ func reattachDpdkPorts() error {
 				continue
 			}
 			if strings.Contains(string(ifErr), "Error attaching device") {
-				pciList := regexp.MustCompile(`\d{4}(:\d{2}){2}\.\d`).FindAllString(string(ifErr), 1)
+				pciList := regexp.MustCompile(`[0-9a-f]{4}(:[0-9a-f]{2}){2}\.[0-9a-f]`).FindAllString(string(ifErr), 1)
 				if len(pciList) > 0 {
 					updateDPDKDevbindOutput()
 					currentDriver, _ := getPortDrivers(pciList[0])
