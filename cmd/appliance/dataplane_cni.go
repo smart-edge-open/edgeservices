@@ -6,8 +6,8 @@
 package main
 
 import (
-	"github.com/otcshare/edgenode/pkg/eva"
 	"github.com/otcshare/edgenode/pkg/ela"
+	"github.com/otcshare/edgenode/pkg/eva"
 	"github.com/otcshare/edgenode/pkg/service"
 )
 

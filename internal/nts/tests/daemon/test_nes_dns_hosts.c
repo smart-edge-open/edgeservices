@@ -211,7 +211,8 @@ nes_dns_ipv4_host_test(void) {
 }
 
 void add_nes_dns_hosts_suite_to_registry(void) {
-	CU_pSuite nes_dns_hosts_suite = CU_add_suite("nes_dns_hosts", init_suite_nes_dns_hosts, cleanup_suite_nes_dns_hosts);
+	CU_pSuite nes_dns_hosts_suite =
+		CU_add_suite("nes_dns_hosts", init_suite_nes_dns_hosts, cleanup_suite_nes_dns_hosts);
 
 	CU_add_test(nes_dns_hosts_suite, "nes_dns_load_static_hosts_test", nes_dns_load_static_hosts_test);
 	CU_add_test(nes_dns_hosts_suite, "nes_dns_in_static_hosts_test", nes_dns_in_static_hosts_test);

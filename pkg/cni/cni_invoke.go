@@ -108,6 +108,8 @@ func (c *Invoker) createCmd() (*exec.Cmd, error) {
 	c.name = cniType
 
 	path := filepath.Join(defaultCniBinDir, cniType)
+	// exec.Command(path) will invoke linter warning. This cannot be fixed, so suppressing it with
+	// #nosec
 	cmd := exec.Command(path)
 	cmd.Env = append(os.Environ(), c.constructEnvs()...)
 
@@ -125,7 +127,6 @@ func (c *Invoker) Invoke() (string, error) {
 	var sout, serr string
 	ns := []nsenter.Namespace{{Path: hostNSPath, Type: nsenter.NSTypeNet}}
 	err = nsenter.NsEnter(ns, func() error {
-		var err error
 		sout, serr, err = c.runCmdAndGetOutput(cmd)
 		return err
 	})

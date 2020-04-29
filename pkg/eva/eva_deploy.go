@@ -85,7 +85,7 @@ var EACHandlersDocker = map[string]EACHandler{
 // EACHandlersVM - Table of EACHandlers for the Libvirt backend
 var EACHandlersVM = map[string]EACHandler{
 	"cpu_pin":   handleCPUPinVM,
-	"sriov_nic": handleVmNicSriov,
+	"sriov_nic": handleVMNicSriov,
 }
 
 func downloadImage(ctx context.Context, url string,
@@ -370,7 +370,7 @@ func processPorts(ports []*pb.PortProto, cfg *container.Config) {
 		var port nat.Port
 
 		log.Debugf("processing requested port: %d proto: %s\n", p.Port, p.Protocol)
-		if p.Port <= 0 {
+		if p.Port < 1 {
 			log.Infof("processPorts: port %d invalid, skipping", p.Port)
 			continue
 		}
@@ -509,7 +509,7 @@ func handleContainerNicSriov(value string, genericCfg interface{}, additionalCfg
 	hostConfig.NetworkMode = container.NetworkMode(value)
 }
 
-func handleVmNicSriov(value string, genericCfg interface{}, additionalCfg interface{}) {
+func handleVMNicSriov(value string, genericCfg interface{}, additionalCfg interface{}) {
 	if value == "" {
 		log.Errf("SRIOV NIC string is empty, ignoring")
 		return
@@ -589,7 +589,6 @@ func handleVmNicSriov(value string, genericCfg interface{}, additionalCfg interf
 		},
 	}
 	domConfig.Devices.Interfaces = append(domConfig.Devices.Interfaces, ifCfg)
-	return
 }
 
 // EPAFeature - we get an array of those in API calls from controller
@@ -867,39 +866,10 @@ func removeOVSPort(bridgeName string, id string) error {
 	return nil
 }
 
-func (s *DeploySrv) syncDeployVM(ctx context.Context,
-	dapp *metadata.DeployedApp) {
-
-	defer func() {
-		if err := dapp.Save(true); err != nil {
-			log.Errf("failed to save state of %v: %+v", dapp.App.Id, err)
-		}
-	}()
-
-	if err := s.deployCommon(ctx, dapp); err != nil {
-		dapp.App.Status = pb.LifecycleStatus_ERROR
-		log.Errf("deployCommon failed: %s", err.Error())
-		return
-	}
-
-	/* Now call the libvirt API. */
-	conn, err := CreateLibvirtConnection("qemu:///system")
-	if err != nil {
-		dapp.App.Status = pb.LifecycleStatus_ERROR
-		log.Errf("failed to create a libvirt client: %s", err.Error())
-		return
-	}
-
-	defer func() {
-		if c, err1 := conn.Close(); err1 != nil || c < 0 {
-			log.Errf("Failed to close libvirt connection: code: %v, error: %v",
-				c, err1)
-		}
-	}()
-
+func createDomainCfg(dapp *metadata.DeployedApp) libvirtxml.Domain {
 	// Round up to next 2 MiB boundary
 	memRounded := math.Ceil(float64(dapp.App.Memory)/2) * 2
-	domcfg := libvirtxml.Domain{
+	return libvirtxml.Domain{
 		Type: "kvm", Name: dapp.App.Id,
 		OS: &libvirtxml.DomainOS{
 			Type: &libvirtxml.DomainOSType{Arch: "x86_64", Type: "hvm"},
@@ -953,7 +923,9 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 			Interfaces: []libvirtxml.DomainInterface{},
 		},
 	}
+}
 
+func (s *DeploySrv) configureIfs(dapp *metadata.DeployedApp, domcfg *libvirtxml.Domain) {
 	if s.cfg.OpenvSwitch {
 		domcfg.Devices.Interfaces = append(domcfg.Devices.Interfaces,
 			libvirtxml.DomainInterface{
@@ -969,7 +941,7 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 				Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
 			},
 		)
-		if err = addOVSPort(s.cfg.OpenvSwitchBridge, dapp.App.Id); err != nil {
+		if err := addOVSPort(s.cfg.OpenvSwitchBridge, dapp.App.Id); err != nil {
 			log.Errf("failed to add port to OVS: %+v", err)
 			return
 		}
@@ -1036,6 +1008,41 @@ func (s *DeploySrv) syncDeployVM(ctx context.Context,
 			},
 		)
 	}
+}
+
+func (s *DeploySrv) syncDeployVM(ctx context.Context,
+	dapp *metadata.DeployedApp) {
+
+	defer func() {
+		if err := dapp.Save(true); err != nil {
+			log.Errf("failed to save state of %v: %+v", dapp.App.Id, err)
+		}
+	}()
+
+	if err := s.deployCommon(ctx, dapp); err != nil {
+		dapp.App.Status = pb.LifecycleStatus_ERROR
+		log.Errf("deployCommon failed: %s", err.Error())
+		return
+	}
+
+	/* Now call the libvirt API. */
+	conn, err := CreateLibvirtConnection("qemu:///system")
+	if err != nil {
+		dapp.App.Status = pb.LifecycleStatus_ERROR
+		log.Errf("failed to create a libvirt client: %s", err.Error())
+		return
+	}
+
+	defer func() {
+		if c, err1 := conn.Close(); err1 != nil || c < 0 {
+			log.Errf("Failed to close libvirt connection: code: %v, error: %v",
+				c, err1)
+		}
+	}()
+
+	domcfg := createDomainCfg(dapp)
+
+	s.configureIfs(dapp, &domcfg)
 
 	// Update domcfg based on EAC configuration
 	processEAC(dapp.App.EACJsonBlob, EACHandlersVM, &domcfg, nil)
@@ -1157,6 +1164,28 @@ func (s *DeploySrv) dockerUndeploy(ctx context.Context,
 	return dapp.SetUndeployed()
 }
 
+func (s *DeploySrv) removePorts(dapp *metadata.DeployedApp) error {
+	if s.cfg.OpenvSwitch {
+		if err := removeOVSPort(s.cfg.OpenvSwitchBridge,
+			dapp.App.Id); err != nil {
+			log.Errf("Undeploy(%v) failed: %+v", dapp.App.Id, err)
+		}
+	}
+
+	if s.cfg.UseCNI {
+		if t, err := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); err != nil {
+			log.Errf("failed to get CNI type from CniConfig: %s", err.Error())
+			return errors.Wrapf(err, "failed to get CNI type from CniConfig")
+		} else if cni.Type(t) == cni.OVN {
+			if err := cni.OVNCNIDeletePort(dapp); err != nil {
+				log.Errf("failed to delete OVN port: %s", err.Error())
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *DeploySrv) libvirtUndeploy(ctx context.Context,
 	dapp *metadata.DeployedApp) error {
 
@@ -1196,22 +1225,8 @@ func (s *DeploySrv) libvirtUndeploy(ctx context.Context,
 	}
 	log.Infof("Domain (VM) '%v' undefined", dapp.App.Id)
 
-	if s.cfg.OpenvSwitch {
-		if err = removeOVSPort(s.cfg.OpenvSwitchBridge,
-			dapp.App.Id); err != nil {
-			log.Errf("Undeploy(%v) failed: %+v", dapp.App.Id, err)
-		}
-	}
-
-	if s.cfg.UseCNI {
-		if t, err := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); err != nil {
-			log.Errf("failed to get CNI type from CniConfig: %s", err.Error())
-			return errors.Wrapf(err, "failed to get CNI type from CniConfig")
-		} else if cni.Type(t) == cni.OVN {
-			if err := cni.OVNCNIDeletePort(dapp); err != nil {
-				log.Errf("failed to delete OVN port: %s", err.Error())
-			}
-		}
+	if err = s.removePorts(dapp); err != nil {
+		return err
 	}
 
 	return dapp.SetUndeployed()

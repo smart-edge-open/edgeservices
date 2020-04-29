@@ -542,12 +542,12 @@ nes_ctrl_show_list_parsed(__attribute__((unused))void *parsed_result,
 		cmdline_printf(nes_cmdline, "Can't read device list!\n");
 	else {
 		cmdline_printf(nes_cmdline, "ID: ");
-		cmdline_printf(nes_cmdline, "%3s Name: \n", "");
+		cmdline_printf(nes_cmdline, "%3s Name:\n", "");
 
 		NES_SQ_FOREACH(item, list) {
 			device = nes_sq_data(item);
 			cmdline_printf(nes_cmdline, "%2u ", device->index);
-			cmdline_printf(nes_cmdline, "%9s \n", device->name);
+			cmdline_printf(nes_cmdline, "%9s\n", device->name);
 		}
 	}
 	free(list);
@@ -746,12 +746,12 @@ nes_ctrl_help(__attribute__((unused)) void *parsed_result,
 		" [eNB IP] [teid] [direction] [qci] [spid]\n");
 	cmdline_printf(nes_cmdline, "    route-data del [eNB IP] [teid] [direction]\n");
 	cmdline_printf(nes_cmdline, "    route-data show [eNB IP] [teid] [direction]\n");
-	cmdline_printf(nes_cmdline, "KNI devices: \n");
+	cmdline_printf(nes_cmdline, "KNI devices:\n");
 	cmdline_printf(nes_cmdline, "    kni add [device_id_name]\n");
 	cmdline_printf(nes_cmdline, "    kni del [device_id_name]\n");
 	cmdline_printf(nes_cmdline,
 		"Device stats (device_id, device_name, received packets, sent packets," \
-		" dropped packets): \n");
+		" dropped packets):\n");
 	cmdline_printf(nes_cmdline, "    show [device_id]\n");
 	cmdline_printf(nes_cmdline, "    show mac [device_id]\n");
 	cmdline_printf(nes_cmdline, "    show list\n");
@@ -759,12 +759,12 @@ nes_ctrl_help(__attribute__((unused)) void *parsed_result,
 	cmdline_printf(nes_cmdline, "    clear all\n");
 	cmdline_printf(nes_cmdline,
 		"Ring stats (ring_id, ring_name, received packets," \
-		" sent packets, ring full dropped packets, no route dropped packets ): \n");
+		" sent packets, ring full dropped packets, no route dropped packets ):\n");
 	cmdline_printf(nes_cmdline, "    show ring [ring_id]\n");
 	cmdline_printf(nes_cmdline, "    show rings\n");
-	cmdline_printf(nes_cmdline, "To start server application after suspension: \n");
+	cmdline_printf(nes_cmdline, "To start server application after suspension:\n");
 	cmdline_printf(nes_cmdline, "    start\n");
-	cmdline_printf(nes_cmdline, "To exit CLI application : \n");
+	cmdline_printf(nes_cmdline, "To exit CLI application :\n");
 	cmdline_printf(nes_cmdline, "    quit\n");
 }
 
@@ -855,7 +855,7 @@ nes_ctrl_show_all_parsed(__attribute__((unused)) void *parsed_result,
 		cmdline_printf(nes_cmdline, "%21s Sent: ", "");
 		cmdline_printf(nes_cmdline, "%9s Dropped(TX full): ", "");
 		cmdline_printf(nes_cmdline, "%14s Dropped(HW): ", "");
-		cmdline_printf(nes_cmdline, "%14s IP Fragmented(Forwarded): \n", "");
+		cmdline_printf(nes_cmdline, "%14s IP Fragmented(Forwarded):\n", "");
 
 		NES_SQ_FOREACH(item, list) {
 			device = nes_sq_data(item);
@@ -2087,7 +2087,7 @@ nes_ctrl_show_rings_parsed(__attribute__((unused)) void *parsed_result,
 		cmdline_printf(nes_cmdline, "%17s Received: ", "");
 		cmdline_printf(nes_cmdline, "%21s Sent: ", "");
 		cmdline_printf(nes_cmdline, "%8s Dropped Ring Full: ", "");
-		cmdline_printf(nes_cmdline, "%9s Dropped No Route: \n", "");
+		cmdline_printf(nes_cmdline, "%9s Dropped No Route:\n", "");
 
 		NES_SQ_FOREACH(item, list) {
 			ring = nes_sq_data(item);

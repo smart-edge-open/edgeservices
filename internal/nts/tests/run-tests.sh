@@ -60,7 +60,8 @@ mkdir -p /mnt/huge
 mount -t hugetlbfs none /mnt/huge
 rm -rf daemon/build
 make clean && make
-./daemon/build/nes-daemon-unit-tests -c 0xe -n 4  --huge-dir /mnt/huge --file-prefix=tests-1 --socket-mem 2048,0 -- ${CMDLINE_CONF_PATH}
+./daemon/build/nes-daemon-unit-tests -c 0xe -n 4  --huge-dir /mnt/huge \
+    --file-prefix=tests-1 --socket-mem 2048,0 -- ${CMDLINE_CONF_PATH}
 
 rm -rf /mnt/huge/*
 umount /mnt/huge/
@@ -71,7 +72,10 @@ cd coverage
 echo "Creating coverage report"
 COVERAGE_INFO=coverage.info
 BUILD_PATH=../daemon/build/
-lcov --capture --directory ${BUILD_PATH} --output-file ${COVERAGE_INFO} --rc lcov_branch_coverage=1 2>&1 > /dev/null
-lcov --extract ${COVERAGE_INFO} "*/daemon/*" -o ${COVERAGE_INFO} --rc lcov_branch_coverage=1 2>&1 > /dev/null
-lcov --remove ${COVERAGE_INFO} "*/rnis/*" --remove ${COVERAGE_INFO} "*tests/daemon/*" -o ${COVERAGE_INFO} --rc lcov_branch_coverage=1 2>&1 >> summary.txt
+lcov --capture --directory ${BUILD_PATH} --output-file ${COVERAGE_INFO} \
+    --rc lcov_branch_coverage=1 2>&1 > /dev/null
+lcov --extract ${COVERAGE_INFO} "*/daemon/*" -o ${COVERAGE_INFO} \
+    --rc lcov_branch_coverage=1 2>&1 > /dev/null
+lcov --remove ${COVERAGE_INFO} "*/rnis/*" --remove ${COVERAGE_INFO} "*tests/daemon/*" \
+    -o ${COVERAGE_INFO} --rc lcov_branch_coverage=1 2>&1 >> summary.txt
 genhtml ${COVERAGE_INFO} --output-directory --rc lcov_branch_coverage=1 out 2>&1 > /dev/null

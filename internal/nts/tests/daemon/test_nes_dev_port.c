@@ -660,7 +660,8 @@ void test_dtor_port(void)
 }
 
 void add_nes_dev_port_suite_to_registry(void) {
-	// CU_pSuite nes_dev_port_suite = CU_add_suite("nes_dev_port", init_suite_nes_dev_port, cleanup_suite_nes_dev_port);
+	// CU_pSuite nes_dev_port_suite =
+	//	CU_add_suite("nes_dev_port", init_suite_nes_dev_port, cleanup_suite_nes_dev_port);
 
 	// CU_add_test(nes_dev_port_suite, "nes_dev_port_new_device", test_nes_dev_port_new_device);
 	// CU_add_test(nes_dev_port_suite, "get_port_rings", test_get_port_rings);

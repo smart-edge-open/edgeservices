@@ -215,7 +215,6 @@ var _ = Describe("DnsService gRPC Server", func() {
 
 				// OP-1742: ContextDialler not supported by Gateway
 				//nolint:staticcheck
-
 				conn, err := grpc.Dial("127.0.0.1",
 					grpc.WithTransportCredentials(transportCreds),
 					grpc.WithDialer(prefaceLis.DialEla))

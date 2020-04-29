@@ -81,7 +81,8 @@ static void nis_routing_data_del_test(void) {
 }
 
 void add_nis_routing_data_suite_to_registry(void) {
-	CU_pSuite nis_routing_data_suite = CU_add_suite("nis_routing_data", init_suite_nis_routing_data, cleanup_suite_nis_routing_data);
+	CU_pSuite nis_routing_data_suite =
+		CU_add_suite("nis_routing_data", init_suite_nis_routing_data, cleanup_suite_nis_routing_data);
 
 	CU_add_test(nis_routing_data_suite, "nis_routing_data_get", nis_routing_data_get_test);
 	CU_add_test(nis_routing_data_suite, "nis_routing_data_init", nis_routing_data_init_test);
@@ -89,4 +90,3 @@ void add_nis_routing_data_suite_to_registry(void) {
 	CU_add_test(nis_routing_data_suite, "nis_routing_data_add", nis_routing_data_add_test);
 	CU_add_test(nis_routing_data_suite, "nis_routing_data_del", nis_routing_data_del_test);
 }
-

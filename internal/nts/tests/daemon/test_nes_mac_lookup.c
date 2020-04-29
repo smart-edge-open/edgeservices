@@ -176,7 +176,8 @@ static void test_nes_mac_lookup_entry_del(void)
 }
 
 void add_nes_mac_lookup_suite_to_registry(void) {
-	CU_pSuite nes_mac_lookup_suite = CU_add_suite("nes_mac_lookup", init_suite_nes_mac_lookup, cleanup_suite_nes_mac_lookup);
+	CU_pSuite nes_mac_lookup_suite =
+		CU_add_suite("nes_mac_lookup", init_suite_nes_mac_lookup, cleanup_suite_nes_mac_lookup);
 
 	CU_add_test(nes_mac_lookup_suite, "test_nes_mac_lookup_init", test_nes_mac_lookup_init);
 	CU_add_test(nes_mac_lookup_suite, "test_nes_mac_lookup_entry_find", test_nes_mac_lookup_entry_find);

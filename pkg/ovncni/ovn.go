@@ -109,40 +109,7 @@ func (c *OVNClient) GetPort(lSwitch, id string) (LPort, error) {
 	return p, nil
 }
 
-// CreatePort creates a logical (id) port in OVN (lSwitch)
-// ip parameter is optional and a 'dynamic' value will be used if it is empty
-func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
-	p := LPort{}
-
-	if lSwitch == "" || id == "" {
-		return p, errors.Errorf("At least one required parameter is empty lSwitch:%s|id:%s", lSwitch, id)
-	}
-
-	if ip == "" {
-		out, err := NbCtlCommand(c.nbCtlPath, c.timeout,
-			"lsp-add", lSwitch, id, "--",
-			"set", "logical_switch_port", id, "addresses=dynamic")
-		if err != nil {
-			return p, errors.Wrapf(err, "Failed to create a dynamic port(%s): %s", id, out)
-		}
-
-	} else {
-		out, err := NbCtlCommand(c.nbCtlPath, c.timeout, "lsp-add", lSwitch, id, "--",
-			"lsp-set-addresses", id, "dynamic", ip)
-		if err != nil {
-			return p, errors.Wrapf(err, "Failed to create a dynamic port(%s): %s", id, out)
-		}
-	}
-	p, err := c.GetPort(lSwitch, id)
-	if err != nil {
-		return p, errors.Wrapf(err, "Failed to get port(%s)", id)
-	}
-
-	if out, err := NbCtlCommand(c.nbCtlPath, c.timeout,
-		"lsp-set-port-security", id, fmt.Sprintf("%s %s", p.MAC, p.Net)); err != nil {
-		return p, errors.Wrapf(err, "Failed to set port security(%s): %s", id, out)
-	}
-
+func (c *OVNClient) linkDHCPOptions(p LPort, id string) (LPort, error) {
 	// Link DHCP options
 	out, err := NbCtlCommand(c.nbCtlPath, c.timeout, "-f", "csv", "--no-headings",
 		"find", "dhcp_options", fmt.Sprintf("cidr=%s", p.Net))
@@ -158,6 +125,54 @@ func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
 	if err != nil {
 		return p, errors.Wrapf(err, "Failed to set DHCP option(%s): %s", id, out)
 	}
+
+	return p, nil
+}
+
+// CreatePort creates a logical (id) port in OVN (lSwitch)
+// ip parameter is optional and a 'dynamic' value will be used if it is empty
+func (c *OVNClient) CreatePort(lSwitch, id, ip string) (LPort, error) {
+	p := LPort{}
+	var (
+		out string
+		err error
+	)
+
+	if lSwitch == "" || id == "" {
+		return p, errors.Errorf("At least one required parameter is empty lSwitch:%s|id:%s", lSwitch, id)
+	}
+
+	if ip == "" {
+		out, err = NbCtlCommand(c.nbCtlPath, c.timeout,
+			"lsp-add", lSwitch, id, "--",
+			"set", "logical_switch_port", id, "addresses=dynamic")
+		if err != nil {
+			return p, errors.Wrapf(err, "Failed to create a dynamic port(%s): %s", id, out)
+		}
+
+	} else {
+		out, err = NbCtlCommand(c.nbCtlPath, c.timeout, "lsp-add", lSwitch, id, "--",
+			"lsp-set-addresses", id, "dynamic", ip)
+		if err != nil {
+			return p, errors.Wrapf(err, "Failed to create a dynamic port(%s): %s", id, out)
+		}
+	}
+	p, err = c.GetPort(lSwitch, id)
+	if err != nil {
+		return p, errors.Wrapf(err, "Failed to get port(%s)", id)
+	}
+
+	if out, err = NbCtlCommand(c.nbCtlPath, c.timeout,
+		"lsp-set-port-security", id, fmt.Sprintf("%s %s", p.MAC, p.Net)); err != nil {
+		return p, errors.Wrapf(err, "Failed to set port security(%s): %s", id, out)
+	}
+
+	// Link DHCP options
+	p, err = c.linkDHCPOptions(p, id)
+	if err != nil {
+		return p, err
+	}
+
 	// Create routing
 	// Node port name is equal to HOST_HOSTNAME variable
 	pn := os.Getenv("HOST_HOSTNAME")
