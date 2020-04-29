@@ -398,5 +398,23 @@ var _ = Describe("CertsValidation", func() {
 				removeCerts()
 			})
 		})
+
+		Context("EAA cert prepared by Controller are read", func() {
+			Specify("Init of EAA should pass", func() {
+				certsSrcDir := "testdata/certs/"
+				copyCerts(certsSrcDir)
+
+				startStopCh := make(chan bool)
+				err := runEaa(startStopCh)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				// Validate that certs are not overwritten by EAA
+				compareCerts(certsSrcDir)
+
+				exitCode := stopEaa(startStopCh)
+				Expect(exitCode).NotTo(Equal(0))
+				removeCerts()
+			})
+		})
 	})
 })
