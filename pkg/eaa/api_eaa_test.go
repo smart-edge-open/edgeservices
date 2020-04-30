@@ -27,10 +27,12 @@ import (
 )
 
 const (
-	Name1Prod1 = "namespace-1:producer-1"
-	Name1Prod2 = "namespace-1:producer-2"
-	Name1Cons1 = "namespace-1:testAppID-1"
-	Name1Cons2 = "namespace-1:testAppID-2"
+	Name1Prod1   = "namespace-1:producer-1"
+	Name1Prod2   = "namespace-1:producer-2"
+	Name1ProdBad = "namespace-producer-no-colon"
+	Name1Cons1   = "namespace-1:testAppID-1"
+	Name1Cons2   = "namespace-1:testAppID-2"
+	Name1Cons3   = "namespace-1:namespace-1"
 )
 
 // notifLess is a comparison function for NotificationDescriptor structs
@@ -116,7 +118,7 @@ func sortSubscriptionSlices(slices ...[]eaa.Subscription) {
 	}
 }
 
-// registerProducer sends a registration POST request to the appliance
+// registerProducer sends a registration POST request to the EAA
 func registerProducer(c *http.Client, service eaa.Service,
 	subject string) {
 	By("Service struct list " + subject + "encoding")
@@ -134,7 +136,37 @@ func registerProducer(c *http.Client, service eaa.Service,
 	Expect(respPost.Status).To(Equal("200 OK"))
 }
 
-// deregisterProducer sends a deregistration DELETE request to the appliance
+// registerProducerErr sends a registration POST request to the EAA and expects Internal Server Error
+func registerProducerErr(c *http.Client, service eaa.Service) {
+	By("Service struct list encoding")
+	payload, err := json.Marshal(service)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Sending service registration POST request")
+	req, _ := http.NewRequest("POST", "https://"+cfg.TLSEndpoint+"/services",
+		bytes.NewBuffer(payload))
+	respPost, err := c.Do(req)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing POST response code")
+	defer respPost.Body.Close()
+	Expect(respPost.Status).To(Equal("500 Internal Server Error"))
+}
+
+// registerProducerWithBadRequest sends a registration POST request to the EAA
+func registerProducerWithBadRequest(c *http.Client) {
+	By("Sending service registration POST request")
+	req, _ := http.NewRequest("POST", "https://"+cfg.TLSEndpoint+"/services",
+		bytes.NewBuffer([]byte("---")))
+	respPost, err := c.Do(req)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing POST response code")
+	defer respPost.Body.Close()
+	Expect(respPost.Status).To(Equal("500 Internal Server Error"))
+}
+
+// deregisterProducer sends a deregistration DELETE request to the EAA
 func deregisterProducer(c *http.Client, subject string) {
 	By("Sending service deregistration DELETE " + subject + "request")
 	req, _ := http.NewRequest("DELETE", "https://"+cfg.TLSEndpoint+"/services",
@@ -148,7 +180,7 @@ func deregisterProducer(c *http.Client, subject string) {
 }
 
 // failToDeregisterProducer sends an unsuccessful deregistration DELETE request
-// to the appliance
+// to the EAA
 func failToDeregisterProducer(c *http.Client, subject string) {
 	By("Sending service deregistration DELETE " + subject + "request")
 	req, _ := http.NewRequest("DELETE", "https://"+cfg.TLSEndpoint+"/services",
@@ -161,7 +193,7 @@ func failToDeregisterProducer(c *http.Client, subject string) {
 	Expect(respPost.Status).To(Equal("404 Not Found"))
 }
 
-// subscribeConsumer sends a consumer subscription POST request to the appliance
+// subscribeConsumer sends a consumer subscription POST request to the EAA
 func subscribeConsumer(c *http.Client, notifs []eaa.NotificationDescriptor,
 	path string, subject string) {
 	By("NotificationDescriptor list " + subject + "encoding")
@@ -179,8 +211,22 @@ func subscribeConsumer(c *http.Client, notifs []eaa.NotificationDescriptor,
 	Expect(respPost.Status).To(Equal("201 Created"))
 }
 
-// unsubscribeConsumer sends a consumer subscription POST request
-// to the appliance
+// subscribeConsumerBadRequest sends a consumer subscription POST request to the EAA
+// with bad request body
+func subscribeConsumerBadRequest(c *http.Client, path string) {
+	By("Sending consumer subscription POST request")
+	req, _ := http.NewRequest("POST", "https://"+cfg.TLSEndpoint+
+		"/subscriptions/"+path, bytes.NewBuffer([]byte("---")))
+	respPost, err := c.Do(req)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing POST response code")
+	defer respPost.Body.Close()
+	Expect(respPost.Status).To(Equal("500 Internal Server Error"))
+}
+
+// unsubscribeConsumer sends a consumer subscription DELETE request
+// to the EAA
 func unsubscribeConsumer(c *http.Client, notifs []eaa.NotificationDescriptor,
 	path string, subject string) {
 	By("NotificationDescriptor list " + subject + "encoding")
@@ -198,7 +244,37 @@ func unsubscribeConsumer(c *http.Client, notifs []eaa.NotificationDescriptor,
 	Expect(respPost.Status).To(Equal("204 No Content"))
 }
 
-// connectConsumer sends a consumer notifications GET request to the appliance
+// unsubscribeConsumerWithBadRequest sends a consumer subscription DELETE request
+// to the EAA with bad request
+func unsubscribeConsumerWithBadRequest(c *http.Client, path string) {
+	By("NotificationDescriptor list encoding")
+
+	By("Sending consumer unsubscription DELETE request")
+	req, _ := http.NewRequest("DELETE", "https://"+cfg.TLSEndpoint+
+		"/subscriptions/"+path, bytes.NewBuffer([]byte("---")))
+	respPost, err := c.Do(req)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing DELETE response code")
+	defer respPost.Body.Close()
+	Expect(respPost.Status).To(Equal("500 Internal Server Error"))
+}
+
+// unsubscribeAll sends a all consumer subscription DELETE request
+// to the EAA
+func unsubscribeAll(c *http.Client) {
+	By("Sending all unsubscription DELETE request")
+	req, _ := http.NewRequest("DELETE", "https://"+cfg.TLSEndpoint+
+		"/subscriptions", bytes.NewBuffer(nil))
+	respPost, err := c.Do(req)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing DELETE response code")
+	defer respPost.Body.Close()
+	Expect(respPost.Status).To(Equal("204 No Content"))
+}
+
+// connectConsumer sends a consumer notifications GET request to the EAA
 func connectConsumer(socket *websocket.Dialer, hostHeader *http.Header,
 	subject string) *websocket.Conn {
 	By("Sending consumer notification GET " + subject + "request")
@@ -213,7 +289,18 @@ func connectConsumer(socket *websocket.Dialer, hostHeader *http.Header,
 	return conn
 }
 
-// produceEvent sends a notification POST request to the appliance
+// connectConsumerWithBadHost sends a consumer notifications GET request to the EAA with bad Host parameter
+func connectConsumerWithBadHost(socket *websocket.Dialer, hostHeader *http.Header) error {
+	By("Sending consumer notification GET request")
+	hostHeader.Set("Host", "badHost")
+	_, _, err := socket.Dial("wss://"+cfg.TLSEndpoint+
+		"/notifications", *hostHeader)
+	Expect(err).Should(HaveOccurred())
+
+	return err
+}
+
+// produceEvent sends a notification POST request to the EAA
 func produceEvent(c *http.Client, notif eaa.NotificationFromProducer,
 	subject string) {
 	By("NotificationToConsumer struct " + subject + "encoding")
@@ -231,7 +318,57 @@ func produceEvent(c *http.Client, notif eaa.NotificationFromProducer,
 	Expect(respPost.Status).To(Equal("202 Accepted"))
 }
 
-// getServiceList sends a GET request to the appliance and retrieves
+// produceEventWithUnregisteredProducer sends a notification POST request to the EAA
+// when producer is not registered
+func produceEventWithUnregisteredProducer(c *http.Client, notif eaa.NotificationFromProducer) {
+	By("NotificationToConsumer struct encoding")
+	payload, err := json.Marshal(notif)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Sending produce event POST request")
+	req, _ := http.NewRequest("POST", "https://"+cfg.TLSEndpoint+
+		"/notifications", bytes.NewBuffer(payload))
+	respPost, err := c.Do(req)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing POST response code")
+	defer respPost.Body.Close()
+	Expect(respPost.Status).To(Equal("500 Internal Server Error"))
+}
+
+// produceEventWithBadRequest sends a notification POST request to the EAA
+// with bad request body
+func produceEventWithBadRequest(c *http.Client) {
+	By("Sending produce event POST request")
+	req, _ := http.NewRequest("POST", "https://"+cfg.TLSEndpoint+
+		"/notifications", bytes.NewBuffer([]byte("---")))
+	respPost, err := c.Do(req)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing POST response code")
+	defer respPost.Body.Close()
+	Expect(respPost.Status).To(Equal("500 Internal Server Error"))
+}
+
+// produceEventWithBadCommonName sends a notification POST request to the EAA
+// with bad commonName
+func produceEventWithBadCommonName(c *http.Client, notif eaa.NotificationFromProducer) {
+	By("NotificationToConsumer struct encoding")
+	payload, err := json.Marshal(notif)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Sending produce event POST request")
+	req, _ := http.NewRequest("POST", "https://"+cfg.TLSEndpoint+
+		"/notifications", bytes.NewBuffer(payload))
+	respPost, err := c.Do(req)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By("Comparing POST response code")
+	defer respPost.Body.Close()
+	Expect(respPost.Status).To(Equal("401 Unauthorized"))
+}
+
+// getServiceList sends a GET request to the EAA and retrieves
 // a list of currently registered services
 func getServiceList(c *http.Client, list *eaa.ServiceList) {
 	By("Sending service list GET request")
@@ -249,7 +386,7 @@ func getServiceList(c *http.Client, list *eaa.ServiceList) {
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-// getSubscriptionList sends a GET request to the appliance and retrieves
+// getSubscriptionList sends a GET request to the EAA and retrieves
 // a list of current consumer subscriptions
 func getSubscriptionList(c *http.Client, list *eaa.SubscriptionList) {
 	By("Sending subscription list GET request")
@@ -282,6 +419,16 @@ func getMsgFromConn(conn *websocket.Conn, response *eaa.NotificationToConsumer,
 	err = json.NewDecoder(output).
 		Decode(response)
 	Expect(err).ShouldNot(HaveOccurred())
+}
+
+// getMsgFromClosedConn tries to use closed connection
+func getMsgFromClosedConn(conn *websocket.Conn) error {
+	conn.Close()
+	conn.SetReadDeadline(time.Now().Add(time.Second * 3))
+	By("Reading message from web socket connection")
+	_, _, err := conn.ReadMessage()
+	Expect(err).Should(HaveOccurred())
+	return err
 }
 
 // checkNoMsgFromConn checks that not message has been received
@@ -470,15 +617,61 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"The Sanity Producer\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"Description for Event #1 by Producer #1\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"The Sanity Producer",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]}]}`)
 
 				registerProducer(prodClient, sampleService, "")
+
+				getServiceList(accessClient, &receivedServList)
+
+				By("Expected service list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortServiceSlices(expectedServList.Services,
+					receivedServList.Services)
+
+				By("Comparing GET response data")
+				Expect(receivedServList).To(Equal(expectedServList))
+			})
+
+			Specify("Register: bad commonName", func() {
+				prodCertTempl := GetCertTempl()
+				prodCertTempl.Subject.CommonName = Name1ProdBad
+				prodCert, prodCertPool = generateSignedClientCert(
+					&prodCertTempl)
+
+				prodClient = createHTTPClient(prodCert, prodCertPool)
+
+				sampleService := eaa.Service{
+					Description: "The Bad CommonName Producer",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #2",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
+					},
+				}
+
+				expectedOutput := strings.NewReader(
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"The Sanity Producer",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]}]}`)
+
+				registerProducerErr(prodClient, sampleService)
 
 				getServiceList(accessClient, &receivedServList)
 
@@ -508,13 +701,13 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"example description\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"example description"}]}]}`)
 
 				registerProducer(prodClient, sampleService, "1 ")
 				registerProducer(prodClient, sampleService, "1 (second time) ")
@@ -533,8 +726,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedServList).To(Equal(expectedServList))
 			})
 
-			Specify("Register: Producer registers twice"+
-				" with different notification", func() {
+			Specify("Register: Producer registers twice with different notification", func() {
 				sampleService := eaa.Service{
 					Description: "example description",
 					EndpointURI: "https://1.2.3.4",
@@ -560,17 +752,16 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #2\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"example description\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #2",` +
+						`"version":"1.0.0","description"` +
+						`:"example description"}]}]}`)
 
 				registerProducer(prodClient, sampleService, "1 ")
-				registerProducer(prodClient, sampleService2,
-					"1 (different notification) ")
+				registerProducer(prodClient, sampleService2, "1 (different notification) ")
 
 				getServiceList(accessClient, &receivedServList)
 
@@ -586,8 +777,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedServList).To(Equal(expectedServList))
 			})
 
-			Specify("Register: Producer registers"+
-				" with more than one notification", func() {
+			Specify("Register: Producer registers with more than one notification", func() {
 				sampleService := eaa.Service{
 					Description: "example description",
 					EndpointURI: "https://1.2.3.4",
@@ -606,18 +796,18 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[" +
-						"{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"example description\"}," +
-						"{\"name\":\"Event #2\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"example description\"}" +
-						"]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[` +
+						`{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"example description"},` +
+						`{"name":"Event #2",` +
+						`"version":"1.0.0","description"` +
+						`:"example description"}` +
+						`]}]}`)
 
 				registerProducer(prodClient, sampleService, "")
 
@@ -635,8 +825,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedServList).To(Equal(expectedServList))
 			})
 
-			Specify("Register: Producer registers two notifications"+
-				" that vary just by version number", func() {
+			Specify("Register: Producer registers two notifications that vary just by version number", func() {
 				sampleService := eaa.Service{
 					Description: "example description",
 					EndpointURI: "https://1.2.3.4",
@@ -655,18 +844,18 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[" +
-						"{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"example description\"}," +
-						"{\"name\":\"Event #1\"," +
-						"\"version\":\"2.0.0\",\"description\"" +
-						":\"example description\"}" +
-						"]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[` +
+						`{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"example description"},` +
+						`{"name":"Event #1",` +
+						`"version":"2.0.0","description"` +
+						`:"example description"}` +
+						`]}]}`)
 
 				registerProducer(prodClient, sampleService, "")
 
@@ -706,15 +895,15 @@ var _ = Describe("ApiEaa", func() {
 					}
 
 					expectedOutput := strings.NewReader(
-						"{\"services\":[{\"urn\":{\"id\"" +
-							":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"example description\"," +
-							"\"endpoint_uri\":\"https://1.2.3.4\"," +
-							"\"notifications\":[" +
-							"{\"name\":\"Event #1\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"example description\"}" +
-							"]}]}")
+						`{"services":[{"urn":{"id"` +
+							`:"producer-1","namespace":"namespace-1"},` +
+							`"description":"example description",` +
+							`"endpoint_uri":"https://1.2.3.4",` +
+							`"notifications":[` +
+							`{"name":"Event #1",` +
+							`"version":"1.0.0","description"` +
+							`:"example description"}` +
+							`]}]}`)
 
 					registerProducer(prodClient, sampleService, "")
 
@@ -731,6 +920,27 @@ var _ = Describe("ApiEaa", func() {
 					By("Comparing GET response data")
 					Expect(receivedServList).To(Equal(expectedServList))
 				})
+
+			Specify("Register: bad request", func() {
+
+				expectedOutput := strings.NewReader(
+					`{"services":[{}]}`)
+
+				registerProducerWithBadRequest(prodClient)
+
+				getServiceList(accessClient, &receivedServList)
+
+				By("Expected service list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortServiceSlices(expectedServList.Services,
+					receivedServList.Services)
+
+				By("Comparing GET response data")
+				Expect(receivedServList).To(Equal(expectedServList))
+			})
 		})
 
 		Context("two producers", func() {
@@ -777,22 +987,22 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[" +
-						"{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"example description\"}]}," +
-						"{\"urn\":{\"id\"" +
-						":\"producer-2\",\"namespace\":\"namespace-2\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #2\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"example description\"}]}" +
-						"]}")
+					`{"services":[` +
+						`{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"example description"}]},` +
+						`{"urn":{"id"` +
+						`:"producer-2","namespace":"namespace-2"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #2",` +
+						`"version":"1.0.0","description"` +
+						`:"example description"}]}` +
+						`]}`)
 
 				registerProducer(prodClient, sampleService, "1 ")
 				registerProducer(prodClient2, sampleService2, "2 ")
@@ -812,8 +1022,7 @@ var _ = Describe("ApiEaa", func() {
 
 			})
 
-			Specify("Register: Two producers register"+
-				" the same notification", func() {
+			Specify("Register: Two producers register the same notification", func() {
 				sampleService := eaa.Service{
 					Description: "example description",
 					EndpointURI: "https://1.2.3.4",
@@ -839,22 +1048,22 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[" +
-						"{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"example description\"}]}," +
-						"{\"urn\":{\"id\"" +
-						":\"producer-2\",\"namespace\":\"namespace-2\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"example description\"}]}" +
-						"]}")
+					`{"services":[` +
+						`{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"example description"}]},` +
+						`{"urn":{"id"` +
+						`:"producer-2","namespace":"namespace-2"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"example description"}]}` +
+						`]}`)
 
 				registerProducer(prodClient, sampleService, "1 ")
 				registerProducer(prodClient2, sampleService2, "2 ")
@@ -930,16 +1139,16 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"Sample description for Producer #1\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"Description for Event #1 by Producer #1\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"Sample description for Producer #1",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"services\":	null}")
+					`{"services":	null}`)
 
 				registerProducer(prodClient, sampleService, "")
 
@@ -993,22 +1202,22 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{" +
-						"\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"Sample description for Producer #1\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[" +
-						"{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"Description for Event #1 by Producer #1\"}," +
-						"{\"name\":\"Event #2\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"Description for Event #2 by Producer #1\"}" +
-						"]}]}")
+					`{"services":[{` +
+						`"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"Sample description for Producer #1",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[` +
+						`{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"},` +
+						`{"name":"Event #2",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #2 by Producer #1"}` +
+						`]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"services\":	null}")
+					`{"services":	null}`)
 
 				registerProducer(prodClient, sampleService, "")
 
@@ -1075,13 +1284,13 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"Sample description for Producer #1\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"Description for Event #1 by Producer #1\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"Sample description for Producer #1",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]}]}`)
 
 				registerProducer(prodClient, sampleService, "")
 
@@ -1137,25 +1346,25 @@ var _ = Describe("ApiEaa", func() {
 					}
 
 					expectedOutput := strings.NewReader(
-						"{\"services\":[" +
-							"{\"urn\":{\"id\"" +
-							":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"Sample description for Producer #1\"," +
-							"\"endpoint_uri\":\"https://1.2.3.4\"," +
-							"\"notifications\":[{\"name\":\"Event #1\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"Description for Event #1 by Producer #1\"}]}," +
-							"{\"urn\":{\"id\"" +
-							":\"producer-2\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"Sample description for Producer #2\"," +
-							"\"endpoint_uri\":\"https://1.2.3.5\"," +
-							"\"notifications\":[{\"name\":\"Event #2\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"Description for Event #2 by Producer #2\"}]}" +
-							"]}")
+						`{"services":[` +
+							`{"urn":{"id"` +
+							`:"producer-1","namespace":"namespace-1"},` +
+							`"description":"Sample description for Producer #1",` +
+							`"endpoint_uri":"https://1.2.3.4",` +
+							`"notifications":[{"name":"Event #1",` +
+							`"version":"1.0.0","description"` +
+							`:"Description for Event #1 by Producer #1"}]},` +
+							`{"urn":{"id"` +
+							`:"producer-2","namespace":"namespace-1"},` +
+							`"description":"Sample description for Producer #2",` +
+							`"endpoint_uri":"https://1.2.3.5",` +
+							`"notifications":[{"name":"Event #2",` +
+							`"version":"1.0.0","description"` +
+							`:"Description for Event #2 by Producer #2"}]}` +
+							`]}`)
 
 					expectedOutput2 := strings.NewReader(
-						"{\"services\":	null}")
+						`{"services":	null}`)
 
 					registerProducer(prodClient, sampleService, "1 ")
 					registerProducer(prodClient2, sampleService2, "2 ")
@@ -1217,25 +1426,25 @@ var _ = Describe("ApiEaa", func() {
 					}
 
 					expectedOutput := strings.NewReader(
-						"{\"services\":[" +
-							"{\"urn\":{\"id\"" +
-							":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"Sample description for Producer #1\"," +
-							"\"endpoint_uri\":\"https://1.2.3.4\"," +
-							"\"notifications\":[{\"name\":\"Event #1\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"Sample description\"}]}," +
-							"{\"urn\":{\"id\"" +
-							":\"producer-2\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"Sample description for Producer #2\"," +
-							"\"endpoint_uri\":\"https://1.2.3.5\"," +
-							"\"notifications\":[{\"name\":\"Event #1\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"Sample description\"}]}" +
-							"]}")
+						`{"services":[` +
+							`{"urn":{"id"` +
+							`:"producer-1","namespace":"namespace-1"},` +
+							`"description":"Sample description for Producer #1",` +
+							`"endpoint_uri":"https://1.2.3.4",` +
+							`"notifications":[{"name":"Event #1",` +
+							`"version":"1.0.0","description"` +
+							`:"Sample description"}]},` +
+							`{"urn":{"id"` +
+							`:"producer-2","namespace":"namespace-1"},` +
+							`"description":"Sample description for Producer #2",` +
+							`"endpoint_uri":"https://1.2.3.5",` +
+							`"notifications":[{"name":"Event #1",` +
+							`"version":"1.0.0","description"` +
+							`:"Sample description"}]}` +
+							`]}`)
 
 					expectedOutput2 := strings.NewReader(
-						"{\"services\":	null}")
+						`{"services":	null}`)
 
 					registerProducer(prodClient, sampleService, "1 ")
 					registerProducer(prodClient2, sampleService2, "2 ")
@@ -1270,98 +1479,95 @@ var _ = Describe("ApiEaa", func() {
 					Expect(receivedServList2).To(Equal(expectedServList2))
 				})
 
-			Specify("Deregister: Only 1 out of 2 Producers with 2"+
-				" Unique Notifications",
-				func() {
-					sampleService := eaa.Service{
-						Description: "Sample description for Producer #1",
-						EndpointURI: "https://1.2.3.4",
-						Notifications: []eaa.NotificationDescriptor{
-							{
-								Name:    "Event #1",
-								Version: "1.0.0",
-								Description: "Description for Event #1" +
-									" by Producer #1",
-							},
+			Specify("Deregister: Only 1 out of 2 Producers with 2 unique Notifications", func() {
+				sampleService := eaa.Service{
+					Description: "Sample description for Producer #1",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for Event #1" +
+								" by Producer #1",
 						},
-					}
+					},
+				}
 
-					sampleService2 := eaa.Service{
-						Description: "Sample description for Producer #2",
-						EndpointURI: "https://1.2.3.5",
-						Notifications: []eaa.NotificationDescriptor{
-							{
-								Name:    "Event #2",
-								Version: "1.0.0",
-								Description: "Description for Event #2" +
-									" by Producer #2",
-							},
+				sampleService2 := eaa.Service{
+					Description: "Sample description for Producer #2",
+					EndpointURI: "https://1.2.3.5",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #2",
+							Version: "1.0.0",
+							Description: "Description for Event #2" +
+								" by Producer #2",
 						},
-					}
+					},
+				}
 
-					expectedOutput := strings.NewReader(
-						"{\"services\":[" +
-							"{\"urn\":{\"id\"" +
-							":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"Sample description for Producer #1\"," +
-							"\"endpoint_uri\":\"https://1.2.3.4\"," +
-							"\"notifications\":[{\"name\":\"Event #1\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"Description for Event #1 by Producer #1\"}]}," +
-							"{\"urn\":{\"id\"" +
-							":\"producer-2\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"Sample description for Producer #2\"," +
-							"\"endpoint_uri\":\"https://1.2.3.5\"," +
-							"\"notifications\":[{\"name\":\"Event #2\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"Description for Event #2 by Producer #2\"}]}" +
-							"]}")
+				expectedOutput := strings.NewReader(
+					`{"services":[` +
+						`{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"Sample description for Producer #1",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]},` +
+						`{"urn":{"id"` +
+						`:"producer-2","namespace":"namespace-1"},` +
+						`"description":"Sample description for Producer #2",` +
+						`"endpoint_uri":"https://1.2.3.5",` +
+						`"notifications":[{"name":"Event #2",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #2 by Producer #2"}]}` +
+						`]}`)
 
-					expectedOutput2 := strings.NewReader(
-						"{\"services\":[" +
-							"{\"urn\":{\"id\"" +
-							":\"producer-2\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"Sample description for Producer #2\"," +
-							"\"endpoint_uri\":\"https://1.2.3.5\"," +
-							"\"notifications\":[{\"name\":\"Event #2\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"Description for Event #2 by Producer #2\"}]}" +
-							"]}")
+				expectedOutput2 := strings.NewReader(
+					`{"services":[` +
+						`{"urn":{"id"` +
+						`:"producer-2","namespace":"namespace-1"},` +
+						`"description":"Sample description for Producer #2",` +
+						`"endpoint_uri":"https://1.2.3.5",` +
+						`"notifications":[{"name":"Event #2",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #2 by Producer #2"}]}` +
+						`]}`)
 
-					registerProducer(prodClient, sampleService, "1 ")
-					registerProducer(prodClient2, sampleService2, "2 ")
+				registerProducer(prodClient, sampleService, "1 ")
+				registerProducer(prodClient2, sampleService2, "2 ")
 
-					getServiceList(accessClient, &receivedServList)
+				getServiceList(accessClient, &receivedServList)
 
-					By("Expected service list 1 decoding")
-					err := json.NewDecoder(expectedOutput).
-						Decode(&expectedServList)
-					Expect(err).ShouldNot(HaveOccurred())
+				By("Expected service list 1 decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
 
-					sortServiceSlices(expectedServList.Services,
-						receivedServList.Services)
+				sortServiceSlices(expectedServList.Services,
+					receivedServList.Services)
 
-					By("Comparing GET response data")
-					Expect(receivedServList).To(Equal(expectedServList))
+				By("Comparing GET response data")
+				Expect(receivedServList).To(Equal(expectedServList))
 
-					deregisterProducer(prodClient, "")
+				deregisterProducer(prodClient, "")
 
-					getServiceList(accessClient, &receivedServList2)
+				getServiceList(accessClient, &receivedServList2)
 
-					By("Expected service list 2 decoding")
-					err = json.NewDecoder(expectedOutput2).
-						Decode(&expectedServList2)
-					Expect(err).ShouldNot(HaveOccurred())
+				By("Expected service list 2 decoding")
+				err = json.NewDecoder(expectedOutput2).
+					Decode(&expectedServList2)
+				Expect(err).ShouldNot(HaveOccurred())
 
-					sortServiceSlices(receivedServList2.Services,
-						expectedServList2.Services)
+				sortServiceSlices(receivedServList2.Services,
+					expectedServList2.Services)
 
-					By("Comparing GET 2 response data")
-					Expect(receivedServList2).To(Equal(expectedServList2))
-				})
+				By("Comparing GET 2 response data")
+				Expect(receivedServList2).To(Equal(expectedServList2))
+			})
 
-			Specify("Deregister: Only 1 out of 2 Producers with"+
-				" the Same Notification",
+			Specify("Deregister: Only 1 out of 2 Producers with the Same Notification",
 				func() {
 					sampleService := eaa.Service{
 						Description: "Sample description for Producer #1",
@@ -1388,33 +1594,33 @@ var _ = Describe("ApiEaa", func() {
 					}
 
 					expectedOutput := strings.NewReader(
-						"{\"services\":[" +
-							"{\"urn\":{\"id\"" +
-							":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"Sample description for Producer #1\"," +
-							"\"endpoint_uri\":\"https://1.2.3.4\"," +
-							"\"notifications\":[{\"name\":\"Event #1\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"Sample description\"}]}," +
-							"{\"urn\":{\"id\"" +
-							":\"producer-2\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"Sample description for Producer #2\"," +
-							"\"endpoint_uri\":\"https://1.2.3.5\"," +
-							"\"notifications\":[{\"name\":\"Event #1\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"Sample description\"}]}" +
-							"]}")
+						`{"services":[` +
+							`{"urn":{"id"` +
+							`:"producer-1","namespace":"namespace-1"},` +
+							`"description":"Sample description for Producer #1",` +
+							`"endpoint_uri":"https://1.2.3.4",` +
+							`"notifications":[{"name":"Event #1",` +
+							`"version":"1.0.0","description"` +
+							`:"Sample description"}]},` +
+							`{"urn":{"id"` +
+							`:"producer-2","namespace":"namespace-1"},` +
+							`"description":"Sample description for Producer #2",` +
+							`"endpoint_uri":"https://1.2.3.5",` +
+							`"notifications":[{"name":"Event #1",` +
+							`"version":"1.0.0","description"` +
+							`:"Sample description"}]}` +
+							`]}`)
 
 					expectedOutput2 := strings.NewReader(
-						"{\"services\":[" +
-							"{\"urn\":{\"id\"" +
-							":\"producer-2\",\"namespace\":\"namespace-1\"}," +
-							"\"description\":\"Sample description for Producer #2\"," +
-							"\"endpoint_uri\":\"https://1.2.3.5\"," +
-							"\"notifications\":[{\"name\":\"Event #1\"," +
-							"\"version\":\"1.0.0\",\"description\"" +
-							":\"Sample description\"}]}" +
-							"]}")
+						`{"services":[` +
+							`{"urn":{"id"` +
+							`:"producer-2","namespace":"namespace-1"},` +
+							`"description":"Sample description for Producer #2",` +
+							`"endpoint_uri":"https://1.2.3.5",` +
+							`"notifications":[{"name":"Event #1",` +
+							`"version":"1.0.0","description"` +
+							`:"Sample description"}]}` +
+							`]}`)
 
 					registerProducer(prodClient, sampleService, "1 ")
 					registerProducer(prodClient2, sampleService2, "2 ")
@@ -1484,9 +1690,91 @@ var _ = Describe("ApiEaa", func() {
 			consSocket = createWebSocDialer(consCert, consCertPool)
 		})
 
+		Context("consumer closed connection", func() {
+			Specify("Namespace Notification: 1 Event from 1 Producer when consumer closes connection and reconnects",
+				func() {
+					sampleService := eaa.Service{
+						Description: "The Sanity Producer",
+						EndpointURI: "https://1.2.3.4",
+						Notifications: []eaa.NotificationDescriptor{
+							{
+								Name:    "Event #1",
+								Version: "1.0.0",
+								Description: "Description for " +
+									"Event #1 by Producer #1",
+							},
+						},
+					}
+
+					sampleNotifications := []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+						},
+					}
+
+					sampleEvent := eaa.NotificationFromProducer{
+						Name:    "Event #1",
+						Version: "1.0.0",
+						Payload: json.RawMessage(`{"msg":"PING"}`),
+					}
+
+					registerProducer(prodClient, sampleService, "")
+
+					subscribeConsumer(consClient, sampleNotifications,
+						"namespace-1", "")
+
+					conn := connectConsumer(consSocket, &consHeader, "")
+					conn.Close()
+
+					produceEvent(prodClient, sampleEvent, "")
+
+					conn = connectConsumer(consSocket, &consHeader, "")
+					defer conn.Close()
+					err := getMsgFromClosedConn(conn)
+
+					By("Check if error occurred")
+					Expect(err).Should(HaveOccurred())
+				})
+
+			Specify("Namespace Notification: 1 Event from 1 Producer when consumer is not connected", func() {
+				sampleService := eaa.Service{
+					Description: "The Sanity Producer",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
+					},
+				}
+
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "Event #1",
+						Version: "1.0.0",
+					},
+				}
+
+				sampleEvent := eaa.NotificationFromProducer{
+					Name:    "Event #1",
+					Version: "1.0.0",
+					Payload: json.RawMessage(`{"msg":"PING"}`),
+				}
+
+				registerProducer(prodClient, sampleService, "")
+
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1", "")
+
+				produceEvent(prodClient, sampleEvent, "")
+			})
+		})
+
 		Context("one consumer", func() {
-			Specify("Namespace Notification: 1 Event from 1 Producer"+
-				" to 1 Consumer", func() {
+			Specify("Namespace Notification: 1 Event from 1 Producer to 1 Consumer", func() {
 				sampleService := eaa.Service{
 					Description: "The Sanity Producer",
 					EndpointURI: "https://1.2.3.4",
@@ -1514,11 +1802,11 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"producer\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"name\":\"Event #1\",\"version\":\"1.0.0\"," +
-						"\"payload\":{\"msg\":\"PING\"}}")
+					`{"producer":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"name":"Event #1","version":"1.0.0",` +
+						`"payload":{"msg":"PING"}}`)
 
 				registerProducer(prodClient, sampleService, "")
 
@@ -1541,8 +1829,168 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedNotif).To(Equal(expectedNotif))
 			})
 
-			Specify("Namespace Notification not registered by Producer"+
-				"(1 Consumer)", func() {
+			Specify("Namespace Notification: 1 Event from 1 Producer when producer is not registered", func() {
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "Event #1",
+						Version: "1.0.0",
+					},
+				}
+
+				sampleEvent := eaa.NotificationFromProducer{
+					Name:    "Unregistered Event",
+					Version: "1.0.0",
+					Payload: json.RawMessage(`{"msg":"PING"}`),
+				}
+
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1", "")
+
+				conn := connectConsumer(consSocket, &consHeader, "")
+				defer conn.Close()
+
+				produceEventWithUnregisteredProducer(prodClient, sampleEvent)
+			})
+
+			Specify("Namespace Notification: 1 Event from 1 Producer"+
+				" with bad Host parameter", func() {
+				sampleService := eaa.Service{
+					Description: "The Sanity Producer",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
+					},
+				}
+
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "Event #1",
+						Version: "1.0.0",
+					},
+				}
+
+				registerProducer(prodClient, sampleService, "")
+
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1", "")
+
+				err := connectConsumerWithBadHost(consSocket, &consHeader)
+
+				Expect(err).Should(HaveOccurred())
+			})
+
+			Specify("Namespace Notification: 1 Event from 1 Producer to 1 Consumer with bad commonName", func() {
+				sampleService := eaa.Service{
+					Description: "The Sanity Producer",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
+					},
+				}
+
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "Event #1",
+						Version: "1.0.0",
+					},
+				}
+
+				sampleEvent := eaa.NotificationFromProducer{
+					Name:    "Event #1",
+					Version: "1.0.0",
+					Payload: json.RawMessage(`{"msg":"PING"}`),
+				}
+
+				registerProducer(prodClient, sampleService, "")
+
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1", "")
+
+				conn := connectConsumer(consSocket, &consHeader, "")
+				defer conn.Close()
+
+				prodCertTempl := GetCertTempl()
+				prodCertTempl.Subject.CommonName = Name1ProdBad
+				prodCert, prodCertPool = generateSignedClientCert(
+					&prodCertTempl)
+
+				prodClientBad := createHTTPClient(prodCert, prodCertPool)
+
+				produceEventWithBadCommonName(prodClientBad, sampleEvent)
+			})
+
+			Specify("Namespace Notification: subscribe with bad request", func() {
+				sampleService := eaa.Service{
+					Description: "The Sanity Producer",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
+					},
+				}
+
+				registerProducer(prodClient, sampleService, "")
+
+				subscribeConsumerBadRequest(consClient, "namespace-1")
+
+				conn := connectConsumer(consSocket, &consHeader, "")
+				defer conn.Close()
+
+				produceEventWithBadRequest(prodClient)
+
+				checkNoMsgFromConn(conn, "")
+			})
+
+			Specify("Namespace Notification: 1 Event from 1 Producer to 1 Consumer with producer bad request",
+				func() {
+					sampleService := eaa.Service{
+						Description: "The Sanity Producer",
+						EndpointURI: "https://1.2.3.4",
+						Notifications: []eaa.NotificationDescriptor{
+							{
+								Name:    "Event #1",
+								Version: "1.0.0",
+								Description: "Description for " +
+									"Event #1 by Producer #1",
+							},
+						},
+					}
+
+					sampleNotifications := []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+						},
+					}
+
+					registerProducer(prodClient, sampleService, "")
+
+					subscribeConsumer(consClient, sampleNotifications,
+						"namespace-1", "")
+
+					conn := connectConsumer(consSocket, &consHeader, "")
+					defer conn.Close()
+
+					produceEventWithBadRequest(prodClient)
+
+					checkNoMsgFromConn(conn, "")
+				})
+
+			Specify("Namespace Notification not registered by Producer (1 Consumer)", func() {
 				sampleService := eaa.Service{
 					Description: "The Example Producer #1",
 					EndpointURI: "https://1.2.3.4",
@@ -1570,11 +2018,11 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"producer\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"name\":\"Event #2\",\"version\":\"1.2.3\"," +
-						"\"payload\":{\"msg\":\"PING\"}}")
+					`{"producer":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"name":"Event #2","version":"1.2.3",` +
+						`"payload":{"msg":"PING"}}`)
 
 				registerProducer(prodClient, sampleService, "")
 				// Subscribe notification that is not registered by Producer
@@ -1626,11 +2074,11 @@ var _ = Describe("ApiEaa", func() {
 					}
 
 					expectedOutput := strings.NewReader(
-						"{\"producer\":" +
-							"{\"id\":\"producer-1\"," +
-							"\"namespace\":\"namespace-1\"}," +
-							"\"name\":\"Event #2\",\"version\":\"1.2.3\"," +
-							"\"payload\":{\"msg\":\"PING\"}}")
+						`{"producer":` +
+							`{"id":"producer-1",` +
+							`"namespace":"namespace-1"},` +
+							`"name":"Event #2","version":"1.2.3",` +
+							`"payload":{"msg":"PING"}}`)
 
 					registerProducer(prodClient, sampleService, "")
 					// Subscribe notification that is not registered by Producer
@@ -1653,8 +2101,7 @@ var _ = Describe("ApiEaa", func() {
 					Expect(receivedNotif).To(Equal(expectedNotif))
 				})
 
-			Specify("Namespace Notification after canceling subscription"+
-				" (1 Consumer)", func() {
+			Specify("Namespace Notification after canceling subscription (1 Consumer)", func() {
 				sampleService := eaa.Service{
 					Description: "The Example Producer #1",
 					EndpointURI: "https://1.2.3.4",
@@ -1682,11 +2129,11 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"producer\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"name\":\"Event #1\",\"version\":\"1.0.0\"," +
-						"\"payload\":{\"msg\":\"PING\"}}")
+					`{"producer":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"name":"Event #1","version":"1.0.0",` +
+						`"payload":{"msg":"PING"}}`)
 
 				registerProducer(prodClient, sampleService, "")
 
@@ -1716,8 +2163,197 @@ var _ = Describe("ApiEaa", func() {
 				checkNoMsgFromConn(conn, "")
 			})
 
-			Specify("Consumer gets Notification if it is subscribed"+
-				" before producer registered", func() {
+			Specify("Canceling subscription to non-existient namespace (1 Consumer)", func() {
+				sampleService := eaa.Service{
+					Description: "The Example Producer #1",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
+					},
+				}
+
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "Event #1",
+						Version: "1.0.0",
+					},
+				}
+
+				sampleEvent := eaa.NotificationFromProducer{
+					Name:    "Event #1",
+					Version: "1.0.0",
+					Payload: json.RawMessage(`{"msg":"PING"}`),
+				}
+
+				expectedOutput := strings.NewReader(
+					`{"producer":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"name":"Event #1","version":"1.0.0",` +
+						`"payload":{"msg":"PING"}}`)
+
+				registerProducer(prodClient, sampleService, "")
+
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1", "")
+
+				conn := connectConsumer(consSocket, &consHeader, "")
+				defer conn.Close()
+
+				produceEvent(prodClient, sampleEvent, "")
+
+				By("Expected notification struct decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedNotif)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				getMsgFromConn(conn, &receivedNotif, "")
+
+				By("Comparing web socket response data")
+				Expect(receivedNotif).To(Equal(expectedNotif))
+
+				unsubscribeConsumer(consClient, sampleNotifications,
+					"namespace-fake", "")
+
+				produceEvent(prodClient, sampleEvent, "")
+
+				getMsgFromConn(conn, &receivedNotif, "")
+
+				By("Comparing web socket response data")
+				Expect(receivedNotif).To(Equal(expectedNotif))
+			})
+
+			Specify("Canceling namespace subscription with bad request body (1 Consumer)", func() {
+				sampleService := eaa.Service{
+					Description: "The Example Producer #1",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
+					},
+				}
+
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "Event #1",
+						Version: "1.0.0",
+					},
+				}
+
+				sampleEvent := eaa.NotificationFromProducer{
+					Name:    "Event #1",
+					Version: "1.0.0",
+					Payload: json.RawMessage(`{"msg":"PING"}`),
+				}
+
+				expectedOutput := strings.NewReader(
+					`{"producer":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"name":"Event #1","version":"1.0.0",` +
+						`"payload":{"msg":"PING"}}`)
+
+				registerProducer(prodClient, sampleService, "")
+
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1", "")
+
+				conn := connectConsumer(consSocket, &consHeader, "")
+				defer conn.Close()
+
+				produceEvent(prodClient, sampleEvent, "")
+
+				By("Expected notification struct decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedNotif)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				getMsgFromConn(conn, &receivedNotif, "")
+
+				By("Comparing web socket response data")
+				Expect(receivedNotif).To(Equal(expectedNotif))
+
+				unsubscribeConsumerWithBadRequest(consClient, "namespace-1")
+
+				produceEvent(prodClient, sampleEvent, "")
+
+				getMsgFromConn(conn, &receivedNotif, "")
+
+				By("Comparing web socket response data")
+				Expect(receivedNotif).To(Equal(expectedNotif))
+			})
+
+			Specify("Canceling all subscriptions (1 Consumer)", func() {
+				sampleService := eaa.Service{
+					Description: "The Example Producer #1",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
+					},
+				}
+
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "Event #1",
+						Version: "1.0.0",
+					},
+				}
+
+				sampleEvent := eaa.NotificationFromProducer{
+					Name:    "Event #1",
+					Version: "1.0.0",
+					Payload: json.RawMessage(`{"msg":"PING"}`),
+				}
+
+				expectedOutput := strings.NewReader(
+					`{"producer":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"name":"Event #1","version":"1.0.0",` +
+						`"payload":{"msg":"PING"}}`)
+
+				registerProducer(prodClient, sampleService, "")
+
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1", "")
+
+				conn := connectConsumer(consSocket, &consHeader, "")
+				defer conn.Close()
+
+				produceEvent(prodClient, sampleEvent, "")
+
+				By("Expected notification struct decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedNotif)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				getMsgFromConn(conn, &receivedNotif, "")
+
+				By("Comparing web socket response data")
+				Expect(receivedNotif).To(Equal(expectedNotif))
+
+				unsubscribeAll(consClient)
+
+				produceEvent(prodClient, sampleEvent, "")
+
+				checkNoMsgFromConn(conn, "")
+			})
+
+			Specify("Consumer gets Notification if it is subscribed before producer registered", func() {
 				sampleService := eaa.Service{
 					Description: "The Sanity Producer",
 					EndpointURI: "https://1.2.3.4",
@@ -1745,11 +2381,11 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"producer\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"name\":\"Event #100\",\"version\":\"7.1.0\"," +
-						"\"payload\":{\"msg\":\"PING\"}}")
+					`{"producer":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"name":"Event #100","version":"7.1.0",` +
+						`"payload":{"msg":"PING"}}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1", "")
@@ -1794,8 +2430,7 @@ var _ = Describe("ApiEaa", func() {
 						prodCertTempl2.Subject.CommonName = Name1Prod2
 					})
 
-					Specify("Namespace Notification: 1 Event from 2 Producers"+
-						" to 1 Consumer", func() {
+					Specify("Namespace Notification: 1 Event from 2 Producers to 1 Consumer", func() {
 						sampleService := eaa.Service{
 							Description: "The Example producer #1",
 							EndpointURI: "https://1.2.3.4",
@@ -1836,18 +2471,18 @@ var _ = Describe("ApiEaa", func() {
 						}
 
 						expectedOutput := strings.NewReader(
-							"{\"producer\":" +
-								"{\"id\":\"producer-1\"," +
-								"\"namespace\":\"namespace-1\"}," +
-								"\"name\":\"Event #1\",\"version\":\"1.0.0\"," +
-								"\"payload\":{\"msg\":\"PING\"}}")
+							`{"producer":` +
+								`{"id":"producer-1",` +
+								`"namespace":"namespace-1"},` +
+								`"name":"Event #1","version":"1.0.0",` +
+								`"payload":{"msg":"PING"}}`)
 
 						expectedOutput2 := strings.NewReader(
-							"{\"producer\":" +
-								"{\"id\":\"producer-2\"," +
-								"\"namespace\":\"namespace-1\"}," +
-								"\"name\":\"Event #1\",\"version\":\"1.0.0\"," +
-								"\"payload\":{\"msg\":\"PING\"}}")
+							`{"producer":` +
+								`{"id":"producer-2",` +
+								`"namespace":"namespace-1"},` +
+								`"name":"Event #1","version":"1.0.0",` +
+								`"payload":{"msg":"PING"}}`)
 
 						registerProducer(prodClient, sampleService, "1 ")
 						registerProducer(prodClient2, sampleService2, "2 ")
@@ -1931,18 +2566,18 @@ var _ = Describe("ApiEaa", func() {
 						}
 
 						expectedOutput := strings.NewReader(
-							"{\"producer\":" +
-								"{\"id\":\"producer-1\"," +
-								"\"namespace\":\"namespace-1\"}," +
-								"\"name\":\"Event #1\",\"version\":\"1.0.0\"," +
-								"\"payload\":{\"msg\":\"PING\"}}")
+							`{"producer":` +
+								`{"id":"producer-1",` +
+								`"namespace":"namespace-1"},` +
+								`"name":"Event #1","version":"1.0.0",` +
+								`"payload":{"msg":"PING"}}`)
 
 						expectedOutput2 := strings.NewReader(
-							"{\"producer\":" +
-								"{\"id\":\"producer-2\"," +
-								"\"namespace\":\"namespace-2\"}," +
-								"\"name\":\"Event #1\",\"version\":\"1.0.0\"," +
-								"\"payload\":{\"msg\":\"PING\"}}")
+							`{"producer":` +
+								`{"id":"producer-2",` +
+								`"namespace":"namespace-2"},` +
+								`"name":"Event #1","version":"1.0.0",` +
+								`"payload":{"msg":"PING"}}`)
 
 						registerProducer(prodClient, sampleService, "1 ")
 						registerProducer(prodClient2, sampleService2, "2 ")
@@ -1980,8 +2615,7 @@ var _ = Describe("ApiEaa", func() {
 						Expect(receivedNotif2).To(Equal(expectedNotif2))
 					})
 
-					Specify("Consumer doesn't get Notification from Namespace"+
-						" it did't subscribe to", func() {
+					Specify("Consumer does not get Notification from Namespace it did not subscribe to", func() {
 						sampleService := eaa.Service{
 							Description: "The Example producer #1",
 							EndpointURI: "https://1.2.3.4",
@@ -2028,12 +2662,12 @@ var _ = Describe("ApiEaa", func() {
 						}
 
 						expectedOutput := strings.NewReader(
-							"{\"producer\":" +
-								"{\"id\":\"producer-2\"," +
-								"\"namespace\":\"namespace-2\"}," +
-								"\"name\":\"Event #100\"," +
-								"\"version\":\"7.1.0\"," +
-								"\"payload\":{\"msg\":\"PING\"}}")
+							`{"producer":` +
+								`{"id":"producer-2",` +
+								`"namespace":"namespace-2"},` +
+								`"name":"Event #100",` +
+								`"version":"7.1.0",` +
+								`"payload":{"msg":"PING"}}`)
 
 						registerProducer(prodClient, sampleService, "1 ")
 						registerProducer(prodClient2, sampleService2, "2 ")
@@ -2089,8 +2723,7 @@ var _ = Describe("ApiEaa", func() {
 				consSocket2 = createWebSocDialer(consCert2, consCertPool2)
 			})
 
-			Specify("Namespace Notification: 1 Event from 1 Producer"+
-				" to 2 Consumers", func() {
+			Specify("Namespace Notification: 1 Event from 1 Producer to 2 Consumers", func() {
 				sampleService := eaa.Service{
 					Description: "The Example Producer",
 					EndpointURI: "https://1.2.3.4",
@@ -2118,11 +2751,11 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"producer\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"name\":\"Event #1\",\"version\":\"1.0.0\"," +
-						"\"payload\":{\"msg\":\"PING\"}}")
+					`{"producer":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"name":"Event #1","version":"1.0.0",` +
+						`"payload":{"msg":"PING"}}`)
 
 				registerProducer(prodClient, sampleService, "")
 
@@ -2155,8 +2788,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedNotif2).To(Equal(expectedNotif))
 			})
 
-			Specify("Namespace Notification after canceling subscription"+
-				" (2 Consumers)", func() {
+			Specify("Namespace Notification after canceling subscription (2 Consumers)", func() {
 				sampleService := eaa.Service{
 					Description: "The Example Producer #1",
 					EndpointURI: "https://1.2.3.4",
@@ -2184,11 +2816,11 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"producer\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"name\":\"Event #1\",\"version\":\"1.0.0\"," +
-						"\"payload\":{\"msg\":\"PING\"}}")
+					`{"producer":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"name":"Event #1","version":"1.0.0",` +
+						`"payload":{"msg":"PING"}}`)
 
 				registerProducer(prodClient, sampleService, "")
 
@@ -2230,6 +2862,110 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedNotif2).To(Equal(expectedNotif))
 			})
 
+			Specify("Canceling all subscriptions (2 consumers)", func() {
+				var (
+					receivedSubList1 eaa.SubscriptionList
+					receivedSubList2 eaa.SubscriptionList
+					expectedSubList1 eaa.SubscriptionList
+					expectedSubList2 eaa.SubscriptionList
+					receivedSubList3 eaa.SubscriptionList
+					receivedSubList4 eaa.SubscriptionList
+				)
+				sampleService := eaa.Service{
+					Description: "The Example Producer #1",
+					EndpointURI: "https://1.2.3.4",
+					Notifications: []eaa.NotificationDescriptor{
+						{
+							Name:    "Event #1",
+							Version: "1.0.0",
+							Description: "Description for " +
+								"Event #1 by Producer #1",
+						},
+					},
+				}
+
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "Event #1",
+						Version: "1.0.0",
+					},
+				}
+
+				expectedOutput := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"Event #1",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
+
+				// Register producer
+				registerProducer(prodClient, sampleService, "")
+
+				// Subscribe consumer 1 to namespace
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1", "")
+				// Subscribe consumer to service within namespace
+				subscribeConsumer(consClient2, sampleNotifications,
+					"namespace-1/producer-1", "")
+
+				// Check subscriptions of consumer 1
+				getSubscriptionList(consClient, &receivedSubList1)
+
+				By("Expected subscription list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedSubList1)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortSubscriptionSlices(receivedSubList1.Subscriptions,
+					expectedSubList1.Subscriptions)
+
+				By("Comparing response data")
+				Expect(receivedSubList1).To(Equal(expectedSubList1))
+
+				// Check subscriptions of consumer 2
+				getSubscriptionList(consClient2, &receivedSubList2)
+
+				expectedOutput2 := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : "producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"Event #1",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
+
+				By("Expected subscription list decoding")
+				err = json.NewDecoder(expectedOutput2).
+					Decode(&expectedSubList2)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortSubscriptionSlices(receivedSubList2.Subscriptions,
+					expectedSubList2.Subscriptions)
+
+				By("Comparing response data")
+				Expect(receivedSubList2).To(Equal(expectedSubList2))
+
+				// Unsubscribe consumer 1 and check subscriptions
+				unsubscribeAll(consClient)
+				getSubscriptionList(consClient, &receivedSubList3)
+				sortSubscriptionSlices(receivedSubList3.Subscriptions,
+					expectedSubList1.Subscriptions)
+				By("Comparing response data")
+				Expect(receivedSubList3).NotTo(Equal(expectedSubList1))
+
+				// Unsubscribe consumer 2 and check subscriptions
+				unsubscribeAll(consClient2)
+				getSubscriptionList(consClient2, &receivedSubList4)
+				sortSubscriptionSlices(receivedSubList4.Subscriptions,
+					expectedSubList2.Subscriptions)
+				By("Comparing response data")
+				Expect(receivedSubList4).NotTo(Equal(expectedSubList2))
+			})
+
 			Context("two producers", func() {
 				var (
 					prodClient2    *http.Client
@@ -2250,8 +2986,7 @@ var _ = Describe("ApiEaa", func() {
 					prodClient2 = createHTTPClient(prodCert2, prodCertPool2)
 				})
 
-				Specify("Namespace Notification: 1 Event from 2 Producers"+
-					" to 2 Consumers", func() {
+				Specify("Namespace Notification: 1 Event from 2 Producers to 2 Consumers", func() {
 					sampleService := eaa.Service{
 						Description: "The Example producer #1",
 						EndpointURI: "https://1.2.3.4",
@@ -2292,18 +3027,18 @@ var _ = Describe("ApiEaa", func() {
 					}
 
 					expectedOutput := strings.NewReader(
-						"{\"producer\":" +
-							"{\"id\":\"producer-1\"," +
-							"\"namespace\":\"namespace-1\"}," +
-							"\"name\":\"Event #1\",\"version\":\"1.0.0\"," +
-							"\"payload\":{\"msg\":\"PING\"}}")
+						`{"producer":` +
+							`{"id":"producer-1",` +
+							`"namespace":"namespace-1"},` +
+							`"name":"Event #1","version":"1.0.0",` +
+							`"payload":{"msg":"PING"}}`)
 
 					expectedOutput2 := strings.NewReader(
-						"{\"producer\":" +
-							"{\"id\":\"producer-2\"," +
-							"\"namespace\":\"namespace-1\"}," +
-							"\"name\":\"Event #1\",\"version\":\"1.0.0\"," +
-							"\"payload\":{\"msg\":\"PING\"}}")
+						`{"producer":` +
+							`{"id":"producer-2",` +
+							`"namespace":"namespace-1"},` +
+							`"name":"Event #1","version":"1.0.0",` +
+							`"payload":{"msg":"PING"}}`)
 
 					registerProducer(prodClient, sampleService, "1 ")
 					registerProducer(prodClient2, sampleService2, "2 ")
@@ -2376,12 +3111,12 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[{\"urn\":{\"id\" : null," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":" +
-						"[{\"name\":\"event_1\"," +
-						"\"version\":\"0.1.0\",\"description\"" +
-						":null}]}]}")
+					`{"subscriptions":[{"urn":{"id" : null,` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":` +
+						`[{"name":"event_1",` +
+						`"version":"0.1.0","description"` +
+						`:null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1", "")
@@ -2413,17 +3148,17 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"0.1.0\"," +
-						"\"description\": null}," +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"0.2.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"0.1.0",` +
+						`"description": null},` +
+						`{"name":"event_2",` +
+						`"version":"0.2.0",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-2", "")
@@ -2442,8 +3177,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList).To(Equal(expectedSubList))
 			})
 
-			Specify("Namespace Subscribe: 2 Same Name Different Version"+
-				" Events in 1 Request", func() {
+			Specify("Namespace Subscribe: 2 Same Name Different Version Events in 1 Request", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event",
@@ -2456,17 +3190,17 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event\"," +
-						"\"version\":\"1.0.1\"," +
-						"\"description\": null}," +
-						"{\"name\":\"event\"," +
-						"\"version\":\"1.0.2\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event",` +
+						`"version":"1.0.1",` +
+						`"description": null},` +
+						`{"name":"event",` +
+						`"version":"1.0.2",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1", "")
@@ -2485,8 +3219,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList).To(Equal(expectedSubList))
 			})
 
-			Specify("Namespace Subscribe: 2 Duplicate Events"+
-				" in 1 Request", func() {
+			Specify("Namespace Subscribe: 2 Duplicate Events in 1 Request", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "The Event",
@@ -2499,14 +3232,14 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"the-namespace\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"The Event\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"the-namespace"},` +
+						`"notifications":[` +
+						`{"name":"The Event",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"the-namespace", "")
@@ -2541,17 +3274,17 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.1\"," +
-						"\"description\": null}," +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.2\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
+						`"description": null},` +
+						`{"name":"event_2",` +
+						`"version":"1.0.2",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-2", "1 ")
@@ -2572,8 +3305,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList).To(Equal(expectedSubList))
 			})
 
-			Specify("Namespace Subscribe: 2 Same Name Different Version"+
-				" Events in 2 Request", func() {
+			Specify("Namespace Subscribe: 2 Same Name Different Version Events in 2 Request", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event",
@@ -2589,17 +3321,17 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event\"," +
-						"\"version\":\"1.0.1\"," +
-						"\"description\": null}," +
-						"{\"name\":\"event\"," +
-						"\"version\":\"1.0.2\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event",` +
+						`"version":"1.0.1",` +
+						`"description": null},` +
+						`{"name":"event",` +
+						`"version":"1.0.2",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1", "1 ")
@@ -2620,8 +3352,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList).To(Equal(expectedSubList))
 			})
 
-			Specify("Namespace Subscribe: 2 Duplicate Events"+
-				" in 2 Request", func() {
+			Specify("Namespace Subscribe: 2 Duplicate Events in 2 Request", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "The Event",
@@ -2630,14 +3361,14 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"the-namespace\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"The Event\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"the-namespace"},` +
+						`"notifications":[` +
+						`{"name":"The Event",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"the-namespace", "1 ")
@@ -2675,21 +3406,21 @@ var _ = Describe("ApiEaa", func() {
 					}
 
 					expectedOutput := strings.NewReader(
-						"{\"subscriptions\":[" +
-							"{\"urn\":{" +
-							"\"id\" : null," +
-							"\"namespace\":\"namespace-1\"}," +
-							"\"notifications\":[" +
-							"{\"name\":\"event_1\"," +
-							"\"version\":\"1.0.1\"," +
-							"\"description\": null}]}," +
-							"{\"urn\":{" +
-							"\"id\" : null," +
-							"\"namespace\":\"namespace-2\"}," +
-							"\"notifications\":[" +
-							"{\"name\":\"event_2\"," +
-							"\"version\":\"1.0.2\"," +
-							"\"description\": null}]}]}")
+						`{"subscriptions":[` +
+							`{"urn":{` +
+							`"id" : null,` +
+							`"namespace":"namespace-1"},` +
+							`"notifications":[` +
+							`{"name":"event_1",` +
+							`"version":"1.0.1",` +
+							`"description": null}]},` +
+							`{"urn":{` +
+							`"id" : null,` +
+							`"namespace":"namespace-2"},` +
+							`"notifications":[` +
+							`{"name":"event_2",` +
+							`"version":"1.0.2",` +
+							`"description": null}]}]}`)
 
 					subscribeConsumer(consClient, sampleNotifications,
 						"namespace-1", "1 ")
@@ -2731,8 +3462,7 @@ var _ = Describe("ApiEaa", func() {
 				consClient2 = createHTTPClient(consCert2, consCertPool2)
 			})
 
-			Specify("Namespace Notification: 2 Events in 1 Namespace"+
-				" for 2 Consumers", func() {
+			Specify("Namespace Notification: 2 Events in 1 Namespace for 2 Consumers", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -2748,24 +3478,24 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.1.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.1.0",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1", "1 ")
@@ -2799,8 +3529,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("Namespace Notification: 2 Events in 2 Namespaces"+
-				" for 2 Consumers", func() {
+			Specify("Namespace Notification: 2 Events in 2 Namespaces for 2 Consumers", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -2815,24 +3544,24 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"2.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"2.0.0",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1", "1 ")
@@ -2866,8 +3595,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("Namespace Notification: Same Event in Same Namespaces"+
-				" for 2 Consumers", func() {
+			Specify("Namespace Notification: Same Event in Same Namespaces for 2 Consumers", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -2876,14 +3604,14 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{" +
-						"\"id\" : null," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1", "1 ")
@@ -2944,16 +3672,43 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
+
+				getSubscriptionList(consClient, &receivedSubList)
+
+				By("Expected subscription list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedSubList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortSubscriptionSlices(receivedSubList.Subscriptions,
+					expectedSubList.Subscriptions)
+
+				By("Comparing response data")
+				Expect(receivedSubList).To(Equal(expectedSubList))
+			})
+
+			Specify("1 Event Subscribe With Bad Request", func() {
+				expectedOutput := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}]}]}`)
+
+				subscribeConsumerBadRequest(consClient,
+					"namespace-1/producer-1")
 
 				getSubscriptionList(consClient, &receivedSubList)
 
@@ -2982,17 +3737,17 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.1\"," +
-						"\"description\":null}," +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.2\"," +
-						"\"description\":null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
+						`"description":null},` +
+						`{"name":"event_2",` +
+						`"version":"1.0.2",` +
+						`"description":null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -3011,8 +3766,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList).To(Equal(expectedSubList))
 			})
 
-			Specify("2 Same Name, Different Version Events"+
-				" in 1 Subscribe Request", func() {
+			Specify("2 Same Name, Different Version Events in 1 Subscribe Request", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event",
@@ -3025,17 +3779,17 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event\"," +
-						"\"version\":\"1.0.1\"," +
-						"\"description\":null}," +
-						"{\"name\":\"event\"," +
-						"\"version\":\"1.0.2\"," +
-						"\"description\":null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event",` +
+						`"version":"1.0.1",` +
+						`"description":null},` +
+						`{"name":"event",` +
+						`"version":"1.0.2",` +
+						`"description":null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -3067,14 +3821,14 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"the-producer\"," +
-						"\"namespace\":\"the-namespace\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"The Event\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"the-producer",` +
+						`"namespace":"the-namespace"},` +
+						`"notifications":[` +
+						`{"name":"The Event",` +
+						`"version":"1.0.0",` +
+						`"description":null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"the-namespace/the-producer", "")
@@ -3109,17 +3863,17 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.1\"," +
-						"\"description\":null}," +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.2\"," +
-						"\"description\":null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
+						`"description":null},` +
+						`{"name":"event_2",` +
+						`"version":"1.0.2",` +
+						`"description":null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-2/producer-2", "")
@@ -3140,8 +3894,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList).To(Equal(expectedSubList))
 			})
 
-			Specify("2 Same Name Different Version Events"+
-				" in 2 Subscribe Request", func() {
+			Specify("2 Same Name Different Version Events in 2 Subscribe Request", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event",
@@ -3157,17 +3910,17 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event\"," +
-						"\"version\":\"1.0.1\"," +
-						"\"description\":null}," +
-						"{\"name\":\"event\"," +
-						"\"version\":\"1.0.2\"," +
-						"\"description\":null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event",` +
+						`"version":"1.0.1",` +
+						`"description":null},` +
+						`{"name":"event",` +
+						`"version":"1.0.2",` +
+						`"description":null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -3197,14 +3950,14 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"the-producer\"," +
-						"\"namespace\":\"the-namespace\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"The Event\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"the-producer",` +
+						`"namespace":"the-namespace"},` +
+						`"notifications":[` +
+						`{"name":"The Event",` +
+						`"version":"1.0.0",` +
+						`"description":null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"the-namespace/the-producer", "")
@@ -3241,21 +3994,21 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.1\"," +
-						"\"description\":null}]}," +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.2\"," +
-						"\"description\":null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
+						`"description":null}]},` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.0.2",` +
+						`"description":null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -3292,21 +4045,21 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"the-producer\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.1\"," +
-						"\"description\":null}]}," +
-						"{\"urn\":" +
-						"{\"id\":\"the-producer\"," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.2\"," +
-						"\"description\":null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"the-producer",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
+						`"description":null}]},` +
+						`{"urn":` +
+						`{"id":"the-producer",` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.0.2",` +
+						`"description":null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/the-producer", "")
@@ -3343,21 +4096,21 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.1\"," +
-						"\"description\":null}]}," +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.2\"," +
-						"\"description\":null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
+						`"description":null}]},` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.0.2",` +
+						`"description":null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -3415,24 +4168,24 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.1.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.1.0",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -3466,8 +4219,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("2 Events by 2 Producers in 1 Namespace"+
-				" for 2 Consumers", func() {
+			Specify("2 Events by 2 Producers in 1 Namespace for 2 Consumers", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -3483,24 +4235,24 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"2.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"2.0.0",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -3534,8 +4286,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("2 Events by 2 Producers in 2 Namespaces"+
-				" for 2 Consumers", func() {
+			Specify("2 Events by 2 Producers in 2 Namespaces for 2 Consumers", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -3551,24 +4302,24 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"2.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"2.0.0",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -3611,14 +4362,14 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\": null}]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -3764,70 +4515,70 @@ var _ = Describe("ApiEaa", func() {
 			}
 
 			expectedOutput := strings.NewReader(
-				"{\"subscriptions\":" +
-					"[{\"urn\":{\"id\":null,\"namespace\":\"namespace-1\"}," +
-					"\"notifications\":[{\"name\":\"event_1\"," +
-					"\"version\":\"1.1.0\",\"description\":null}," +
-					"{\"name\":\"event_2\",\"version\":\"1.2.0\"," +
-					"\"description\":null},{\"name\":\"event_3\"," +
-					"\"version\":\"1.3.0\",\"description\":null}]}]}")
+				`{"subscriptions":` +
+					`[{"urn":{"id":null,"namespace":"namespace-1"},` +
+					`"notifications":[{"name":"event_1",` +
+					`"version":"1.1.0","description":null},` +
+					`{"name":"event_2","version":"1.2.0",` +
+					`"description":null},{"name":"event_3",` +
+					`"version":"1.3.0","description":null}]}]}`)
 
 			expectedOutput2 := strings.NewReader(
-				"{\"subscriptions\":[" +
-					"{\"urn\":{\"id\":\"producer-1\"," +
-					"\"namespace\":\"namespace-1\"}," +
-					"\"notifications\":[{\"name\":\"event_1\"," +
-					"\"version\":\"1.1.0\",\"description\":null}," +
-					"{\"name\":\"event_2\",\"version\":\"1.2.0\"," +
-					"\"description\":null}]}," +
-					"{\"urn\":{\"id\":\"producer-2\"," +
-					"\"namespace\":\"namespace-1\"}," +
-					"\"notifications\":[{\"name\":\"event_2\"," +
-					"\"version\":\"1.2.0\",\"description\":null}," +
-					"{\"name\":\"event_3\",\"version\":\"1.3.0\"," +
-					"\"description\":null}]}," +
-					"{\"urn\":{\"id\":null," +
-					"\"namespace\":\"namespace-2\"}," +
-					"\"notifications\":[{\"name\":\"event_4\"," +
-					"\"version\":\"2.4.0\",\"description\":null}]}]}")
+				`{"subscriptions":[` +
+					`{"urn":{"id":"producer-1",` +
+					`"namespace":"namespace-1"},` +
+					`"notifications":[{"name":"event_1",` +
+					`"version":"1.1.0","description":null},` +
+					`{"name":"event_2","version":"1.2.0",` +
+					`"description":null}]},` +
+					`{"urn":{"id":"producer-2",` +
+					`"namespace":"namespace-1"},` +
+					`"notifications":[{"name":"event_2",` +
+					`"version":"1.2.0","description":null},` +
+					`{"name":"event_3","version":"1.3.0",` +
+					`"description":null}]},` +
+					`{"urn":{"id":null,` +
+					`"namespace":"namespace-2"},` +
+					`"notifications":[{"name":"event_4",` +
+					`"version":"2.4.0","description":null}]}]}`)
 
 			expectedOutput3 := strings.NewReader(
-				"{\"subscriptions\":[" +
-					"{\"urn\":{\"id\":null," +
-					"\"namespace\":\"namespace-1\"}," +
-					"\"notifications\":[{\"name\":\"event_1\"," +
-					"\"version\":\"1.1.0\",\"description\":null}," +
-					"{\"name\":\"event_2\",\"version\":\"1.2.0\"," +
-					"\"description\":null},{\"name\":\"event_3\"," +
-					"\"version\":\"1.3.0\",\"description\":null}," +
-					"{\"name\":\"event_4\",\"version\":\"1.4.0\"," +
-					"\"description\":null}]}," +
-					"{\"urn\":{\"id\":\"producer-1\"," +
-					"\"namespace\":\"namespace-1\"}," +
-					"\"notifications\":[{\"name\":\"event_1\"," +
-					"\"version\":\"1.1.0\",\"description\":null}," +
-					"{\"name\":\"event_2\",\"version\":\"1.2.0\"," +
-					"\"description\":null},{\"name\":\"event_3\"," +
-					"\"version\":\"1.3.0\",\"description\":null}]}," +
-					"{\"urn\":{\"id\":\"producer-2\"," +
-					"\"namespace\":\"namespace-1\"}," +
-					"\"notifications\":[{\"name\":\"event_1\"," +
-					"\"version\":\"1.1.0\",\"description\":null}," +
-					"{\"name\":\"event_2\",\"version\":\"1.2.0\"," +
-					"\"description\":null},{\"name\":\"event_3\"," +
-					"\"version\":\"1.3.0\",\"description\":null}]}," +
-					"{\"urn\":{\"id\":null," +
-					"\"namespace\":\"namespace-2\"}," +
-					"\"notifications\":[{\"name\":\"event_4\"," +
-					"\"version\":\"2.4.0\",\"description\":null}," +
-					"{\"name\":\"event_5\",\"version\":\"2.5.0\"," +
-					"\"description\":null}]}," +
-					"{\"urn\":{\"id\":\"producer-3\"," +
-					"\"namespace\":\"namespace-2\"}," +
-					"\"notifications\":[{\"name\":\"event_4\"," +
-					"\"version\":\"2.4.0\",\"description\":null}," +
-					"{\"name\":\"event_5\",\"version\":\"2.5.0\"," +
-					"\"description\":null}]}]}")
+				`{"subscriptions":[` +
+					`{"urn":{"id":null,` +
+					`"namespace":"namespace-1"},` +
+					`"notifications":[{"name":"event_1",` +
+					`"version":"1.1.0","description":null},` +
+					`{"name":"event_2","version":"1.2.0",` +
+					`"description":null},{"name":"event_3",` +
+					`"version":"1.3.0","description":null},` +
+					`{"name":"event_4","version":"1.4.0",` +
+					`"description":null}]},` +
+					`{"urn":{"id":"producer-1",` +
+					`"namespace":"namespace-1"},` +
+					`"notifications":[{"name":"event_1",` +
+					`"version":"1.1.0","description":null},` +
+					`{"name":"event_2","version":"1.2.0",` +
+					`"description":null},{"name":"event_3",` +
+					`"version":"1.3.0","description":null}]},` +
+					`{"urn":{"id":"producer-2",` +
+					`"namespace":"namespace-1"},` +
+					`"notifications":[{"name":"event_1",` +
+					`"version":"1.1.0","description":null},` +
+					`{"name":"event_2","version":"1.2.0",` +
+					`"description":null},{"name":"event_3",` +
+					`"version":"1.3.0","description":null}]},` +
+					`{"urn":{"id":null,` +
+					`"namespace":"namespace-2"},` +
+					`"notifications":[{"name":"event_4",` +
+					`"version":"2.4.0","description":null},` +
+					`{"name":"event_5","version":"2.5.0",` +
+					`"description":null}]},` +
+					`{"urn":{"id":"producer-3",` +
+					`"namespace":"namespace-2"},` +
+					`"notifications":[{"name":"event_4",` +
+					`"version":"2.4.0","description":null},` +
+					`{"name":"event_5","version":"2.5.0",` +
+					`"description":null}]}]}`)
 
 			subscribeConsumer(consClient, sampleNotifications,
 				"namespace-1", "1 ")
@@ -3936,18 +4687,18 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -3998,15 +4749,15 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -4035,6 +4786,97 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList))
 			})
 
+			Specify("Unsubscribe: Non-existing", func() {
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "event_1",
+						Version: "1.0.0",
+					},
+				}
+
+				expectedOutput := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}]}`)
+
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1/producer-1", "")
+
+				getSubscriptionList(consClient, &receivedSubList)
+
+				By("Expected subscription list 1 decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedSubList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortSubscriptionSlices(receivedSubList.Subscriptions,
+					expectedSubList.Subscriptions)
+
+				By("Comparing response 1 data")
+				Expect(receivedSubList).To(Equal(expectedSubList))
+
+				unsubscribeConsumer(consClient, sampleNotifications,
+					"namespace-1/producer-fake", "")
+
+				getSubscriptionList(consClient, &receivedSubList2)
+
+				sortSubscriptionSlices(receivedSubList2.Subscriptions,
+					expectedSubList2.Subscriptions)
+
+				By("Comparing response 2 data")
+				Expect(receivedSubList2).To(Equal(expectedSubList))
+			})
+
+			Specify("Unsubscribe: 1 Event in 1 Request with bad request's body", func() {
+				sampleNotifications := []eaa.NotificationDescriptor{
+					{
+						Name:    "event_1",
+						Version: "1.0.0",
+					},
+				}
+
+				expectedOutput := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}]}`)
+
+				subscribeConsumer(consClient, sampleNotifications,
+					"namespace-1/producer-1", "")
+
+				getSubscriptionList(consClient, &receivedSubList)
+
+				By("Expected subscription list 1 decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedSubList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				sortSubscriptionSlices(receivedSubList.Subscriptions,
+					expectedSubList.Subscriptions)
+
+				By("Comparing response 1 data")
+				Expect(receivedSubList).To(Equal(expectedSubList))
+
+				unsubscribeConsumerWithBadRequest(consClient,
+					"namespace-1/producer-1")
+
+				getSubscriptionList(consClient, &receivedSubList2)
+
+				By("Comparing response 2 data")
+				Expect(receivedSubList2).To(Equal(expectedSubList))
+			})
+
 			Specify("Unsubscribe: 2 Events in 1 Request", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
@@ -4048,21 +4890,21 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}," +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null},` +
+						`{"name":"event_2",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -4097,8 +4939,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("Unsubscribe: 2 Events with Identical Names"+
-				" in 1 Request", func() {
+			Specify("Unsubscribe: 2 Events with Identical Names in 1 Request", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -4111,21 +4952,21 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}," +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"2.0.0\"," +
-						"\"description\":null}" +
-						"]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null},` +
+						`{"name":"event_1",` +
+						`"version":"2.0.0",` +
+						`"description":null}` +
+						`]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -4180,18 +5021,18 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -4253,21 +5094,21 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}," +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null},` +
+						`{"name":"event_2",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -4305,8 +5146,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("Unsubscribe: 2 Events with Identical Names"+
-				" in 2 Requests", func() {
+			Specify("Unsubscribe: 2 Events with Identical Names in 2 Requests", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -4333,21 +5173,21 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}," +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"2.0.0\"," +
-						"\"description\":null}" +
-						"]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null},` +
+						`{"name":"event_1",` +
+						`"version":"2.0.0",` +
+						`"description":null}` +
+						`]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -4394,18 +5234,18 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
@@ -4443,8 +5283,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("Unsubscribe: 2 Events by 2 Producers"+
-				" in 1 Namespace", func() {
+			Specify("Unsubscribe: 2 Events by 2 Producers in 1 Namespace", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -4460,27 +5299,27 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}," +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}" +
-						"]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]},` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}` +
+						`]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -4521,8 +5360,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("Unsubscribe: 2 Events by 2 Producers"+
-				" in 2 Namespaces", func() {
+			Specify("Unsubscribe: 2 Events by 2 Producers in 2 Namespaces", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -4538,27 +5376,27 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}," +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}" +
-						"]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]},` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}` +
+						`]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -4599,8 +5437,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("Unsubscribe: 2 Events by 1 Producer"+
-				" in 2 Namespaces", func() {
+			Specify("Unsubscribe: 2 Events by 1 Producer in 2 Namespaces", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -4616,27 +5453,27 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}," +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}" +
-						"]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]},` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}` +
+						`]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -4677,8 +5514,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("Unsubscribe: 2 Events by 2 Producers"+
-				" in 2 Request", func() {
+			Specify("Unsubscribe: 2 Events by 2 Producers in 2 Request", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -4694,27 +5530,27 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}," +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}" +
-						"]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]},` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}` +
+						`]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -4755,8 +5591,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("Unsubscribe: 2 Events by 2 Producers with Identical"+
-				" Names in 2 Namespaces", func() {
+			Specify("Unsubscribe: 2 Events by 2 Producers with Identical Names in 2 Namespaces", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -4772,27 +5607,27 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}," +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_2\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}" +
-						"]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]},` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}` +
+						`]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":null}")
+					`{"subscriptions":null}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -4842,36 +5677,36 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}," +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}" +
-						"]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]},` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}` +
+						`]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}" +
-						"]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}` +
+						`]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -4909,8 +5744,7 @@ var _ = Describe("ApiEaa", func() {
 				Expect(receivedSubList2).To(Equal(expectedSubList2))
 			})
 
-			Specify("Unsubscribe: 1 Event by 2 Producers"+
-				" in 2 Namespaces", func() {
+			Specify("Unsubscribe: 1 Event by 2 Producers in 2 Namespaces", func() {
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "event_1",
@@ -4919,36 +5753,36 @@ var _ = Describe("ApiEaa", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-1\"," +
-						"\"namespace\":\"namespace-1\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}," +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}" +
-						"]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]},` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}` +
+						`]}`)
 
 				expectedOutput2 := strings.NewReader(
-					"{\"subscriptions\":[" +
-						"{\"urn\":" +
-						"{\"id\":\"producer-2\"," +
-						"\"namespace\":\"namespace-2\"}," +
-						"\"notifications\":[" +
-						"{\"name\":\"event_1\"," +
-						"\"version\":\"1.0.0\"," +
-						"\"description\":null}" +
-						"]}" +
-						"]}")
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.0",` +
+						`"description":null}` +
+						`]}` +
+						`]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -5051,13 +5885,13 @@ var _ = Describe("Eaa Data Validation", func() {
 					},
 				}
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"The Sanity Producer\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"Description for Event #1 by Producer #1\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"The Sanity Producer",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]}]}`)
 
 				registerProducer(prodClient, producer, "")
 				getServiceList(accessClient, &receivedServList)
@@ -5095,13 +5929,13 @@ var _ = Describe("Eaa Data Validation", func() {
 					},
 				}
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"The Sanity Producer\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"Description for Event #1 by Producer #1\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"The Sanity Producer",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]}]}`)
 
 				registerProducer(prodClient, producer, "")
 				getServiceList(accessClient, &receivedServList)
@@ -5138,13 +5972,13 @@ var _ = Describe("Eaa Data Validation", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"Description for Event #1 by Producer #1\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]}]}`)
 
 				registerProducer(prodClient, producer, "")
 				getServiceList(accessClient, &receivedServList)
@@ -5174,11 +6008,11 @@ var _ = Describe("Eaa Data Validation", func() {
 					EndpointURI: "https://1.2.3.4",
 				}
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":null}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":null}]}`)
 
 				registerProducer(prodClient, producer, "")
 				getServiceList(accessClient, &receivedServList)
@@ -5216,13 +6050,13 @@ var _ = Describe("Eaa Data Validation", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"Description for Event #1 by Producer #1\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]}]}`)
 
 				registerProducer(prodClient, producer, "")
 				getServiceList(accessClient, &receivedServList)
@@ -5259,11 +6093,11 @@ var _ = Describe("Eaa Data Validation", func() {
 					},
 				}
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":null}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":null}]}`)
 
 				registerProducer(prodClient, producer, "")
 				getServiceList(accessClient, &receivedServList)
@@ -5299,11 +6133,11 @@ var _ = Describe("Eaa Data Validation", func() {
 					},
 				}
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":null}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":null}]}`)
 
 				registerProducer(prodClient, producer, "")
 				getServiceList(accessClient, &receivedServList)
@@ -5339,13 +6173,13 @@ var _ = Describe("Eaa Data Validation", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:""}]}]}`)
 
 				registerProducer(prodClient, producer, "")
 				getServiceList(accessClient, &receivedServList)
@@ -5388,13 +6222,13 @@ var _ = Describe("Eaa Data Validation", func() {
 				}
 
 				expectedOutput := strings.NewReader(
-					"{\"services\":[{\"urn\":{\"id\"" +
-						":\"producer-1\",\"namespace\":\"namespace-1\"}," +
-						"\"description\":\"example description\"," +
-						"\"endpoint_uri\":\"https://1.2.3.4\"," +
-						"\"notifications\":[{\"name\":\"Event #1\"," +
-						"\"version\":\"1.0.0\",\"description\"" +
-						":\"Description for Event #1 by Producer #1\"}]}]}")
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]}]}`)
 
 				registerProducer(prodClient, producer, "")
 				getServiceList(accessClient, &receivedServList)
