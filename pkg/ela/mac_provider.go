@@ -75,7 +75,8 @@ func getMACForVMvhostuser(appID string) (string, error) {
 	}
 
 	for _, iface := range domcfg.Devices.Interfaces {
-		if iface.Source.VHostUser != nil {
+		if iface.Source.VHostUser != nil && iface.Source.VHostUser.UNIX != nil &&
+			iface.Source.VHostUser.UNIX.Path == ntsVhostFile {
 			return iface.MAC.Address, nil
 		}
 	}

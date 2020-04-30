@@ -926,27 +926,6 @@ func createDomainCfg(dapp *metadata.DeployedApp) libvirtxml.Domain {
 }
 
 func (s *DeploySrv) configureIfs(dapp *metadata.DeployedApp, domcfg *libvirtxml.Domain) {
-	if s.cfg.OpenvSwitch {
-		domcfg.Devices.Interfaces = append(domcfg.Devices.Interfaces,
-			libvirtxml.DomainInterface{
-				Source: &libvirtxml.DomainInterfaceSource{
-					VHostUser: &libvirtxml.DomainChardevSource{
-						UNIX: &libvirtxml.DomainChardevSourceUNIX{
-							Path: path.Join(ovsPath, s.cfg.OpenvSwitchBridge+
-								"-"+dapp.App.Id+".sock"),
-							Mode: "server",
-						},
-					},
-				},
-				Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
-			},
-		)
-		if err := addOVSPort(s.cfg.OpenvSwitchBridge, dapp.App.Id); err != nil {
-			log.Errf("failed to add port to OVS: %+v", err)
-			return
-		}
-	}
-
 	if s.cfg.UseCNI {
 		if t, cniErr := cni.GetTypeFromCNIConfig(dapp.App.CniConf.CniConfig); cniErr != nil {
 			dapp.App.Status = pb.LifecycleStatus_ERROR
@@ -1007,6 +986,26 @@ func (s *DeploySrv) configureIfs(dapp *metadata.DeployedApp, domcfg *libvirtxml.
 				Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
 			},
 		)
+	}
+	if s.cfg.OpenvSwitch {
+		domcfg.Devices.Interfaces = append(domcfg.Devices.Interfaces,
+			libvirtxml.DomainInterface{
+				Source: &libvirtxml.DomainInterfaceSource{
+					VHostUser: &libvirtxml.DomainChardevSource{
+						UNIX: &libvirtxml.DomainChardevSourceUNIX{
+							Path: path.Join(ovsPath, s.cfg.OpenvSwitchBridge+
+								"-"+dapp.App.Id+".sock"),
+							Mode: "server",
+						},
+					},
+				},
+				Model: &libvirtxml.DomainInterfaceModel{Type: "virtio"},
+			},
+		)
+		if err := addOVSPort(s.cfg.OpenvSwitchBridge, dapp.App.Id); err != nil {
+			log.Errf("failed to add port to OVS: %+v", err)
+			return
+		}
 	}
 }
 
