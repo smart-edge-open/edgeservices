@@ -362,9 +362,12 @@ func handleCPUPinContainer(value string, genericCfg interface{}, additionalCfg i
 	log.Err("Please provide only one input format for CPU pinning, skipping")
 }
 
-func processPorts(ports []*pb.PortProto, cfg *container.Config) {
+func processPorts(ports []*pb.PortProto, hcfg *container.HostConfig, cfg *container.Config) {
 	if cfg.ExposedPorts == nil {
 		cfg.ExposedPorts = make(nat.PortSet)
+	}
+	if hcfg.PortBindings == nil {
+		hcfg.PortBindings = make(nat.PortMap)
 	}
 	for _, p := range ports {
 		var port nat.Port
@@ -380,10 +383,15 @@ func processPorts(ports []*pb.PortProto, cfg *container.Config) {
 		}
 		port, err := nat.NewPort(p.Protocol, fmt.Sprintf("%d", p.Port))
 		if err != nil {
-			log.Warning("Failed to parse ports: %v", err)
+			log.Warning("Failed to parse port %v: %v", p.Port, err)
 			return
 		}
 		cfg.ExposedPorts[port] = struct{}{}
+
+		var portBinding nat.PortBinding
+		portBinding.HostPort = fmt.Sprintf("%d", p.Port)
+
+		hcfg.PortBindings[port] = append(hcfg.PortBindings[port], portBinding)
 	}
 
 }
@@ -692,7 +700,7 @@ func (s *DeploySrv) syncDeployContainer(ctx context.Context,
 	}
 
 	// Update hostCfg and containCfg based on EAC configuration
-	processPorts(dapp.App.Ports, &containerCfg)
+	processPorts(dapp.App.Ports, &hostCfg, &containerCfg)
 	processEAC(dapp.App.EACJsonBlob, EACHandlersDocker, &hostCfg, &containerCfg)
 	log.Debugf("containerCfg: %+v", containerCfg)
 	log.Debugf("hostCfg: %+v", hostCfg)
