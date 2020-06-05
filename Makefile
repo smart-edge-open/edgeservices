@@ -13,7 +13,7 @@ export GO111MODULE = on
 	lint test help build pull-syslog
 COPY_DOCKERFILES := $(shell /usr/bin/cp -rfT ./build/ ./dist/)
 VER ?= 1.0
-RTE_SDK ?= /opt/dpdk-18.11.2
+RTE_SDK ?= /opt/dpdk-18.11.6
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
