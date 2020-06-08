@@ -3,8 +3,8 @@
 
 FROM centos:7.6.1810 AS eaa-deps-image
 
-RUN yum install -y openssl sudo \
-    && yum clean all
+RUN yum install -y sudo \
+	&& yum clean all
 
 FROM eaa-deps-image
 
