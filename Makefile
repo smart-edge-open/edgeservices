@@ -9,7 +9,7 @@ export GO111MODULE = on
 	run-onprem-nts clean \
 	eaa  edgednssvr nts edalibs ovncni hddllog  syslog-ng \
 	networkedge networkedge-kubeovn \
-	interfaceservice biosfw fpga-cfg fpga-opae \
+	interfaceservice biosfw fpga-opae \
 	lint test help build pull-syslog
 COPY_DOCKERFILES := $(shell /usr/bin/cp -rfT ./build/ ./dist/)
 VER ?= 1.0
@@ -46,7 +46,6 @@ help:
 	@echo "  ovncni                 to build only ovncni executable"
 	@echo "  hddllog                to build only docker image of the HDDL Service"
 	@echo "  biosfw                 to build only docker image of the BIOSFW"
-	@echo "  fpga-cfg               to build only docker image of the FPGA Config"
 	@echo "  fpga-opae              to build only docker image of the FPGA OPAE"
 	@echo "  syslog-ng              to build only docker image of the syslog-ng"
 	@echo "  pull-syslog            to pull docker image of the syslog-ng"
@@ -136,9 +135,6 @@ endif
 
 biosfw:
 	docker build -t openness-$@ -f ./dist/$@/Dockerfile ./dist/$@/
-
-fpga-cfg:
-	docker build -t fpga-config-utility:1.0 -f ./dist/fpga_config/Dockerfile ./dist/fpga_config/
 
 fpga-opae:
 	docker build -t fpga-opae-pacn3000:1.0 -f ./dist/fpga_opae/Dockerfile ./dist/fpga_opae/
