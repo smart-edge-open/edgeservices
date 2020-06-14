@@ -63,7 +63,10 @@ networkedge-kubeovn: networkedge interfaceservice
 
 run-onprem-nts:
 	VER=${VER} docker-compose up appliance nts eaa edgednssvr syslog-ng --no-build
-
+	
+run-onprem-appliance:
+	VER=$(VER) docker-compose up --force-recreate --build --no-deps -d appliance
+	
 clean:
 	rm -rf ./dist
 	$(MAKE) clean -C internal/nts
