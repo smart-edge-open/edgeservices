@@ -1,0 +1,16 @@
+syntax="proto3";
+
+package openness.newIP;
+
+service IPUpdate{
+
+	rpc NewIP(IP) returns (Reply) {}
+}
+
+message IP{
+string ip = 1;
+}
+
+message Reply{
+string reply=1;
+}
