@@ -5,17 +5,14 @@ FROM centos:7.6.1810 as builder
 WORKDIR /home
 
 RUN yum update -y
+RUN yum install -y epel-release
 RUN yum install -y \
     cpio sudo python3-pip python3-setuptools wget \
-    boost-filesystem-1.53.0-27.el7.x86_64 \
-    boost-thread-1.53.0-27.el7.x86_64 \
-    boost-program-options-1.53.0-27.el7.x86_64 \
-    boost-system-1.53.0-27.el7.x86_64 \
-    boost-chrono-1.53.0-27.el7.x86_64 \
-    boost-date-time-1.53.0-27.el7.x86_64 \
-    boost-atomic-1.53.0-27.el7.x86_64 \
-    build-essential autoconf automake libtool \
-    kmod libelf-dev libusb-1.0-0 lsb-release 
+    boost \
+    boost-thread \
+    boost-devel \
+    gcc gcc-c++ make autoconf automake libtool \
+    kmod 
 RUN yum -y install gcc automake autoconf libtool
 RUN yum -y install make
 ARG LIBUSB_VER=v1.0.22
@@ -45,17 +42,15 @@ FROM centos:7.6.1810
 
 SHELL ["/bin/bash", "-c"]
 RUN yum update -y 
+RUN yum install -y epel-release
 RUN yum install -y sudo
 RUN yum install -y nasm \
-    boost-filesystem-1.53.0-27.el7.x86_64 \
-    boost-program-options-1.53.0-27.el7.x86_64 \
-    boost-thread-1.53.0-27.el7.x86_64 \
-    boost-system-1.53.0-27.el7.x86_64 \
-    boost-chrono-1.53.0-27.el7.x86_64 \
-    boost-date-time-1.53.0-27.el7.x86_64 \
-    boost-atomic-1.53.0-27.el7.x86_64 \
-    libusb-1.0-0 autoconf automake make libtool kmod libelf-dev \
+    boost \
+    boost-thread \
+    boost-devel \
+    autoconf automake make libtool kmod  \
     redhat-lsb-core-4.1-27.el7.centos.1.x86_64 
+
 
 COPY --from=builder /usr/lib64/libusb-1.0.so.0 /usr/lib64/libusb-1.0.so.0
 COPY --from=builder /home/opt/intel/openvino /opt/intel/hddl
