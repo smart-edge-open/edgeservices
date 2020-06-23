@@ -37,6 +37,7 @@ RUN cd /opt/intel/openvino/deployment_tools/tools/deployment_manager && \
     mkdir -p /home/opt/intel && \
     cd /home/opt/intel && \
     tar xvf /home/hddl.tar.gz
+RUN ls /home/opt/intel
 
 FROM centos:7.6.1810
 
@@ -53,7 +54,7 @@ RUN yum install -y nasm \
 
 
 COPY --from=builder /usr/lib64/libusb-1.0.so.0 /usr/lib64/libusb-1.0.so.0
-COPY --from=builder /home/opt/intel/openvino /opt/intel/hddl
+COPY --from=builder /home/opt/intel /opt/intel/hddl
 RUN sed -i '/"device_snapshot_mode"/ s/none/full/' /opt/intel/hddl/deployment_tools/inference_engine/external/hddl/config/hddl_service.config
 RUN sed -i '/"abort_if_hw_reset_failed"/ s/true/false/' /opt/intel/hddl/deployment_tools/inference_engine/external/hddl/config/hddl_autoboot.config
 COPY start.sh ./
