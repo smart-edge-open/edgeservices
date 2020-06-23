@@ -24,8 +24,8 @@ RUN wget -O - ${LIBUSB_REPO} | tar xz && \
     make -j $(nproc) && \
     cp ./libusb/.libs/libusb-1.0.so /usr/lib64/libusb-1.0.so.0
 
-ARG OPENVINO_VER=2019.3.334
-ARG OPENVINO_REPO=http://registrationcenter-download.intel.com/akdlm/irc_nas/15944/l_openvino_toolkit_p_${OPENVINO_VER}.tgz
+ARG OPENVINO_VER=2020.2.120
+ARG OPENVINO_REPO=http://registrationcenter-download.intel.com/akdlm/irc_nas/16612/l_openvino_toolkit_p_${OPENVINO_VER}.tgz
 
 RUN wget -O - ${OPENVINO_REPO} | tar xz && \
     cd l_openvino_toolkit* && \
