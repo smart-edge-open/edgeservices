@@ -318,12 +318,6 @@ func handleHddl(value string, genericCfg interface{}, additionalCfg interface{})
 	log.Infof("HDDL requested (%v), adding mappings.", value)
 
 	hostCfg := genericCfg.(*container.HostConfig)
-	devIon := container.DeviceMapping{
-		PathOnHost:        "/dev/ion",
-		PathInContainer:   "/dev/ion",
-		CgroupPermissions: "rmw",
-	}
-	hostCfg.Resources.Devices = append(hostCfg.Resources.Devices, devIon)
 	hostCfg.Binds = append(hostCfg.Binds, "/var/tmp:/var/tmp")
 	hostCfg.Binds = append(hostCfg.Binds, "/dev/shm:/dev/shm")
 }
