@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2019-2020 Intel Corporation
 
-FROM alpine:latest AS edgedns-deps-image
+FROM alpine:3.12.0 AS edgedns-deps-image
 
-RUN echo -e "http://nl.alpinelinux.org/alpine/v3.11/main\nhttp://nl.alpinelinux.org/alpine/v3.11/community" >> /etc/apk/repositories
-RUN apk add --no-cache sudo
+RUN printf "http://nl.alpinelinux.org/alpine/v3.11/main\nhttp://nl.alpinelinux.org/alpine/v3.11/community" >> /etc/apk/repositories
+RUN apk add --no-cache sudo=1.9.0-r0
 
 FROM edgedns-deps-image
 
