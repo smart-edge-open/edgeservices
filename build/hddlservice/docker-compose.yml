@@ -14,8 +14,6 @@ services:
      - SYS_ADMIN
     security_opt:
      - no-new-privileges:false
-    devices:
-     - "/dev/shm:/dev/shm"
     volumes:
      - "/dev:/dev"
      - "/dev/shm:/dev/shm"
