@@ -457,6 +457,7 @@ func handleCmd(cmd string, genericCfg interface{}, additionalCfg interface{}) {
 		return
 	}
 
+	containerCfg.Cmd = []string{} // make sure we start with an empty command
 	for _, arg := range strings.Split(cmd, " ") {
 		containerCfg.Cmd = append(containerCfg.Cmd, arg)
 	}
