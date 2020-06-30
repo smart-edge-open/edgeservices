@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2019-2020 Intel Corporation
 
-module github.com/otcshare/edgenode
+module github.com/open-ness/edgenode
 
 go v1.14.2
 
@@ -34,8 +34,8 @@ require (
 	github.com/onsi/gomega v1.9.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
-	github.com/otcshare/common/log v0.0.0-20191204122953-5cc7dfd62d15
-	github.com/otcshare/common/proxy v0.0.0-20191204122953-5cc7dfd62d15
+	github.com/open-ness/common/log v0.0.0-20191204122953-5cc7dfd62d15
+	github.com/open-ness/common/proxy v0.0.0-20191204122953-5cc7dfd62d15
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.6.0 // indirect
 	github.com/smartystreets/assertions v1.1.0 // indirect

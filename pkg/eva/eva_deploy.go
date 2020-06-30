@@ -30,11 +30,11 @@ import (
 
 	libvirtxml "github.com/libvirt/libvirt-go-xml"
 
-	"github.com/otcshare/edgenode/internal/wrappers"
-	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
-	"github.com/otcshare/edgenode/pkg/cni"
-	pb "github.com/otcshare/edgenode/pkg/eva/pb"
-	"github.com/otcshare/edgenode/pkg/ovncni"
+	"github.com/open-ness/edgenode/internal/wrappers"
+	metadata "github.com/open-ness/edgenode/pkg/app-metadata"
+	"github.com/open-ness/edgenode/pkg/cni"
+	pb "github.com/open-ness/edgenode/pkg/eva/pb"
+	"github.com/open-ness/edgenode/pkg/ovncni"
 	"github.com/pkg/errors"
 
 	"google.golang.org/grpc/codes"

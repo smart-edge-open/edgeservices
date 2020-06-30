@@ -14,9 +14,9 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
-	elahelpers "github.com/otcshare/edgenode/pkg/ela/helpers"
-	ifs "github.com/otcshare/edgenode/pkg/interfaceservice"
-	pb "github.com/otcshare/edgenode/pkg/interfaceservice/pb"
+	elahelpers "github.com/open-ness/edgenode/pkg/ela/helpers"
+	ifs "github.com/open-ness/edgenode/pkg/interfaceservice"
+	pb "github.com/open-ness/edgenode/pkg/interfaceservice/pb"
 )
 
 var (
