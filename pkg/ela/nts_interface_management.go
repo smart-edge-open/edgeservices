@@ -132,7 +132,8 @@ type interfaceData struct {
 	NetworkInterface *pb.NetworkInterface
 }
 
-func updateContainer(ctx context.Context, containerName string, updateConfig container.UpdateConfig) (container.ContainerUpdateOKBody, error) {
+func updateContainer(ctx context.Context, containerName string,
+	updateConfig container.UpdateConfig) (container.ContainerUpdateOKBody, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return container.ContainerUpdateOKBody{}, err
@@ -163,22 +164,30 @@ func stopContainer(ctx context.Context, containerName string) error {
 func isNTSrunning(ctx context.Context) error {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		cli.Close()
+		if closeErr := cli.Close(); closeErr != nil {
+			return errors.Wrap(err, closeErr.Error())
+		}
 		return err
 	}
 
 	containerData, err := cli.ContainerInspect(ctx, ntsContainerName)
 	if err != nil {
-		cli.Close()
+		if closeErr := cli.Close(); closeErr != nil {
+			return errors.Wrap(err, closeErr.Error())
+		}
 		return err
 	}
 
 	if containerData.State.Running {
-		cli.Close()
+		if closeErr := cli.Close(); closeErr != nil {
+			return errors.Wrap(err, closeErr.Error())
+		}
 		return nil
 	}
 
-	cli.Close()
+	if err = cli.Close(); err != nil {
+		return err
+	}
 	return errors.New("NTS container is not running, status: " +
 		containerData.State.Status)
 }
@@ -275,7 +284,7 @@ func restartDNSAndSetRules(ctx context.Context) error {
 		return errors.Wrap(err, "failed to update Edge DNS container")
 	}
 
-	if err := startContainer(ctx, dnsContainerName); err != nil {
+	if err = startContainer(ctx, dnsContainerName); err != nil {
 		return errors.Wrap(err, "failed to start Edge DNS")
 	}
 

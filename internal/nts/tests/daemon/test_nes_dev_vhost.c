@@ -184,7 +184,8 @@ static void test_send_vhost_unauthorized(void)
 }
 
 void add_nes_dev_vhost_suite_to_registry(void) {
-	CU_pSuite nes_dev_vhost_suite = CU_add_suite("nes_dev_vhost", init_suite_nes_dev_vhost, cleanup_suite_nes_dev_vhost);
+	CU_pSuite nes_dev_vhost_suite =
+		CU_add_suite("nes_dev_vhost", init_suite_nes_dev_vhost, cleanup_suite_nes_dev_vhost);
 
 	CU_add_test(nes_dev_vhost_suite, "test_nes_dev_vhost_mempool_init", test_nes_dev_vhost_mempool_init);
 	CU_add_test(nes_dev_vhost_suite, "test_create_vm_rings", test_create_vm_rings);

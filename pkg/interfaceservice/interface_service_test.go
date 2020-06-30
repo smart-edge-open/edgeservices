@@ -22,7 +22,13 @@ import (
 var (
 	vsctlMock   VsctlMock
 	devbindMock DevbindMock
-	debugMocks  = false
+	debugMocks  = true
+
+	// store function pointers from interfaceservice pkg
+	// to be able to call them if ifs.ReattachDpdkPorts & ifs.KernelNetworkDevicesProvider
+	// are overritetten by mocks
+	ifsReattachDpdkPortsFunction    = ifs.ReattachDpdkPorts
+	ifsKernelNetworkDevicesProvider = ifs.KernelNetworkDevicesProvider
 )
 
 var bindOut = `Network devices using DPDK-compatible driver
@@ -276,7 +282,6 @@ var _ = Describe("InterfaceService", func() {
 	Describe("Attach", func() {
 		Context("already attached 0000:00:00.0 to Port_KERNEL", func() {
 			It("should return no error", func() {
-
 				devbindMock.AddResult(bindOut, nil)
 				vsctlMock.AddResult("", nil)
 				vsctlMock.AddResult("", nil)
@@ -300,7 +305,6 @@ var _ = Describe("InterfaceService", func() {
 	Describe("Attach", func() {
 		Context("already attached 0000:00:00.0 to Port_KERNEL", func() {
 			It("should return no error", func() {
-
 				devbindMock.AddResult(bindOut, nil)
 				vsctlMock.AddResult("", nil)
 				vsctlMock.AddResult("", nil)
@@ -356,7 +360,6 @@ var _ = Describe("InterfaceService", func() {
 	Describe("Detach", func() {
 		Context("0000:00:01.0 to Port_KERNEL", func() {
 			It("should return no error", func() {
-
 				str := `Bridge br-test
 				datapath_type: netdev
 				Port eth0
@@ -383,6 +386,115 @@ var _ = Describe("InterfaceService", func() {
 				})
 
 				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("Call uncovered functions", func() {
+		Context("call getKernelNetworkDevices which is mocked in other tests", func() {
+			It("should return no error", func() {
+				ifsKernelNetworkDevicesProvider()
+			})
+		})
+		Context("call Get()", func() {
+			It("should return error as vsctl fails", func() {
+				_, err := get()
+				Expect(err).To(HaveOccurred())
+			})
+		})
+		Context("call getKernelNetworkDevices", func() {
+			It("iterfaceservice.ReattachDpdkPorts deattach error", func() {
+				e := errors.New("Error attaching device")
+				vsctlMock.AddResult("", nil) // resp for show
+
+				err := ifsReattachDpdkPortsFunction()
+				Expect(err).To(HaveOccurred())
+
+				// resp for show
+				vsctlMock.AddResult("", nil)
+				// resp for list-br
+				vsctlMock.AddResult("br-int\nbr-userspace", nil)
+				// resp for get bridge br-int datapath_type - this will be skipped
+				vsctlMock.AddResult("system", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("netdev", nil)
+				// list-interfaces
+				vsctlMock.AddResult("interface-ok\ninterface-error", nil)
+				// no error for interface-ok
+				vsctlMock.AddResult("", e)
+				// error for interface-error
+				vsctlMock.AddResult("Error attaching device 0000:00:00.1", nil)
+				devbindMock.AddResult(
+					"0000:00:00.1 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb'"+
+						" if=eth1 drv=ixgbe unused=igb_uio", nil)
+
+				err = ifsReattachDpdkPortsFunction()
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("iterfaceservice.ReattachDpdkPorts attach error", func() {
+				e := errors.New("Error attaching device")
+				vsctlMock.AddResult("", nil) // resp for show
+
+				err := ifsReattachDpdkPortsFunction()
+				Expect(err).To(HaveOccurred())
+
+				// resp for show
+				vsctlMock.AddResult("", nil)
+				// resp for list-br
+				vsctlMock.AddResult("br-int\nbr-userspace", nil)
+				// resp for get bridge br-int datapath_type - this will be skipped
+				vsctlMock.AddResult("system", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("netdev", nil)
+				// list-interfaces
+				vsctlMock.AddResult("interface-ok\ninterface-error", nil)
+				// no error for interface-ok
+				vsctlMock.AddResult("", e)
+				// error for interface-error
+				vsctlMock.AddResult("Error attaching device 0000:00:00.1", nil)
+				devbindMock.AddResult(
+					"0000:00:00.1 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb'"+
+						" if=eth1 drv=ixgbe unused=igb_uio", nil)
+				// resp for del-port eth1
+				vsctlMock.AddResult("", nil)
+
+				err = ifsReattachDpdkPortsFunction()
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("iterfaceservice.ReattachDpdkPorts attach error", func() {
+				e := errors.New("Error attaching device")
+				prepareMocks()
+				vsctlMock.AddResult("", nil) // resp for show
+
+				err := ifsReattachDpdkPortsFunction()
+				Expect(err).To(HaveOccurred())
+
+				// resp for show
+				vsctlMock.AddResult("", nil)
+				// resp for list-br
+				vsctlMock.AddResult("br-int\nbr-userspace", nil)
+				// resp for get bridge br-int datapath_type - this will be skipped
+				vsctlMock.AddResult("system", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("netdev", nil)
+				// list-interfaces
+				vsctlMock.AddResult("interface-ok\ninterface-error", nil)
+				// no error for interface-ok
+				vsctlMock.AddResult("", e)
+				// error for interface-error
+				vsctlMock.AddResult("Error attaching device 0000:00:00.1", nil)
+				devbindMock.AddResult(
+					"0000:00:00.1 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb'"+
+						" if=eth1 drv=ixgbe unused=igb_uio", nil)
+				// resp for del-port eth1
+				vsctlMock.AddResult("", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("", nil)
+
+				err = ifsReattachDpdkPortsFunction()
+				Expect(err).To(HaveOccurred())
 			})
 		})
 	})

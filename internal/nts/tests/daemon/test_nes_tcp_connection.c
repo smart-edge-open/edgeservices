@@ -70,7 +70,7 @@ static void nes_connection_un_setup_test(void) {
 
 void add_nes_tcp_connection_suite_to_registry(void) {
 	CU_pSuite nes_tcp_connection_suite =
-			  CU_add_suite("nes_tcp_connection", init_suite_nes_tcp_connection, cleanup_suite_nes_tcp_connection);
+		CU_add_suite("nes_tcp_connection", init_suite_nes_tcp_connection, cleanup_suite_nes_tcp_connection);
 
 	CU_add_test(nes_tcp_connection_suite, "nes_connection_un_setup", nes_connection_un_setup_test);
 

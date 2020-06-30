@@ -31,59 +31,61 @@ type CCreateArgs struct {
 // DockerClientStub struct implementation
 type DockerClientStub struct {
 	// ImageLoad
-	ImLoadResp   types.ImageLoadResponse
-	ImLoadErr    error
-	ImLoadCalled bool
+	ImLoadResp types.ImageLoadResponse
+	ImLoadErr  error
 
 	// ImageTag
-	ImTagErr    error
-	ImTagCalled bool
+	ImTagErr error
 
 	// ImageRemove
-	ImRemoveResp   []types.ImageDeleteResponseItem
-	ImRemoveErr    error
-	ImRemoveCalled bool
+	ImRemoveResp []types.ImageDeleteResponseItem
+	ImRemoveErr  error
 
 	// ImagePull
-	ImPullResp   io.ReadCloser
-	ImPullErr    error
-	ImPullCalled bool
+	ImPullResp io.ReadCloser
+	ImPullErr  error
 
 	// ImageList
-	ImListResp   []types.ImageSummary
-	ImListErr    error
-	ImListCalled bool
+	ImListResp []types.ImageSummary
+	ImListErr  error
 
 	// ContainerCreate
-	CCreateBody   container.ContainerCreateCreatedBody
-	CCreateErr    error
-	CCreateCalled bool
-	CCreateArgs   CCreateArgs
+	CCreateBody container.ContainerCreateCreatedBody
+	CCreateErr  error
+	CCreateArgs CCreateArgs
 
 	// ContainerRemove
-	CRemoveErr    error
-	CRemoveCalled bool
+	CRemoveErr error
 
 	// ContainerStart
-	CStartErr    error
-	CStartCalled bool
+	CStartErr error
 
 	// ConstainerStop
-	CStopErr    error
-	CStopCalled bool
+	CStopErr error
 
 	// ConstainerRestart
-	CRestartErr    error
-	CRestartCalled bool
+	CRestartErr error
 
 	// ContainerList
-	CListResp   []types.Container
-	CListErr    error
-	CListCalled bool
+	CListResp []types.Container
+	CListErr  error
 
 	// ContainerInspect
-	CInspectResp   types.ContainerJSON
-	CInspectErr    error
+	CInspectResp types.ContainerJSON
+	CInspectErr  error
+
+	// Respective bool variables
+	ImLoadCalled   bool
+	ImTagCalled    bool
+	ImRemoveCalled bool
+	ImPullCalled   bool
+	ImListCalled   bool
+	CCreateCalled  bool
+	CRemoveCalled  bool
+	CStartCalled   bool
+	CStopCalled    bool
+	CRestartCalled bool
+	CListCalled    bool
 	CInspectCalled bool
 }
 

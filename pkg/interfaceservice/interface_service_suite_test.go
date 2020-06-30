@@ -24,6 +24,11 @@ var (
 	transportCreds credentials.TransportCredentials
 )
 
+func reatachPortsMock() error {
+	log.Errf("Skipping reattaching ports for unit testing...")
+	return nil
+}
+
 func TestInterfaceService(t *testing.T) {
 	RegisterFailHandler(Fail)
 
@@ -34,9 +39,6 @@ func TestInterfaceService(t *testing.T) {
 	Expect(authtest.EnrollStub(certsDir)).ToNot(HaveOccurred())
 	transportCreds, err = authtest.ClientCredentialsStub()
 	Expect(err).NotTo(HaveOccurred())
-
-	prepareMocks()
-	vsctlMock.AddResult("", nil) //resp for reattachDpdkPorts()
 
 	// Write ELA's config
 	err = ioutil.WriteFile("interfaceservice.json", []byte(fmt.Sprintf(`
@@ -52,6 +54,7 @@ func TestInterfaceService(t *testing.T) {
 	go func() {
 		err := ioutil.WriteFile("./dpdk-devbind.py", []byte{}, os.ModePerm)
 		Expect(err).NotTo(HaveOccurred())
+		interfaceservice.ReattachDpdkPorts = reatachPortsMock
 		err = interfaceservice.Run(srvCtx, "interfaceservice.json")
 		if err != nil {
 			log.Errf("interfaceservice.Run exited with error: %+v", err)

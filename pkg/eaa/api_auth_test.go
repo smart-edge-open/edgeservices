@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"math/big"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -296,7 +297,7 @@ var _ = Describe("CertsValidation", func() {
 	Describe("Validate RCA", func() {
 
 		Context("RCA cert is not rootCA", func() {
-			Specify("Init of Applicance should fail", func() {
+			Specify("Init of EAA should fail", func() {
 
 				initCerts()
 
@@ -316,7 +317,7 @@ var _ = Describe("CertsValidation", func() {
 		})
 
 		Context("RCA cert with start date set in the future", func() {
-			Specify("Init of Applicance should fail", func() {
+			Specify("Init of EAA should fail", func() {
 
 				initCerts()
 
@@ -337,7 +338,7 @@ var _ = Describe("CertsValidation", func() {
 		})
 
 		Context("RCA cert with expiration date set in the past", func() {
-			Specify("Init of Applicance should fail", func() {
+			Specify("Init of EAA should fail", func() {
 
 				initCerts()
 
@@ -361,7 +362,7 @@ var _ = Describe("CertsValidation", func() {
 	Describe("Validate EAA Cert", func() {
 
 		Context("EAA cert with start date set in the future", func() {
-			Specify("Init of Applicance should fail", func() {
+			Specify("Init of EAA should fail", func() {
 
 				initCerts()
 
@@ -381,7 +382,7 @@ var _ = Describe("CertsValidation", func() {
 		})
 
 		Context("EAA cert with expiration date set in the past", func() {
-			Specify("Init of Applicance should fail", func() {
+			Specify("Init of EAA should fail", func() {
 				initCerts()
 
 				// replace certificate
@@ -396,6 +397,194 @@ var _ = Describe("CertsValidation", func() {
 				Expect(exitCode).NotTo(Equal(0))
 
 				removeCerts()
+			})
+		})
+
+		Context("EAA cert prepared by Controller are read", func() {
+			Specify("Init of EAA should pass", func() {
+				certsSrcDir := "testdata/certs/"
+				copyCerts(certsSrcDir)
+
+				startStopCh := make(chan bool)
+				err := runEaa(startStopCh)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				// Validate that certs are not overwritten by EAA
+				compareCerts(certsSrcDir)
+
+				exitCode := stopEaa(startStopCh)
+				Expect(exitCode).NotTo(Equal(0))
+				removeCerts()
+			})
+		})
+	})
+})
+
+var _ = Describe("Initialization tests", func() {
+	startStopCh := make(chan bool)
+	const devNull = "/dev/null/file"
+	BeforeEach(func() {
+		initCerts()
+	})
+
+	AfterEach(func() {
+		exitCode := stopEaa(startStopCh)
+		Expect(exitCode).NotTo(Equal(0))
+		removeCerts()
+	})
+
+	Describe("EAA initialization", func() {
+		Context("EAA init without existing config", func() {
+			Specify("Init of EAA should fail", func() {
+				os.Remove(tempdir + "/configs/eaa.json")
+				err := runEaa(startStopCh) //should fail
+				Expect(err).Should(HaveOccurred())
+			})
+		})
+
+		Context("Initialize EAA when TLSEndpoint port is already used", func() {
+			Specify("Init of EAA should fail", func() {
+				// Create fake listener on TLSEndpoint
+				generateConfigs()
+				fakeLis, _ := net.Listen("tcp", cfg.TLSEndpoint)
+
+				// Init EAA
+				err := runEaa(startStopCh) // should fail
+				Expect(err).Should(HaveOccurred())
+
+				// Close fake listener
+				fakeLis.Close()
+			})
+		})
+
+		Context("Initialize EAA when CA Root Key Path is wrong", func() {
+			Specify("Init of EAA should fail", func() {
+				// Point file to /dev/null
+				tempConfCaRootKeyPathBackup := tempConfCaRootKeyPath
+				tempConfCaRootKeyPath = devNull
+				generateConfigs()
+
+				// Init EAA
+				err := runEaa(startStopCh) // should fail
+				Expect(err).Should(HaveOccurred())
+
+				tempConfCaRootKeyPath = tempConfCaRootKeyPathBackup
+			})
+		})
+
+		Context("Initialize EAA when CA Root Path is wrong", func() {
+			Specify("Init of EAA should fail", func() {
+				// Point file to /dev/null
+				tempConfCaRootPathBackup := tempConfCaRootPath
+				tempConfCaRootPath = devNull
+				generateConfigs()
+
+				// Init EAA
+				err := runEaa(startStopCh) // should fail
+				Expect(err).Should(HaveOccurred())
+
+				tempConfCaRootPath = tempConfCaRootPathBackup
+			})
+		})
+
+		Context("Initialize EAA when Server Cert Path is wrong", func() {
+			Specify("Init of EAA should fail", func() {
+				// Point file to /dev/null
+				tempConfServerCertPathBackup := tempConfServerCertPath
+				tempConfServerCertPath = devNull
+				generateConfigs()
+
+				// Init EAA
+				err := runEaa(startStopCh) // should fail
+				Expect(err).Should(HaveOccurred())
+
+				tempConfServerCertPath = tempConfServerCertPathBackup
+			})
+		})
+
+		Context("Initialize EAA when Server Key Cert Path is wrong", func() {
+			Specify("Init of EAA should fail", func() {
+				// Point file to /dev/null
+				tempConfServerKeyPathBackup := tempConfServerKeyPath
+				tempConfServerKeyPath = devNull
+				generateConfigs()
+
+				// Init EAA
+				err := runEaa(startStopCh) // should fail
+				Expect(err).Should(HaveOccurred())
+
+				tempConfServerKeyPath = tempConfServerKeyPathBackup
+			})
+		})
+
+		Context("Initialize EAA when CA Root Key Path is empty file", func() {
+			Specify("Init of EAA should not fail", func() {
+				generateConfigs()
+				// Remove and recreate file as empty
+				os.Remove(tempConfCaRootKeyPath)
+				os.Create(tempConfCaRootKeyPath)
+
+				// Init EAA
+				err := runEaa(startStopCh)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+		})
+
+		Context("Initialize EAA when Server Key Path is empty file", func() {
+			Specify("Init of EAA should fail", func() {
+				generateConfigs()
+				os.Remove(tempConfServerKeyPath)
+				os.Create(tempConfServerKeyPath)
+
+				// Init EAA
+				err := runEaa(startStopCh) // should fail
+				Expect(err).Should(HaveOccurred())
+			})
+		})
+	})
+})
+
+var _ = Describe("Auth API error tests", func() {
+	var (
+		clientPriv crypto.PrivateKey
+		identity   eaa.AuthIdentity
+	)
+	Describe("Wrong initialization parameters", func() {
+		Context("Wrong validation endpoint provided", func() {
+			Specify("Auth request should fail", func() {
+				ValidationEndpointBackup := cfg.ValidationEndpoint
+				cfg.ValidationEndpoint = ",,,"
+				generateConfigs()
+
+				startStopCh := make(chan bool)
+				err := runEaa(startStopCh)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				clientPriv, err = ecdsa.GenerateKey(
+					elliptic.P256(),
+					rand.Reader,
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				identity.Csr = CreateCSR(clientPriv,
+					PrepareCertificateRequestTemplate())
+
+				reqBody, err := json.Marshal(identity)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				resp, err := http.Post("http://"+cfg.OpenEndpoint+"/auth", "",
+					bytes.NewBuffer(reqBody))
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(resp.StatusCode).ShouldNot(Equal(
+					http.StatusOK))
+
+				exitCode := stopEaa(startStopCh)
+				Expect(exitCode).NotTo(Equal(0))
+
+				removeCerts()
+
+				cfg.ValidationEndpoint = ValidationEndpointBackup
+				generateConfigs()
 			})
 		})
 	})

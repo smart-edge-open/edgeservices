@@ -22,6 +22,9 @@ var (
 	Vsctl = vsctl
 	// Devbind stores function which executes dpdk-devbind.py command with given args
 	Devbind = devbind
+
+	// ReattachDpdkPorts function pointer called before server is up and running
+	ReattachDpdkPorts = reattachDpdkPorts
 )
 
 // InterfaceService provides service for managing physical

@@ -275,15 +275,18 @@ set_new_ipv4_src_test(void) {
 }
 
 void add_nes_dns_tools_suite_to_registry(void) {
-	CU_pSuite nes_dns_tools_suite = CU_add_suite("nes_dns_tools", init_suite_nes_dns_tools, cleanup_suite_nes_dns_tools);
+	CU_pSuite nes_dns_tools_suite =
+		CU_add_suite("nes_dns_tools", init_suite_nes_dns_tools, cleanup_suite_nes_dns_tools);
 
 	CU_add_test(nes_dns_tools_suite, "nes_dns_labels_to_domain_test", nes_dns_labels_to_domain_test);
 	CU_add_test(nes_dns_tools_suite, "nes_dns_is_ip_test", nes_dns_is_ip_test);
 	CU_add_test(nes_dns_tools_suite, "nes_dns_is_arp_test", nes_dns_is_arp_test);
-	CU_add_test(nes_dns_tools_suite, "nes_dns_recompute_cksum16_finish_test", nes_dns_recompute_cksum16_finish_test);
+	CU_add_test(nes_dns_tools_suite, "nes_dns_recompute_cksum16_finish_test",
+				nes_dns_recompute_cksum16_finish_test);
 	CU_add_test(nes_dns_tools_suite, "nes_dns_recompute_cksum16_test", nes_dns_recompute_cksum16_test);
 	CU_add_test(nes_dns_tools_suite, "nes_dns_recompute_cksum_new_ip_test", nes_dns_recompute_cksum_new_ip_test);
-	CU_add_test(nes_dns_tools_suite, "nes_dns_recompute_inner_ipv4_checksums_test", nes_dns_recompute_inner_ipv4_checksums_test);
+	CU_add_test(nes_dns_tools_suite, "nes_dns_recompute_inner_ipv4_checksums_test",
+				nes_dns_recompute_inner_ipv4_checksums_test);
 	CU_add_test(nes_dns_tools_suite, "set_new_ipv4_addr_test", set_new_ipv4_addr_test);
 	CU_add_test(nes_dns_tools_suite, "set_new_ipv4_dst_test", set_new_ipv4_dst_test);
 	CU_add_test(nes_dns_tools_suite, "set_new_ipv4_src_test", set_new_ipv4_src_test);

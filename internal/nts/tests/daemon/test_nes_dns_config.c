@@ -302,12 +302,14 @@ nes_dns_tap_create_test(void) {
 }
 
 void add_nes_dns_config_suite_to_registry(void) {
-	CU_pSuite nes_dns_config_suite = CU_add_suite("nes_dns_config", init_suite_nes_dns_config, cleanup_suite_nes_dns_config);
+	CU_pSuite nes_dns_config_suite =
+		CU_add_suite("nes_dns_config", init_suite_nes_dns_config, cleanup_suite_nes_dns_config);
 
 	CU_add_test(nes_dns_config_suite, "nes_dns_ether_aton_test", nes_dns_ether_aton_test);
 	CU_add_test(nes_dns_config_suite, "nes_dns_mac_from_cfg_test", nes_dns_mac_from_cfg_test);
 	CU_add_test(nes_dns_config_suite, "nes_dns_ip_from_cfg_test", nes_dns_ip_from_cfg_test);
-	CU_add_test(nes_dns_config_suite, "nes_dns_check_forward_unresolved_test", nes_dns_check_forward_unresolved_test);
+	CU_add_test(nes_dns_config_suite, "nes_dns_check_forward_unresolved_test",
+				nes_dns_check_forward_unresolved_test);
 	CU_add_test(nes_dns_config_suite, "nes_dns_tap_create_test", nes_dns_tap_create_test);
 }
 

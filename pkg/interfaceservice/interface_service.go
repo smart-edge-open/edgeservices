@@ -114,7 +114,7 @@ func Run(ctx context.Context, cfgPath string) error {
 	if _, err := os.Stat("./dpdk-devbind.py"); err != nil {
 		DpdkEnabled = false
 	} else {
-		if err := reattachDpdkPorts(); err != nil {
+		if err := ReattachDpdkPorts(); err != nil {
 			log.Errf("Failed to reattach Dpdk ports: %s", err.Error())
 		}
 	}

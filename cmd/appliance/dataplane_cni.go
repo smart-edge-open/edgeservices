@@ -6,8 +6,8 @@
 package main
 
 import (
-	"github.com/open-ness/edgenode/pkg/eva"
 	"github.com/open-ness/edgenode/pkg/ela"
+	"github.com/open-ness/edgenode/pkg/eva"
 	"github.com/open-ness/edgenode/pkg/service"
 )
 

@@ -163,7 +163,7 @@ func (c *CNIContext) getCNIResult(p *LPort) current.Result {
 	res.IPs = []*current.IPConfig{{
 		Interface: current.Int(0),
 		Version:   ver,
-		Address:   net.IPNet{p.IP, p.Net.Mask},
+		Address:   net.IPNet{IP: p.IP, Mask: p.Net.Mask},
 		Gateway:   c.Cfg.IPAM.Gateway,
 	}}
 	for i := 0; i < len(c.Cfg.IPAM.Routes); i++ {
@@ -181,7 +181,9 @@ func (c *CNIContext) configIf(res *current.Result, p *LPort) error {
 		return errors.Wrapf(err, "Failed to open netns %q", c.Args.Netns)
 	}
 
-	defer n.Close()
+	defer func() {
+		_ = n.Close()
+	}()
 
 	var contLink netlink.Link
 

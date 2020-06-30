@@ -157,7 +157,8 @@ static void nes_route_clear_all_test(void) {
 }
 
 void add_nes_libnes_api_suite_to_registry(void) {
-	CU_pSuite nes_libnes_api_suite = CU_add_suite("nes_libnes_api", init_suite_libnes_api, cleanup_suite_libnes_api);
+	CU_pSuite nes_libnes_api_suite =
+		CU_add_suite("nes_libnes_api", init_suite_libnes_api, cleanup_suite_libnes_api);
 
 	CU_add_test(nes_libnes_api_suite, "nes_conn_init", nes_conn_init_test);
 	CU_add_test(nes_libnes_api_suite, "nes_route_clear_all", nes_route_clear_all_test);
