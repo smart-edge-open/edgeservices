@@ -96,7 +96,6 @@ services:
      - NET_ADMIN
     volumes:
      - "/var/lib/appliance/edgednssvr:/var/lib/edgedns"
-     - "/run:/run"
     command:
      - "-port=53"
      - "-fwdr=8.8.8.8"
