@@ -18,7 +18,7 @@ import (
 )
 
 var _ = func() (_ struct{}) {
-	os.Args = []string{"", "-config=../../configs/appliance.json"}
+	os.Args = append(os.Args, "-config=../../configs/appliance.json")
 	return
 }()
 
