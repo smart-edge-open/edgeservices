@@ -92,3 +92,26 @@ var _ = Describe("runServices", func() {
 			})
 	})
 })
+
+var _ = Describe("init", func() {
+	Describe("Init config with not existing cfg file", func() {
+		It("Will return failure",
+			func() {
+				Expect(InitConfig("testdata/notExistFile.json")).Should(BeFalse())
+			})
+	})
+
+	Describe("Init config with not incorrect parse level", func() {
+		It("Will return failure",
+			func() {
+				Expect(InitConfig("testdata/parseLevel.json")).Should(BeFalse())
+			})
+	})
+
+	Describe("Init config with incorrect syslog address", func() {
+		It("Will return failure",
+			func() {
+				Expect(InitConfig("testdata/useSyslog.json")).Should(BeFalse())
+			})
+	})
+})
