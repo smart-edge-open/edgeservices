@@ -99,6 +99,7 @@ var _ = Describe("init", func() {
 			func() {
 				err := InitConfig("testdata/notExistFile.json")
 				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Failed to load config"))
 			})
 	})
 
@@ -107,6 +108,7 @@ var _ = Describe("init", func() {
 			func() {
 				err := InitConfig("testdata/parseLevel.json")
 				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Failed to parse log level"))
 			})
 	})
 
@@ -115,6 +117,7 @@ var _ = Describe("init", func() {
 			func() {
 				err := InitConfig("testdata/useSyslog.json")
 				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Failed to connect to syslog"))
 			})
 	})
 })
