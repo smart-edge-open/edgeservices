@@ -1,0 +1,5 @@
+{
+    "LogLevel": "info",
+    "UseSyslog": true,
+    "SyslogAddr": "wrongAddress"
+}
