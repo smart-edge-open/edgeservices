@@ -49,34 +49,34 @@ func init() {
 	flag.StringVar(&cfgPath, "config", "configs/appliance.json",
 		"config file path")
 	flag.Parse()
-	if !InitConfig(cfgPath) {
+	if InitConfig(cfgPath) != nil {
 		os.Exit(1)
 	}
 }
 
 // InitConfig load configuration from cfg file
-func InitConfig(cfgPath string) bool {
+func InitConfig(cfgPath string) error {
 	err := config.LoadJSONConfig(cfgPath, &Cfg)
 	if err != nil {
 		Log.Errf("Failed to load config: %s", err.Error())
-		return false
+		return err
 	}
 
 	if Cfg.UseSyslog {
 		err = logger.ConnectSyslog(Cfg.SyslogAddr)
 		if err != nil {
 			Log.Errf("Failed to connect to syslog: %s", err.Error())
-			return false
+			return err
 		}
 	}
 
 	lvl, err := logger.ParseLevel(Cfg.LogLevel)
 	if err != nil {
 		Log.Errf("Failed to parse log level: %s", err.Error())
-		return false
+		return err
 	}
 	logger.SetLevel(lvl)
-	return true
+	return err
 }
 
 // WaitForServices waits for services to finish

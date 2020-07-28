@@ -97,21 +97,24 @@ var _ = Describe("init", func() {
 	Describe("Init config with not existing cfg file", func() {
 		It("Will return failure",
 			func() {
-				Expect(InitConfig("testdata/notExistFile.json")).Should(BeFalse())
+				err := InitConfig("testdata/notExistFile.json")
+				Expect(err).To(HaveOccurred())
 			})
 	})
 
-	Describe("Init config with not incorrect parse level", func() {
+	Describe("Init config with incorrect parse level", func() {
 		It("Will return failure",
 			func() {
-				Expect(InitConfig("testdata/parseLevel.json")).Should(BeFalse())
+				err := InitConfig("testdata/parseLevel.json")
+				Expect(err).To(HaveOccurred())
 			})
 	})
 
 	Describe("Init config with incorrect syslog address", func() {
 		It("Will return failure",
 			func() {
-				Expect(InitConfig("testdata/useSyslog.json")).Should(BeFalse())
+				err := InitConfig("testdata/useSyslog.json")
+				Expect(err).To(HaveOccurred())
 			})
 	})
 })
