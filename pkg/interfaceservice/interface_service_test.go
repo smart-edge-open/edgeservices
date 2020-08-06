@@ -96,6 +96,13 @@ var elaInterfacesMock = []elahelpers.NetworkDevice{
 	},
 }
 
+var strResultVsctl = `Bridge br-test
+						datapath_type: netdev
+						Port eth0
+							Interface eth0
+								type: dpdk
+								options: {dpdk-devargs="0000:00:01.0"}`
+
 type vsctlResult struct {
 	// ResultOutcome is a string which will be provided as ovs-vsctl output
 	ResultOutcome string
@@ -374,18 +381,11 @@ var _ = Describe("InterfaceService", func() {
 	Describe("Detach", func() {
 		Context("0000:00:01.0 to Port_KERNEL", func() {
 			It("should return no error", func() {
-				str := `Bridge br-test
-						datapath_type: netdev
-						Port eth0
-							Interface eth0
-								type: dpdk
-								options: {dpdk-devargs="0000:00:01.0"}`
-
 				devbindMock.AddResult(bindOut, nil)
 
-				vsctlMock.AddResult(str, nil)  // resp for show
-				vsctlMock.AddResult("", nil)   // respo for del-port
-				devbindMock.AddResult("", nil) // resp for bind
+				vsctlMock.AddResult(strResultVsctl, nil) // resp for show
+				vsctlMock.AddResult("", nil)             // respo for del-port
+				devbindMock.AddResult("", nil)           // resp for bind
 
 				Expect(ifs.DpdkEnabled).To(Equal(true))
 
@@ -516,17 +516,9 @@ var _ = Describe("InterfaceService", func() {
 	Describe("Attach", func() {
 		Context("0000:00:01.0 to Port_USERSPACE", func() {
 			It("should return error", func() {
-
-				str := `Bridge br-test
-					datapath_type: netdev
-					Port eth0
-						Interface eth0
-							type: dpdk
-							options: {dpdk-devargs="0000:00:01.0"}`
-
 				devbindMock.AddResult(bindOut, nil)
 				vsctlMock.AddResult("netdev", nil)
-				vsctlMock.AddResult(str, nil)
+				vsctlMock.AddResult(strResultVsctl, nil)
 				devbindMock.AddResult("2", nil)
 
 				Expect(ifs.DpdkEnabled).To(Equal(true))
@@ -741,6 +733,8 @@ var _ = Describe("InterfaceService", func() {
 					},
 				})
 
+				Expect(err).To(HaveOccurred())
+
 				err = detach(&pb.Ports{
 					Ports: []*pb.Port{
 						{
@@ -759,16 +753,8 @@ var _ = Describe("InterfaceService", func() {
 	Describe("Detach", func() {
 		Context("with bind step failure", func() {
 			It("should return error", func() {
-
-				str := `Bridge br-test
-						datapath_type: netdev
-						Port eth0
-							Interface eth0
-								type: dpdk
-								options: {dpdk-devargs="0000:00:01.0"}`
-
-				vsctlMock.AddResult(str, nil) // resp for show
-				vsctlMock.AddResult("", nil)  // respo for del-port
+				vsctlMock.AddResult(strResultVsctl, nil) // resp for show
+				vsctlMock.AddResult("", nil)             // respo for del-port
 
 				oldDpdkEnabled := ifs.DpdkEnabled
 				ifs.DpdkEnabled = false
@@ -793,18 +779,11 @@ var _ = Describe("InterfaceService", func() {
 	Describe("Detach", func() {
 		Context("0000:00:01.0 to Port_KERNEL with not found", func() {
 			It("should return error", func() {
-				str := `Bridge br-test
-							datapath_type: netdev
-							Port eth0
-								Interface eth0
-									type: dpdk
-									options: {dpdk-devargs="0000:00:01.0"}`
-
 				devbindMock.AddResult(bindOutShort2, nil)
 
-				vsctlMock.AddResult(str, nil)  // resp for show
-				vsctlMock.AddResult("", nil)   // respo for del-port
-				devbindMock.AddResult("", nil) // resp for bind
+				vsctlMock.AddResult(strResultVsctl, nil) // resp for show
+				vsctlMock.AddResult("", nil)             // respo for del-port
+				devbindMock.AddResult("", nil)           // resp for bind
 
 				Expect(ifs.DpdkEnabled).To(Equal(true))
 
@@ -826,11 +805,10 @@ var _ = Describe("InterfaceService", func() {
 	Describe("Attach", func() {
 		Context("attach with vsctl error", func() {
 			It("should return error", func() {
-				var ret_err error
-				ret_err = errors.New("vsctl failed")
+				var reterr = errors.New("vsctl failed")
 				devbindMock.AddResult(bindOut, nil)
 				vsctlMock.AddResult("", nil)
-				vsctlMock.AddResult("", ret_err)
+				vsctlMock.AddResult("", reterr)
 
 				Expect(ifs.DpdkEnabled).To(Equal(true))
 
@@ -851,10 +829,9 @@ var _ = Describe("InterfaceService", func() {
 	Describe("Get", func() {
 		Context("port-to-br fails", func() {
 			It("should not return error", func() {
-				var ret_err error
-				ret_err = errors.New("vsctl failed")
+				var reterr = errors.New("vsctl failed")
 				vsctlMock.AddResult("", nil)
-				vsctlMock.AddResult("", ret_err)
+				vsctlMock.AddResult("", reterr)
 
 				_, err := get()
 				Expect(err).To(HaveOccurred())
@@ -870,10 +847,9 @@ var _ = Describe("InterfaceService", func() {
 				ifs.KernelNetworkDevicesProvider = fakeKernelNetworkDevicesProvider
 				defer func() { ifs.KernelNetworkDevicesProvider = oldKernelNetworkDevicesProvider }()
 
-				var ret_err error
-				ret_err = errors.New("vsctl failed")
+				var reterr = errors.New("vsctl failed")
 				vsctlMock.AddResult("", nil)
-				vsctlMock.AddResult("", ret_err)
+				vsctlMock.AddResult("", reterr)
 
 				_, err := get()
 				Expect(err).To(HaveOccurred())
@@ -886,15 +862,7 @@ var _ = Describe("InterfaceService", func() {
 			It("should not return error", func() {
 				devbindMock.AddResult(bindOut, nil)
 				Expect(ifs.DpdkEnabled).To(Equal(true))
-
-				str := `Bridge br-test
-						datapath_type: netdev
-						Port eth0
-							Interface eth0
-								type: dpdk
-								options: {dpdk-devargs="0000:00:01.0"}`
-
-				vsctlMock.AddResult(str, nil) // resp for show
+				vsctlMock.AddResult(strResultVsctl, nil) // resp for show
 
 				// 13 times ovs-vsctl is called
 				for i := 0; i < 12; i++ {
