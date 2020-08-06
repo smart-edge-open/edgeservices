@@ -13,3 +13,24 @@
 
 # Distributables folder
 dist/
+edgecontroller/dist
+
+# Container build binary artifact
+edgecontroller/cce
+#
+# # Go build dependencies
+edgecontroller/vendor/
+
+# # Certificates folder
+edgecontroller/certificates/
+
+# # IDE files
+edgecontroller/.idea/*
+edgecontroller/.vscode/*
+
+# # Log files
+*.log
+
+# # Runtime artifacts
+edgecontroller/artifacts/
+

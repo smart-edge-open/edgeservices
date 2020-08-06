@@ -1,0 +1,522 @@
+#!/bin/bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2019-2020 Intel Corporation
+
+set -uo pipefail
+
+BIOS_RESTORE_FILENAME="openness_biosfw_bios_to_restore.ini"
+KUSTOMIZATION_YAML_FILENAME="kustomization.yaml"
+SECRET_MOUNT_PATCH_FILENAME="kustomization_secret_mount_patch.yaml"
+BASE_YAML_FILENAME="base.yaml"
+RUN_YAML_FILENAME="run.yaml"
+SYSCFG_ARGS_FILENAME="syscfg-args.txt"
+RUNTIME_TMP_DIR="$(mktemp -d -t openness-biosfw-XXXXXXXXXX)"
+
+error() {
+    >&2 echo -e "[ERROR] ${*}"
+}
+
+log() {
+    echo -e "[INFO]  ${*}"
+}
+
+execute_command() {
+    local output
+    local result
+
+    output=$(eval "$@" 2>&1)
+    result=$?
+    if [ "${result}" -ne 0 ]; then
+        error "Exiting - command failed: '$*' because:\n\n${output}\n"
+        exit 1
+    fi
+}
+
+cleanup() {
+    if [[ -f "${RUNTIME_TMP_DIR}/${RUN_YAML_FILENAME}" ]]; then
+        execute_command "kubectl delete -f \"${RUNTIME_TMP_DIR}/${RUN_YAML_FILENAME}"\"
+    fi
+
+    if [[ -d "${RUNTIME_TMP_DIR}" ]]; then
+        rm -rf "${RUNTIME_TMP_DIR}"
+    fi
+}
+
+usage() {
+    local -r exit_code=${1}
+
+    echo "Executes BIOSFW job on remote edge node to save/restore/change bios settings"
+    echo
+    echo "Usage:"
+    echo "    kubectl biosfw save <node_hostname> <filename>"
+    echo "    kubectl biosfw restore <node_hostname> <filename> [ <bios_admin_password> ]"
+    echo "    kubectl biosfw direct <node_hostname> <syscfg_arg> [ <syscfg_arg>... ]"
+    echo "    kubectl biosfw ( --help | -h)"
+    echo
+    echo "Actions:"
+    echo "    save                     Save current settings to given file"
+    echo "    restore                  Restore settings from given file"
+    echo "    direct                   Execute syscfg command on remote node"
+    echo "    --help | -h              Print this message"
+    echo
+    echo "Examples:"
+    echo "    kubectl biosfw save openness3 out.ini"
+    echo "        Will save openness3 host BIOS config to out.ini file"
+    echo 
+    echo "    kubectl biosfw restore openness3 out.ini"
+    echo "        Will restore openness3 host BIOS config from out.ini file"
+    echo "        by running \`syscfg /r out.ini /b /f\`"
+    echo "        Syscfg output will be printed out as Job's logs"
+    echo
+    echo "    kubectl biosfw restore openness3 out.ini pass123"
+    echo "        Will restore openness3 host BIOS config from out.ini file using BIOS admin password pass123"
+    echo "        by running \`syscfg /r out.ini /b /f /bap pass123\`"
+    echo "        Note: Passwords are redacted in the logs"
+    echo 
+    echo "    kubectl biosfw direct openness3 /d BIOSSETTINGS \"Quiet Boot\""
+    echo "        Will run \`syscfg /d BIOSSETTINGS \"Quiet Boot\"\` on openness3 host"
+    echo "        \`syscfg /d BIOSSETTINGS \"Quiet Boot\"\` displays current value of \"Quiet Boot\" setting"
+    echo "        Syscfg output will be printed out as Job's logs"
+    echo "        Refer to Intel Syscfg User Guide for more information"
+    echo 
+    echo "    kubectl biosfw direct openness3 /i"
+    echo "        Runs \`syscfg /i\` on openness3 host"
+    echo "        \`syscfg /i\` displays BIOS and firmware versions"
+    echo "        Syscfg output will be printed out as Job's logs"
+    echo "        Refer to Intel Syscfg User Guide for more information"
+
+    exit "${exit_code}"
+}
+
+redact_passwords() {
+    local remove_quotes='s/\"//g'
+    local change_bap='s,bap [^/ ]* [^/ ]*,bap *** *** ,g'            # BIOS Admin Pass change
+    local change_bup='s,bup [^/ ]* [^/ ]* [^/ ]*,bup *** *** *** ,g' # BIOS User Pass change
+    local provide_bap='s,bap [^/ ]*,bap ***,g'                       # BIOS Admin Pass provide to run command
+
+    local to_redact="${*}"
+    echo "${to_redact}" | sed \
+        -e "${remove_quotes}" \
+        -e "${change_bap}" \
+        -e "${change_bup}" \
+        -e "${provide_bap}"
+}
+
+create_base() {
+    cat << 'EOF' > "${RUNTIME_TMP_DIR}/${BASE_YAML_FILENAME}"
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: openness-biosfw-job
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 100
+  template:
+    spec:
+      tolerations:
+      - effect: NoSchedule
+        key: cmk
+        operator: Exists
+      restartPolicy: Never
+      containers:
+        - name: openness-biosfw-job
+          image: openness-biosfw
+          imagePullPolicy: Never
+          securityContext:
+            privileged: true
+          args: ["$(BIOSFW_COMMAND)"]
+          env:
+            - name: BIOSFW_COMMAND
+              valueFrom:
+                configMapKeyRef:
+                  name: biosfw-config
+                  key: COMMAND
+          volumeMounts:
+            - name: host-devices
+              mountPath: /dev/mem
+            - name: biosfw-config-volume
+              mountPath: /biosfw-config/
+      volumes:
+        - name: host-devices
+          hostPath:
+            path: /dev/mem
+        - name: biosfw-config-volume
+          configMap:
+            name: biosfw-config
+EOF
+}
+
+create_kustomization() {
+    local node=${1}
+    local command=${2}
+
+    cat << EOF > "${RUNTIME_TMP_DIR}/${KUSTOMIZATION_YAML_FILENAME}"
+resources:
+- "./${BASE_YAML_FILENAME}"
+
+commonLabels:
+  node: ${node}
+
+nameSuffix: -${node}
+
+configMapGenerator:
+- name: biosfw-config
+  literals:
+  - COMMAND=${command}
+EOF
+}
+
+create_kustomization_secret_mount_patch() {
+cat << EOF > "${RUNTIME_TMP_DIR}/${SECRET_MOUNT_PATCH_FILENAME}"
+- op: add 
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value:
+    name: biosfw-secret-volume
+    mountPath: /biosfw-secret/
+
+- op: add
+  path: /spec/template/spec/volumes/-
+  value:
+    name: biosfw-secret-volume
+    secret: 
+      secretName: biosfw-secret
+EOF
+
+}
+
+create_kustomization_restore() {
+    local node=${1}
+    local password=${2:-}
+
+    create_kustomization "${node}" "restore"
+    create_kustomization_secret_mount_patch
+
+    cat << EOF >> "${RUNTIME_TMP_DIR}/${KUSTOMIZATION_YAML_FILENAME}"
+  files:
+  - bios_to_restore.ini=${BIOS_RESTORE_FILENAME}
+
+secretGenerator:
+ - name: biosfw-secret
+   literals:
+   - admin="${password}"
+
+patchesJson6902:
+- target:
+    group: batch
+    version: v1
+    kind: Job
+    name: openness-biosfw-job
+  path: ${SECRET_MOUNT_PATCH_FILENAME}
+EOF
+
+}
+
+create_kustomization_save() {
+    local node=${1}
+    create_kustomization "${node}" "save"
+}
+
+create_kustomization_direct() {
+    local node=${1}
+    local args=${2}
+    create_kustomization "${node}" "direct"
+    create_kustomization_secret_mount_patch
+
+    echo "${args}" > "${RUNTIME_TMP_DIR}/${SYSCFG_ARGS_FILENAME}"
+
+    cat << EOF >> "${RUNTIME_TMP_DIR}/${KUSTOMIZATION_YAML_FILENAME}"
+secretGenerator:
+- name: biosfw-secret
+  files:
+    - syscfg-args=${SYSCFG_ARGS_FILENAME}
+
+patchesJson6902:
+- target:
+    group: batch
+    version: v1
+    kind: Job
+    name: openness-biosfw-job
+  path: ${SECRET_MOUNT_PATCH_FILENAME}
+EOF
+}
+
+run_kustomize() {
+    local file=${1}
+    execute_command "kubectl kustomize ${RUNTIME_TMP_DIR} > \"${file}\""
+}
+
+k8s_apply() {
+    local file_to_apply=${1}
+    execute_command "kubectl apply -f ${file_to_apply}"
+}
+
+wait_for_job_completion() {
+    local job_name=${1}
+    local job_result
+    local status
+
+    log "Waiting for completion"
+
+    while : ; do
+        sleep 1
+
+        status=$(kubectl get jobs "${job_name}" -o jsonpath='{.status.conditions[0].type}')
+        local exec_result=$?
+
+        if [[ "${exec_result}" -ne 0  || "${status}" == "Failed" ]]; then
+            job_result=1
+            break
+        elif [[ "${status}" == "Complete" ]]; then
+            job_result=0
+            break
+        fi
+    done
+
+    return $job_result
+}
+
+get_job_pod_name() {
+    local job_name=${1}
+    local jobs_pod_name
+
+    jobs_pod_name=$(kubectl get pods \
+        --selector=job-name="${job_name}" \
+        -o custom-columns=NAME:.metadata.name \
+        --no-headers)
+    echo "${jobs_pod_name}"
+}
+
+get_job_logs() {
+    local job_name=${1}
+    local jobs_pod_name
+    local logs
+
+    jobs_pod_name=$(get_job_pod_name "${job_name}")
+    logs=$(kubectl logs "${jobs_pod_name}")
+    echo "$logs"
+}
+
+fail_if_node_not_exist() {
+    local node=${1:-}
+    if ! kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers | grep -q "^${node}\$"; then
+        error "Node '${node}' not found"
+        exit 1
+    fi
+}
+
+save() {
+    local node=${1}
+    local filename=${2}
+    local job_name="openness-biosfw-job-${node}"
+    local job_result
+    local logs
+    local biosfw_ini_content
+    local jobs_pod_name
+
+    fail_if_node_not_exist "${node}"
+
+    log "Saving ${node} node's BIOS settings to ${filename} file"
+
+    create_kustomization_save "${node}"
+    run_kustomize "${RUNTIME_TMP_DIR}/${RUN_YAML_FILENAME}"
+    k8s_apply "${RUNTIME_TMP_DIR}/${RUN_YAML_FILENAME}"
+    log "Job started"
+
+    wait_for_job_completion "${job_name}"
+    job_result=$?
+    logs=$(get_job_logs "${job_name}")
+
+    if [[ ${job_result} -eq 0 ]]; then
+        log "Job successful"
+
+        biosfw_ini_content=$(echo "${logs}" |
+            sed -n '/^-------------- BIOSFW START --------------/,/^-------------- BIOSFW END --------------/p' |
+            grep -v "^-------------- BIOSFW")
+        echo "${biosfw_ini_content}" > "${filename}"
+        log "BIOS settings saved to ${filename}"
+
+        exit 0
+    else
+        error "Job failed\n\n"
+
+        error "Events of the job's pod:"
+        jobs_pod_name=$(get_job_pod_name "${job_name}")
+        kubectl describe pod "${jobs_pod_name}" | sed -n '/^Events:/,//p'
+
+        error "\nPod's logs:"
+        echo "${logs}"
+
+        exit 1
+    fi
+}
+
+restore() {
+    local node=${1}
+    local filename=${2}
+    local admin_pass=${3:-}
+    local job_name="openness-biosfw-job-${node}"
+    local job_result
+    local logs
+    local jobs_pod_name
+
+    fail_if_node_not_exist "${node}"
+
+    log "Restoring ${node} node's BIOS settings from ${filename} file"
+
+    cp -f "${filename}" "${RUNTIME_TMP_DIR}/${BIOS_RESTORE_FILENAME}"
+    create_kustomization_restore "${node}" "${admin_pass}"
+    run_kustomize "${RUNTIME_TMP_DIR}/${RUN_YAML_FILENAME}"
+    k8s_apply "${RUNTIME_TMP_DIR}/${RUN_YAML_FILENAME}"
+    log "Job started"
+
+    wait_for_job_completion "${job_name}"
+    job_result=$?
+    logs=$(get_job_logs "${job_name}")
+
+    if [[ ${job_result} -eq 0 ]]; then
+        log "Job successful. Logs:\n"
+        echo "${logs}"
+
+        exit 0
+    else
+        error "Job failed.\n"
+
+        error "Events of the job's pod:"
+        jobs_pod_name=$(get_job_pod_name "${job_name}")
+        kubectl describe pod "${jobs_pod_name}" | sed -n '/^Events:/,//p'
+
+        error "\nPod's logs:"
+        error "${logs}"
+
+        exit 1
+    fi
+}
+
+direct() {
+    local node=${1:-}
+    local job_name="openness-biosfw-job-${node}"
+    local job_result
+    local logs
+    local jobs_pod_name
+    shift
+
+    fail_if_node_not_exist "${node}"
+
+    local syscfg_args=""
+    for arg in "$@"; do
+        syscfg_args="${syscfg_args} \"${arg}\""
+    done
+    log "Executing syscfg command on node '${node}' with arguments: $(redact_passwords "${syscfg_args}")"
+
+    create_kustomization_direct "${node}" "${syscfg_args}"
+    run_kustomize "${RUNTIME_TMP_DIR}/${RUN_YAML_FILENAME}"
+    k8s_apply "${RUNTIME_TMP_DIR}/${RUN_YAML_FILENAME}"
+    log "Job started"
+
+    wait_for_job_completion "${job_name}"
+    job_result=$?
+    logs=$(get_job_logs "${job_name}")
+
+    if [[ ${job_result} -eq 0 ]]; then
+        log "Job successful. Logs:\n"
+        echo "${logs}"
+
+        exit 0
+    else
+        error "Job failed.\n"
+
+        log "Events of the job's pod:"
+        jobs_pod_name=$(get_job_pod_name "${job_name}")
+        kubectl describe pod "${jobs_pod_name}" | sed -n '/^Events:/,//p'
+
+        log "\nPod's logs:"
+        echo "${logs}"
+
+        exit 1
+    fi
+
+    exit 0
+}
+
+fail_if_var_empty() {
+    local var=${1:-}
+    local var_name=${2:-}
+
+    if [[ ! "${var}" ]]; then
+        error "Expected non-empty value for ${var_name}\n"
+        usage 1
+    fi
+}
+
+# main
+if [ "$#" -ge 1 ]; then
+    action=${1:-}
+
+    if [[ "${action}" == "--help" || "${action}" == "-h" ]]; then
+        usage 0
+    elif [ "${action}" = "save" ]; then
+        if [ "$#" -ne 3 ]; then
+            error "Save action requires two arguments: kubectl biosfw save <node_hostname> <filename>"
+            usage 1
+        fi
+        node=${2:-}
+        filename=${3:-}
+        fail_if_var_empty "${node}" "<node_hostname>"
+        fail_if_var_empty "${filename}" "<filename>"
+        if [[ "${filename}" == *"${BIOS_RESTORE_FILENAME}"* ]]; then
+            error "Filename cannot be '${BIOS_RESTORE_FILENAME}'"
+            exit 1
+        fi
+
+        trap cleanup EXIT
+        create_base
+
+        save "${node}" "${filename}"
+
+    elif [ "${action}" = "restore" ]; then
+        if [ "$#" -lt 3 ]; then
+            error "Restore action requires at least two arguments: kubectl biosfw save <node_hostname> <filename> [ <admin_password> ]"
+            usage 1
+        fi
+        node=${2:-}
+        filename=${3:-}
+        bios_admin_pass=${4:-}
+        fail_if_var_empty "${node}" "<node_hostname>"
+        fail_if_var_empty "${filename}" "<filename>"
+        if [[ "${filename}" == *"${BIOS_RESTORE_FILENAME}"* ]]; then
+            error "Filename cannot be '${BIOS_RESTORE_FILENAME}'"
+            exit 1
+        fi
+        if [[ ! -f "${filename}" ]]; then
+            error "File ${filename} not found"
+            exit 1
+        fi
+
+        trap cleanup EXIT
+        create_base
+
+        restore "${node}" "${filename}" "${bios_admin_pass}"
+    
+    elif [ "${action}" = "direct" ]; then
+        if [ "$#" -lt 3 ]; then
+            error "Direct action requires at least two arguments: kubectl biosfw restore <node_hostname> <syscfg_command> [ <syscfg_command>... ]"
+            usage 1
+        fi
+        node=${2:-}
+        fail_if_var_empty "${node}" "<node_hostname>"
+        shift 2
+
+        trap cleanup EXIT
+        create_base
+
+        direct "${node}" "${@}"
+
+    else
+        error "Unrecognized action: ${action}\n"
+        usage 1
+    fi
+else
+    error "Wrong usage\n"
+    usage 1
+fi

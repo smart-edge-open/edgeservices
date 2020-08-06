@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kv-pv0
+  labels:
+        type: local
+spec:
+  capacity:
+        storage: 15Gi
+  accessModes:
+        - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  local:
+        path: /var/vd/vol0/
+  nodeAffinity:
+        required:
+          nodeSelectorTerms:
+          - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                  - <nodeName>
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kv-pv1
+  labels:
+        type: local
+spec:
+  capacity:
+        storage: 15Gi
+  accessModes:
+        - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  local:
+        path: /var/vd/vol1/
+  nodeAffinity:
+        required:
+          nodeSelectorTerms:
+          - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                  - <nodeName>
