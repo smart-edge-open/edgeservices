@@ -6,6 +6,7 @@ package service
 import (
 	"context"
 	"flag"
+	"github.com/pkg/errors"
 	"os"
 	"os/signal"
 	"reflect"
@@ -49,27 +50,35 @@ func init() {
 	flag.StringVar(&cfgPath, "config", "configs/appliance.json",
 		"config file path")
 	flag.Parse()
+	if err := InitConfig(cfgPath); err != nil {
+		Log.Errf("InitConfig failed %v\n", err)
+		os.Exit(1)
+	}
+}
 
+// InitConfig load configuration from cfg file
+func InitConfig(cfgPath string) error {
 	err := config.LoadJSONConfig(cfgPath, &Cfg)
 	if err != nil {
-		Log.Errf("Failed to load config: %s", err.Error())
-		os.Exit(1)
+		return errors.Wrapf(err,
+			"Failed to load config: %s", cfgPath)
 	}
 
 	if Cfg.UseSyslog {
 		err = logger.ConnectSyslog(Cfg.SyslogAddr)
 		if err != nil {
-			Log.Errf("Failed to connect to syslog: %s", err.Error())
-			os.Exit(1)
+			return errors.Wrapf(err,
+				"Failed to connect to syslog: %s", Cfg.SyslogAddr)
 		}
 	}
 
 	lvl, err := logger.ParseLevel(Cfg.LogLevel)
 	if err != nil {
-		Log.Errf("Failed to parse log level: %s", err.Error())
-		os.Exit(1)
+		return errors.Wrapf(err,
+			"Failed to parse log level: %s", Cfg.LogLevel)
 	}
 	logger.SetLevel(lvl)
+	return nil
 }
 
 // WaitForServices waits for services to finish

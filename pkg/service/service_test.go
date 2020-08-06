@@ -18,7 +18,7 @@ import (
 )
 
 var _ = func() (_ struct{}) {
-	os.Args = []string{"", "-config=../../configs/appliance.json"}
+	os.Args = append(os.Args, "-config=../../configs/appliance.json")
 	return
 }()
 
@@ -89,6 +89,35 @@ var _ = Describe("runServices", func() {
 				Expect(controlAgent.EndedWork).Should(BeTrue())
 				Expect(controlAgent.ContextCancelled).Should(BeFalse())
 				Expect(controlAgent.CfgPath).Should(Equal("config.json"))
+			})
+	})
+})
+
+var _ = Describe("init", func() {
+	Describe("Init config with not existing cfg file", func() {
+		It("Will return failure",
+			func() {
+				err := InitConfig("testdata/notExistFile.json")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Failed to load config"))
+			})
+	})
+
+	Describe("Init config with incorrect parse level", func() {
+		It("Will return failure",
+			func() {
+				err := InitConfig("testdata/parseLevel.json")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Failed to parse log level"))
+			})
+	})
+
+	Describe("Init config with incorrect syslog address", func() {
+		It("Will return failure",
+			func() {
+				err := InitConfig("testdata/useSyslog.json")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Failed to connect to syslog"))
 			})
 	})
 })
