@@ -46,7 +46,7 @@ clean:
 	rm -rf ./dist
 
 test: 
-	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor,edants,wrappers,stubs
+	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor
 
 eaa:
 	GOOS=linux go build -o ./dist/$@/$@ ./cmd/$@

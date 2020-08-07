@@ -11,7 +11,7 @@ import (
 	"path"
 
 	logger "github.com/otcshare/common/log"
-	pb "github.com/otcshare/edgenode/pkg/eva/pb"
+	pb "github.com/otcshare/edgenode/pkg/app-metadata/pb"
 	"github.com/pkg/errors"
 )
 
