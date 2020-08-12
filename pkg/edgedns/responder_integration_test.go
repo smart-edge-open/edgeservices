@@ -184,4 +184,17 @@ var _ = Describe("Responder", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(msg.Answer).NotTo(BeEmpty())
 	})
+
+	It("Start fails with error message", func() {
+		err = errorDbDnsServer.Start()
+		Expect(err).To(HaveOccurred())
+
+	})
+
+	It("Start DNS server controlServer fails", func() {
+		err = errorCtlDnsServer.Start()
+		Expect(err).To(HaveOccurred())
+
+	})
+
 })

@@ -20,6 +20,8 @@ import (
 )
 
 var dnsServer *edgedns.Responder
+var errorDbDnsServer *edgedns.Responder
+var errorCtlDnsServer *edgedns.Responder
 var idleConnsClosed chan struct{}
 
 func TestDns(t *testing.T) {
@@ -46,11 +48,18 @@ var _ = BeforeSuite(func() {
 		Filename: db,
 	}
 
+	errStg := &storage.BoltDB{Filename: ""}
+
 	ctl := &grpc.ControlServer{
 		Sock: sock,
 	}
 
+	errCtl := &grpc.ControlServer{Sock: ""}
+
 	dnsServer = edgedns.NewResponder(cfg, stg, ctl)
+	errorDbDnsServer = edgedns.NewResponder(cfg, errStg, ctl)
+	errorCtlDnsServer = edgedns.NewResponder(cfg, stg, errCtl)
+
 	idleConnsClosed = make(chan struct{})
 	go func() {
 		err = dnsServer.Start()
