@@ -185,15 +185,27 @@ var _ = Describe("Responder", func() {
 		Expect(msg.Answer).NotTo(BeEmpty())
 	})
 
-	It("Start fails with error message", func() {
-		err = errorDbDnsServer.Start()
+	It("Start failed caused by DB filename missing setting", func() {
+		err = dnsServerErrDbFile.Start()
 		Expect(err).To(HaveOccurred())
 
 	})
 
-	It("Start DNS server controlServer fails", func() {
-		err = errorCtlDnsServer.Start()
-		Expect(err).To(HaveOccurred())
+	It("Add listeners fails with missing address field", func() {
+		err = dnsServerErrAddr4Missing.Start()
+		Expect(err).NotTo(HaveOccurred())
+
+	})
+
+	It("Start succeeds when starting gRPC even if sock name missing", func() {
+		err = dnsServerAddrSockMissing.Start()
+		Expect(err).NotTo(HaveOccurred())
+
+	})
+
+	It("Start failed by dns.Server IPv4 invalid address", func() {
+		err = dnsServerServer4Error.Start()
+		Expect(err).NotTo(HaveOccurred())
 
 	})
 
