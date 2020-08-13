@@ -138,6 +138,10 @@ var _ = Describe("Enrollment", func() {
 				err = auth.Enroll(certDir, "", time.Second,
 					enrollClientStub{getCredFailCAPool})
 				Expect(err).To(HaveOccurred())
+
+				err = auth.Enroll(certDir, "", time.Second,
+					auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
 			})
 		})
 		When("Received credentials are correct", func() {
