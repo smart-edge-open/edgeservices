@@ -48,8 +48,6 @@ func parseAnswers(m *dns.Msg) ([]string, error) {
 var _ = Describe("Responder", func() {
 
 	var apiClient *client.ControlClient
-	// var msg *dns.Msg
-	// var err error
 
 	BeforeEach(func() {
 		sock := fmt.Sprintf("dns_%d.sock", config.GinkgoConfig.ParallelNode)
