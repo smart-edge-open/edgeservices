@@ -5,7 +5,12 @@ package interfaceservice_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -14,15 +19,21 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
+	"github.com/otcshare/edgenode/internal/authtest"
+	"github.com/otcshare/edgenode/pkg/auth"
+	"github.com/otcshare/edgenode/pkg/config"
 	elahelpers "github.com/otcshare/edgenode/pkg/ela/helpers"
 	ifs "github.com/otcshare/edgenode/pkg/interfaceservice"
 	pb "github.com/otcshare/edgenode/pkg/interfaceservice/pb"
+	monkey "github.com/undefinedlabs/go-mpatch"
 )
 
 var (
-	vsctlMock   VsctlMock
-	devbindMock DevbindMock
-	debugMocks  = true
+	vsctlMock     VsctlMock
+	devbindMock   DevbindMock
+	debugMocks    = true
+	originVsctl   = ifs.Vsctl
+	originDevbind = ifs.Devbind
 
 	// store function pointers from interfaceservice pkg
 	// to be able to call them if ifs.ReattachDpdkPorts & ifs.KernelNetworkDevicesProvider
@@ -410,6 +421,19 @@ var _ = Describe("InterfaceService", func() {
 				ifsKernelNetworkDevicesProvider()
 			})
 		})
+
+		Context("call vsctl which is mocked in other tests", func() {
+			It("should return no error", func() {
+				originVsctl()
+			})
+		})
+
+		Context("call devbind which is mocked in other tests", func() {
+			It("should return no error", func() {
+				originDevbind()
+			})
+		})
+
 		Context("call Get()", func() {
 			It("should return error as vsctl fails", func() {
 				_, err := get()
@@ -871,6 +895,220 @@ var _ = Describe("InterfaceService", func() {
 
 				_, err := get()
 				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("Server bootup", func() {
+		var (
+			testEndpointFake = "localhost:22201"
+			// transportCredsFake credentials.TransportCredentials
+			certsDirFake     string
+			configFile       = "interfaceserviceFake.json"
+			dpdkDevbindFake  = "dpdk-devbindFake.py"
+			originConfigJson []byte
+		)
+		json.Marshal(ifs.Config)
+
+		BeforeEach(func() {
+			// Generate certs
+			certsDirFake, err := ioutil.TempDir("", "elaCertsFake")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(authtest.EnrollStub(certsDirFake)).ToNot(HaveOccurred())
+
+			// transportCredsFake, err := authtest.ClientCredentialsStub()
+			// Expect(err).NotTo(HaveOccurred())
+
+			// Write ELA's config
+			err = ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
+			{
+				"endpoint": "%s",
+				"certsDirectory": "%s"
+			}`, testEndpointFake, certsDirFake)), os.FileMode(0644))
+			Expect(err).NotTo(HaveOccurred())
+
+			// err = ioutil.WriteFile(dpdkDevbindFake, []byte{}, os.ModePerm)
+			// Expect(err).NotTo(HaveOccurred())
+
+			originConfigJson, err = json.Marshal(ifs.Config)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+
+			err := json.Unmarshal(originConfigJson, &ifs.Config)
+			Expect(err).NotTo(HaveOccurred())
+
+			os.RemoveAll(certsDirFake)
+			os.Remove(configFile)
+			os.Remove(dpdkDevbindFake)
+		})
+
+		Context("call run with a damaged config file", func() {
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				err := ioutil.WriteFile(configFile, []byte("damage date"), os.FileMode(0644))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = ifs.Run(srvCtx, configFile)
+				Expect(err).To(HaveOccurred())
+				srvCancel()
+			})
+		})
+
+		Context("call run with nonexistent dpdk-devbind.py", func() {
+			It("should return no error", func() {
+
+				devbindMock.AddResult(bindOut, nil)
+				Expect(ifs.DpdkEnabled).To(Equal(true))
+				// 13 times ovs-vsctl is called
+				for i := 0; i < 13; i++ {
+					vsctlMock.AddResult("", nil)
+				}
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				err := os.Remove("dpdk-devbind.py")
+				Expect(err).NotTo(HaveOccurred())
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					ifs.Run(srvCtx, configFile)
+					err := ioutil.WriteFile("./dpdk-devbind.py", []byte{}, os.ModePerm)
+					Expect(err).NotTo(HaveOccurred())
+					ifs.DpdkEnabled = true
+					wg.Done()
+				}()
+
+				//waiting for interfaceservice.json
+				for start := time.Now(); time.Since(start) < 3*time.Second; {
+					if ifs.Config.Endpoint == testEndpointFake {
+						break
+					}
+				}
+
+				conn, err := grpc.Dial(testEndpointFake, grpc.WithTransportCredentials(transportCreds))
+				Expect(err).NotTo(HaveOccurred())
+				defer conn.Close()
+
+				interfaceServiceClient := pb.NewInterfaceServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				defer cancel()
+
+				_, err = interfaceServiceClient.Get(ctx, &empty.Empty{}, grpc.WaitForReady(true))
+				Expect(err).NotTo(HaveOccurred())
+
+				// confirm ifs.DpdkEnabled to be false
+				Expect(ifs.DpdkEnabled).To(Equal(false))
+
+				srvCancel()
+				wg.Wait()
+			})
+		})
+
+		Context("call run with a empty CertsDir path", func() {
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				err := ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
+				{
+					"endpoint": "%s",
+					"certsDirectory": "%s"
+				}`, testEndpointFake, "")), os.FileMode(0644))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = ifs.Run(srvCtx, configFile)
+				Expect(err).To(HaveOccurred())
+				srvCancel()
+			})
+		})
+
+		Context("call run without root.pem file", func() {
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				var configFake ifs.Configuration
+				config.LoadJSONConfig(configFile, &configFake)
+
+				caPath := filepath.Clean(filepath.Join(configFake.CertsDir, auth.CAPoolName))
+				caPathBak := caPath + ".bak"
+				err := os.Rename(caPath, caPathBak)
+				Expect(err).NotTo(HaveOccurred())
+
+				defer func() {
+					err = os.Rename(caPathBak, caPath)
+					Expect(err).NotTo(HaveOccurred())
+				}()
+
+				err = ifs.Run(srvCtx, configFile)
+				Expect(err).To(HaveOccurred())
+				srvCancel()
+			})
+		})
+
+		Context("call run with incorrect root.pem file", func() {
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				var configFake ifs.Configuration
+				config.LoadJSONConfig(configFile, &configFake)
+
+				caPath := filepath.Clean(filepath.Join(configFake.CertsDir, auth.CAPoolName))
+				wf, wfErr := NewWreckFile(caPath)
+				Expect(wfErr).NotTo(HaveOccurred())
+
+				wfErr = wf.wreckFile()
+				Expect(wfErr).NotTo(HaveOccurred())
+
+				defer func() {
+					wfErr = wf.recoverFile()
+					Expect(wfErr).NotTo(HaveOccurred())
+				}()
+
+				err := ifs.Run(srvCtx, configFile)
+				Expect(err).To(HaveOccurred())
+				srvCancel()
+			})
+		})
+
+		Context("call run with failure on 'ovs-vsctl show'", func() {
+			It("should panic", func() {
+				ifs.ReattachDpdkPorts = originReattachDpdkPorts
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				fakeExit := func(int) {
+					panic("os.Exit called")
+				}
+				patch, err := monkey.PatchMethod(os.Exit, fakeExit)
+				Expect(err).NotTo(HaveOccurred())
+				defer patch.Unpatch()
+
+				Expect(func() { ifs.Run(srvCtx, configFile) }).Should(PanicWith("os.Exit called"))
+
+				srvCancel()
 			})
 		})
 	})

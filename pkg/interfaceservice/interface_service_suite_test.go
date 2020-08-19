@@ -20,8 +20,9 @@ import (
 )
 
 var (
-	testEndpoint   = "localhost:42201"
-	transportCreds credentials.TransportCredentials
+	testEndpoint            = "localhost:42201"
+	transportCreds          credentials.TransportCredentials
+	originReattachDpdkPorts = interfaceservice.ReattachDpdkPorts
 )
 
 func reatachPortsMock() error {
