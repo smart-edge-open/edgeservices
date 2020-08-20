@@ -904,7 +904,6 @@ var _ = Describe("InterfaceService", func() {
 	Describe("Server bootup", func() {
 		var (
 			testEndpointFake = "localhost:22201"
-			// transportCredsFake credentials.TransportCredentials
 			certsDirFake     string
 			configFile       = "interfaceserviceFake.json"
 			dpdkDevbindFake  = "dpdk-devbindFake.py"
@@ -939,6 +938,9 @@ var _ = Describe("InterfaceService", func() {
 			os.RemoveAll(certsDirFake)
 			os.Remove(configFile)
 			os.Remove(dpdkDevbindFake)
+
+			devbindMock.Reset()
+			vsctlMock.Reset()
 		})
 
 		Context("call run with a damaged config file", func() {
@@ -1306,7 +1308,85 @@ var _ = Describe("InterfaceService", func() {
 				wg.Wait()
 				w.Close()
 			})
+		})
 
+		Context("confirm Heartbeat work", func() {
+			var (
+				w      os.File
+				buffer *gbytes.Buffer
+			)
+
+			BeforeEach(func() {
+				var err error
+				r, w, err := os.Pipe()
+				Expect(err).NotTo(HaveOccurred())
+				log.SetOutput(w)
+				buffer = gbytes.BufferReader(r)
+			})
+
+			AfterEach(func() {
+				log.SetOutput(GinkgoWriter)
+				os.Remove(configFile)
+			})
+			It("should log 'Heartbeat'", func() {
+
+				devbindMock.AddResult(bindOut, nil)
+				Expect(ifs.DpdkEnabled).To(Equal(true))
+				// 13 times ovs-vsctl is called
+				for i := 0; i < 13; i++ {
+					vsctlMock.AddResult("", nil)
+				}
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				// set HeartbeatInterval
+				period := "50ms"
+				err := ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
+				{
+					"endpoint": "%s",
+					"HeartbeatInterval": "%s",
+					"certsDirectory": "%s"
+				}`, testEndpointFake, period, certsDirFake)), os.FileMode(0644))
+				Expect(err).NotTo(HaveOccurred())
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					ifs.Run(srvCtx, configFile)
+					wg.Done()
+				}()
+
+				//waiting for interfaceservice.json
+				for start := time.Now(); time.Since(start) < 3*time.Second; {
+					if ifs.Config.Endpoint == testEndpointFake {
+						break
+					}
+				}
+
+				conn, err := grpc.Dial(testEndpointFake, grpc.WithTransportCredentials(transportCreds))
+				Expect(err).NotTo(HaveOccurred())
+				defer conn.Close()
+
+				interfaceServiceClient := pb.NewInterfaceServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				defer cancel()
+
+				_, err = interfaceServiceClient.Get(ctx, &empty.Empty{}, grpc.WaitForReady(true))
+				Expect(err).NotTo(HaveOccurred())
+
+				duration := 2 * time.Second
+				pollingInterval := 50 * time.Millisecond
+				Eventually(buffer, duration).Should(gbytes.Say(`Heartbeat`))
+				v := Consistently(buffer, duration, pollingInterval).Should(gbytes.Say(`Heartbeat`))
+				fmt.Println(v)
+
+				srvCancel()
+				wg.Wait()
+				w.Close()
+			})
 		})
 	})
 })
