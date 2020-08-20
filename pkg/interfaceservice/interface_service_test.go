@@ -422,6 +422,18 @@ var _ = Describe("InterfaceService", func() {
 			It("should return no error", func() {
 				ifsKernelNetworkDevicesProvider()
 			})
+			It("should return error", func() {
+				commandCMD := "/usr/bin/command"
+				commandCMDBak := commandCMD + ".bak"
+				_, err := os.Stat(commandCMD)
+				Expect(err).NotTo(HaveOccurred())
+				os.Rename(commandCMD, commandCMDBak)
+
+				_, err = ifsKernelNetworkDevicesProvider()
+				Expect(err).To(HaveOccurred())
+
+				os.Rename(commandCMDBak, commandCMD)
+			})
 		})
 
 		Context("call vsctl which is mocked in other tests", func() {
@@ -999,14 +1011,16 @@ var _ = Describe("InterfaceService", func() {
 
 				err := os.Remove("dpdk-devbind.py")
 				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					err := ioutil.WriteFile("./dpdk-devbind.py", []byte{}, os.ModePerm)
+					Expect(err).NotTo(HaveOccurred())
+					ifs.DpdkEnabled = true
+				}()
 
 				var wg sync.WaitGroup
 				wg.Add(1)
 				go func() {
 					ifs.Run(srvCtx, configFile)
-					err := ioutil.WriteFile("./dpdk-devbind.py", []byte{}, os.ModePerm)
-					Expect(err).NotTo(HaveOccurred())
-					ifs.DpdkEnabled = true
 					wg.Done()
 				}()
 
@@ -1223,11 +1237,14 @@ var _ = Describe("InterfaceService", func() {
 					"0000:00:00.1 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb'"+
 						" if=eth1 drv=ixgbe unused=igb_uio", nil)
 
-				e := errors.New("attachPortFromOvs Error")
+				ifs.KernelNetworkDevicesProvider = func() ([]elahelpers.NetworkDevice, error) {
+					return nil, errors.New("attachPortFromOvs Error")
+				}
+
 				// resp for del-port eth1
 				vsctlMock.AddResult("", nil)
 				// resp for get bridge br-userspace datapath_type
-				vsctlMock.AddResult("", e)
+				vsctlMock.AddResult("netdev", nil)
 
 				// Set up InterfaceService server
 				srvCtx, srvCancel := context.WithCancel(context.Background())
