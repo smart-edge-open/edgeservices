@@ -16,9 +16,11 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
+	log "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/internal/authtest"
 	"github.com/otcshare/edgenode/pkg/auth"
 	"github.com/otcshare/edgenode/pkg/config"
@@ -908,11 +910,11 @@ var _ = Describe("InterfaceService", func() {
 			dpdkDevbindFake  = "dpdk-devbindFake.py"
 			originConfigJson []byte
 		)
-		json.Marshal(ifs.Config)
 
 		BeforeEach(func() {
 			// Generate certs
-			certsDirFake, err := ioutil.TempDir("", "elaCertsFake")
+			var err error
+			certsDirFake, err = ioutil.TempDir("", "elaCertsFake")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(authtest.EnrollStub(certsDirFake)).ToNot(HaveOccurred())
@@ -954,6 +956,28 @@ var _ = Describe("InterfaceService", func() {
 				ifs.ReattachDpdkPorts = reatachPortsMock
 
 				err := ioutil.WriteFile(configFile, []byte("damage date"), os.FileMode(0644))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = ifs.Run(srvCtx, configFile)
+				Expect(err).To(HaveOccurred())
+				srvCancel()
+			})
+		})
+
+		Context("call run with an incorrect endpoint", func() {
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				// Write ELA's config
+				err := ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
+				{
+					"endpoint": "%s",
+					"certsDirectory": "%s"
+				}`, "#@#@#@:9999999", certsDirFake)), os.FileMode(0644))
 				Expect(err).NotTo(HaveOccurred())
 
 				err = ifs.Run(srvCtx, configFile)
@@ -1095,7 +1119,7 @@ var _ = Describe("InterfaceService", func() {
 
 		Context("call run with failure on 'ovs-vsctl show'", func() {
 			It("should panic", func() {
-				ifs.ReattachDpdkPorts = originReattachDpdkPorts
+				ifs.ReattachDpdkPorts = ifsReattachDpdkPortsFunction
 				// Set up InterfaceService server
 				srvCtx, srvCancel := context.WithCancel(context.Background())
 
@@ -1110,6 +1134,185 @@ var _ = Describe("InterfaceService", func() {
 
 				srvCancel()
 			})
+		})
+
+		Context("call run with failure on reattachDpdkPorts", func() {
+			var (
+				w      os.File
+				buffer *gbytes.Buffer
+			)
+
+			BeforeEach(func() {
+				var err error
+				r, w, err := os.Pipe()
+				Expect(err).NotTo(HaveOccurred())
+				log.SetOutput(w)
+				buffer = gbytes.BufferReader(r)
+			})
+
+			AfterEach(func() {
+				log.SetOutput(GinkgoWriter)
+			})
+
+			It("should log 'detachPortFromOvs Error'", func() {
+
+				ifs.ReattachDpdkPorts = ifsReattachDpdkPortsFunction
+
+				// resp for show
+				vsctlMock.AddResult("", nil)
+				// resp for list-br
+				vsctlMock.AddResult("br-int\nbr-userspace", nil)
+				// resp for get bridge br-int datapath_type - this will be skipped
+				vsctlMock.AddResult("system", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("netdev", nil)
+				// list-interfaces
+				vsctlMock.AddResult("interface-ok\ninterface-error", nil)
+				// resp for get interface
+				// error for interface-error
+				vsctlMock.AddResult("Error attaching device 0000:00:00.1", nil)
+				// resp for Devbind("--status") in updateDPDKDevbindOutput
+				devbindMock.AddResult(
+					"0000:00:00.1 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb'"+
+						" if=eth1 drv=ixgbe unused=igb_uio", nil)
+
+				e := errors.New("detachPortFromOvs Error")
+				// resp for del-port eth1
+				vsctlMock.AddResult("", e)
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					ifs.Run(srvCtx, configFile)
+					wg.Done()
+				}()
+
+				//waiting for interfaceservice.json
+				for start := time.Now(); time.Since(start) < 3*time.Second; {
+					if ifs.Config.Endpoint == testEndpointFake {
+						break
+					}
+				}
+
+				d := 5 * time.Second
+				Eventually(buffer, d).Should(gbytes.Say(`detachPortFromOvs Error`))
+
+				srvCancel()
+				wg.Wait()
+				w.Close()
+			})
+
+			It("should log 'attachPortFromOvs Error'", func() {
+
+				ifs.ReattachDpdkPorts = ifsReattachDpdkPortsFunction
+
+				// resp for show
+				vsctlMock.AddResult("", nil)
+				// resp for list-br
+				vsctlMock.AddResult("br-int\nbr-userspace", nil)
+				// resp for get bridge br-int datapath_type - this will be skipped
+				vsctlMock.AddResult("system", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("netdev", nil)
+				// list-interfaces
+				vsctlMock.AddResult("interface-ok\ninterface-error", nil)
+				// resp for get interface
+				// error for interface-error
+				vsctlMock.AddResult("Error attaching device 0000:00:00.1", nil)
+				// resp for Devbind("--status") in updateDPDKDevbindOutput
+				devbindMock.AddResult(
+					"0000:00:00.1 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb'"+
+						" if=eth1 drv=ixgbe unused=igb_uio", nil)
+
+				e := errors.New("attachPortFromOvs Error")
+				// resp for del-port eth1
+				vsctlMock.AddResult("", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("", e)
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					ifs.Run(srvCtx, configFile)
+					wg.Done()
+				}()
+
+				//waiting for interfaceservice.json
+				for start := time.Now(); time.Since(start) < 3*time.Second; {
+					if ifs.Config.Endpoint == testEndpointFake {
+						break
+					}
+				}
+
+				d := 5 * time.Second
+				Eventually(buffer, d).Should(gbytes.Say(`attachPortFromOvs Error`))
+
+				srvCancel()
+				wg.Wait()
+				w.Close()
+			})
+
+			It("should log 'successfully reattached to bridge'", func() {
+
+				ifs.ReattachDpdkPorts = ifsReattachDpdkPortsFunction
+
+				// resp for show
+				vsctlMock.AddResult("", nil)
+				// resp for list-br
+				vsctlMock.AddResult("br-int\nbr-userspace", nil)
+				// resp for get bridge br-int datapath_type - this will be skipped
+				vsctlMock.AddResult("system", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("netdev", nil)
+				// list-interfaces
+				vsctlMock.AddResult("interface-ok\ninterface-error", nil)
+				// resp for get interface
+				// error for interface-error
+				vsctlMock.AddResult("Error attaching device 0000:00:00.1", nil)
+				// resp for Devbind("--status") in updateDPDKDevbindOutput
+				devbindMock.AddResult(
+					"0000:00:00.1 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb'"+
+						" if=eth1 drv=ixgbe unused=igb_uio", nil)
+				// resp for del-port eth1
+				vsctlMock.AddResult("", nil)
+				// resp for get bridge br-userspace datapath_type in attachPortToOvs
+				vsctlMock.AddResult("netdev", nil)
+				// resp for Devbind("-b", drv, port.Pci) in attachPortToOvs
+				devbindMock.AddResult("", nil)
+				// resp for --may-exist add-port in attachPortToOvs
+				vsctlMock.AddResult("", nil)
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					ifs.Run(srvCtx, configFile)
+					wg.Done()
+				}()
+
+				//waiting for interfaceservice.json
+				for start := time.Now(); time.Since(start) < 3*time.Second; {
+					if ifs.Config.Endpoint == testEndpointFake {
+						break
+					}
+				}
+
+				d := 5 * time.Second
+				Eventually(buffer, d).Should(gbytes.Say(`successfully reattached to bridge`))
+
+				srvCancel()
+				wg.Wait()
+				w.Close()
+			})
+
 		})
 	})
 })
