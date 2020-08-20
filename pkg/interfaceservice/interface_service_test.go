@@ -39,7 +39,7 @@ var (
 
 	// store function pointers from interfaceservice pkg
 	// to be able to call them if ifs.ReattachDpdkPorts & ifs.KernelNetworkDevicesProvider
-	// are overritetten by mocks
+	// are overwritten by mocks
 	ifsReattachDpdkPortsFunction    = ifs.ReattachDpdkPorts
 	ifsKernelNetworkDevicesProvider = ifs.KernelNetworkDevicesProvider
 )
@@ -397,7 +397,7 @@ var _ = Describe("InterfaceService", func() {
 				devbindMock.AddResult(bindOut, nil)
 
 				vsctlMock.AddResult(strResultVsctl, nil) // resp for show
-				vsctlMock.AddResult("", nil)             // respo for del-port
+				vsctlMock.AddResult("", nil)             // resp for del-port
 				devbindMock.AddResult("", nil)           // resp for bind
 
 				Expect(ifs.DpdkEnabled).To(Equal(true))
@@ -443,7 +443,7 @@ var _ = Describe("InterfaceService", func() {
 			})
 		})
 		Context("call getKernelNetworkDevices", func() {
-			It("iterfaceservice.ReattachDpdkPorts deattach error", func() {
+			It("interfaceservice.ReattachDpdkPorts deattach error", func() {
 				e := errors.New("Error attaching device")
 				vsctlMock.AddResult("", nil) // resp for show
 
@@ -472,7 +472,7 @@ var _ = Describe("InterfaceService", func() {
 				Expect(err).To(HaveOccurred())
 			})
 
-			It("iterfaceservice.ReattachDpdkPorts attach error", func() {
+			It("interfaceservice.ReattachDpdkPorts attach error", func() {
 				e := errors.New("Error attaching device")
 				vsctlMock.AddResult("", nil) // resp for show
 
@@ -503,7 +503,7 @@ var _ = Describe("InterfaceService", func() {
 				Expect(err).To(HaveOccurred())
 			})
 
-			It("iterfaceservice.ReattachDpdkPorts attach error", func() {
+			It("interfaceservice.ReattachDpdkPorts attach error", func() {
 				e := errors.New("Error attaching device")
 				prepareMocks()
 				vsctlMock.AddResult("", nil) // resp for show
@@ -780,7 +780,7 @@ var _ = Describe("InterfaceService", func() {
 		Context("with bind step failure", func() {
 			It("should return error", func() {
 				vsctlMock.AddResult(strResultVsctl, nil) // resp for show
-				vsctlMock.AddResult("", nil)             // respo for del-port
+				vsctlMock.AddResult("", nil)             // resp for del-port
 
 				oldDpdkEnabled := ifs.DpdkEnabled
 				ifs.DpdkEnabled = false
@@ -808,7 +808,7 @@ var _ = Describe("InterfaceService", func() {
 				devbindMock.AddResult(bindOutShort2, nil)
 
 				vsctlMock.AddResult(strResultVsctl, nil) // resp for show
-				vsctlMock.AddResult("", nil)             // respo for del-port
+				vsctlMock.AddResult("", nil)             // resp for del-port
 				devbindMock.AddResult("", nil)           // resp for bind
 
 				Expect(ifs.DpdkEnabled).To(Equal(true))
@@ -919,9 +919,6 @@ var _ = Describe("InterfaceService", func() {
 
 			Expect(authtest.EnrollStub(certsDirFake)).ToNot(HaveOccurred())
 
-			// transportCredsFake, err := authtest.ClientCredentialsStub()
-			// Expect(err).NotTo(HaveOccurred())
-
 			// Write ELA's config
 			err = ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
 			{
@@ -929,9 +926,6 @@ var _ = Describe("InterfaceService", func() {
 				"certsDirectory": "%s"
 			}`, testEndpointFake, certsDirFake)), os.FileMode(0644))
 			Expect(err).NotTo(HaveOccurred())
-
-			// err = ioutil.WriteFile(dpdkDevbindFake, []byte{}, os.ModePerm)
-			// Expect(err).NotTo(HaveOccurred())
 
 			originConfigJson, err = json.Marshal(ifs.Config)
 			Expect(err).NotTo(HaveOccurred())
@@ -1136,7 +1130,7 @@ var _ = Describe("InterfaceService", func() {
 			})
 		})
 
-		Context("call run with failure on reattachDpdkPorts", func() {
+		Context("test reattachDpdkPorts", func() {
 			var (
 				w      os.File
 				buffer *gbytes.Buffer
