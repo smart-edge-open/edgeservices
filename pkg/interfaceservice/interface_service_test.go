@@ -418,7 +418,7 @@ var _ = Describe("InterfaceService", func() {
 	})
 
 	Describe("Call uncovered functions", func() {
-		Context("call getKernelNetworkDevices which is mocked in other tests", func() {
+		FContext("call getKernelNetworkDevices which is mocked in other tests", func() {
 			It("should return no error", func() {
 				ifsKernelNetworkDevicesProvider()
 			})
@@ -428,11 +428,10 @@ var _ = Describe("InterfaceService", func() {
 				_, err := os.Stat(commandCMD)
 				Expect(err).NotTo(HaveOccurred())
 				os.Rename(commandCMD, commandCMDBak)
+				defer os.Rename(commandCMDBak, commandCMD)
 
 				_, err = ifsKernelNetworkDevicesProvider()
 				Expect(err).To(HaveOccurred())
-
-				os.Rename(commandCMDBak, commandCMD)
 			})
 		})
 
@@ -1406,4 +1405,27 @@ var _ = Describe("InterfaceService", func() {
 			})
 		})
 	})
+
+	Describe("GET", func() {
+		Context("make findDpdkPortName return an empty string", func() {
+			It("should return error", func() {
+				var strResultVsctl = `Bridge br-test options: {dpdk-devargs="0000:00:01.0"}
+						datapath_type: netdev
+
+							Interface eth0
+								type: dpdk
+								options: {dpdk-devargs="0000:00:01.0"}`
+
+				devbindMock.AddResult("", nil)           // updateDPDKDevbindOutput - Devbind("--status")
+				vsctlMock.AddResult(strResultVsctl, nil) // resp for port-to-br in Get - getBr
+				vsctlMock.AddResult(strResultVsctl, nil) // resp for show in Get - getPorts - getDpdkPortName
+
+				Expect(ifs.DpdkEnabled).To(Equal(true))
+
+				_, err := get()
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+	})
+
 })
