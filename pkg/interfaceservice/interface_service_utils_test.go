@@ -12,7 +12,7 @@ type wreckFile struct {
 	wreckedData []byte
 }
 
-func NewWreckFile(filePath string) (*wreckFile, error) {
+func newWreckFile(filePath string) (*wreckFile, error) {
 	if fileInfo, err := os.Stat(filePath); fileInfo.IsDir() || err != nil {
 		if fileInfo.IsDir() {
 			return nil, fmt.Errorf("Failed to create wreckFile: %s is not a file path", filePath)

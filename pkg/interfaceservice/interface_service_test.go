@@ -918,7 +918,7 @@ var _ = Describe("InterfaceService", func() {
 			certsDirFake     string
 			configFile       = "interfaceserviceFake.json"
 			dpdkDevbindFake  = "dpdk-devbindFake.py"
-			originConfigJson []byte
+			originConfigJSON []byte
 		)
 
 		BeforeEach(func() {
@@ -937,13 +937,13 @@ var _ = Describe("InterfaceService", func() {
 			}`, testEndpointFake, certsDirFake)), os.FileMode(0644))
 			Expect(err).NotTo(HaveOccurred())
 
-			originConfigJson, err = json.Marshal(ifs.Config)
+			originConfigJSON, err = json.Marshal(ifs.Config)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
 
-			err := json.Unmarshal(originConfigJson, &ifs.Config)
+			err := json.Unmarshal(originConfigJSON, &ifs.Config)
 			Expect(err).NotTo(HaveOccurred())
 
 			os.RemoveAll(certsDirFake)
@@ -1011,8 +1011,8 @@ var _ = Describe("InterfaceService", func() {
 				err := os.Remove("dpdk-devbind.py")
 				Expect(err).NotTo(HaveOccurred())
 				defer func() {
-					err := ioutil.WriteFile("./dpdk-devbind.py", []byte{}, os.ModePerm)
-					Expect(err).NotTo(HaveOccurred())
+					iErr := ioutil.WriteFile("./dpdk-devbind.py", []byte{}, os.ModePerm)
+					Expect(iErr).NotTo(HaveOccurred())
 					ifs.DpdkEnabled = true
 				}()
 
@@ -1109,7 +1109,7 @@ var _ = Describe("InterfaceService", func() {
 				config.LoadJSONConfig(configFile, &configFake)
 
 				caPath := filepath.Clean(filepath.Join(configFake.CertsDir, auth.CAPoolName))
-				wf, wfErr := NewWreckFile(caPath)
+				wf, wfErr := newWreckFile(caPath)
 				Expect(wfErr).NotTo(HaveOccurred())
 
 				wfErr = wf.wreckFile()
