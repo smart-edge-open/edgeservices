@@ -36,10 +36,8 @@ else
 	export CCE_FLAGS=$(CCE_FLAGS_BASE)
 endif
 
-.PHONY: help all-up all-down clean build build-dnscli lint test \
-	vas-sidecar \
-	test-k8s test-api-k8s \
-	test-unit test-api test-dnscli
+.PHONY: help clean build build-ifsvccli build-dnscli vas-sidecar \
+	lint test test-ifsvccli test-dnscli
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
@@ -50,19 +48,13 @@ help:
 	@echo "  build-dnscli      to build edgednscli to the ./dist/ folder"
 	@echo "  vas-sidecar       to build video analytics serving sidecar"
 	@echo ""
-	@echo "Services:"
-	@echo "  all-up            to start the full controller stack"
-	@echo "  all-down          to stop the full controller stack"
-	@echo ""
 	@echo "Testing:"
 	@echo "  lint              to run linters and static analysis on the code"
 	@echo "  test              to run all tests"
-	@echo "  test-unit         to run unit tests"
+	@echo "  test-ifsvccli     to run interfaceservicecli tests"
 	@echo "  test-dnscli       to run edgednscli tests"
 
 clean:
-	@docker-compose stop
-	@docker-compose rm
 	rm -rf dist certificates artifacts
 
 build: build-ifsvccli build-dnscli
@@ -70,29 +62,21 @@ build: build-ifsvccli build-dnscli
 build-ifsvccli:
 	go build -o dist/interfaceservicecli ./cmd/interfaceservicecli
 
-lint:
-	golangci-lint run
-
-kubectl-install:
-ifeq ($(shell uname -s),Darwin)
-	brew install kubernetes-cli
-else
-	curl -Lo kubectl \
-		https://storage.googleapis.com/kubernetes-release/release/v1.14.2/bin/linux/amd64/kubectl \
-		&& sudo install kubectl /usr/local/bin/
-endif
-
 build-dnscli:
 	go build -o dist/edgednscli ./cmd/edgednscli
 
 vas-sidecar:
 	cd ./vas-sidecar && go build -o ./vas-sidecar
 
-test-unit:
+lint:
+	golangci-lint run
+
+test:
 	ginkgo -v -r --randomizeAllSpecs --randomizeSuites \
 		--skipPackage=vendor,k8s
 
+test-ifsvccli:
+	ginkgo -v -r --randomizeAllSpecs --randomizeSuites cmd/interfaceservicecli
+
 test-dnscli:
 	ginkgo -v -r --randomizeAllSpecs --randomizeSuites edgednscli
-
-test: test-unit test-dnscli
