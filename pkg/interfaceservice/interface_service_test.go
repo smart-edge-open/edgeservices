@@ -1137,7 +1137,10 @@ var _ = Describe("InterfaceService", func() {
 				}
 				patch, err := monkey.PatchMethod(os.Exit, fakeExit)
 				Expect(err).NotTo(HaveOccurred())
-				defer patch.Unpatch()
+				defer func() {
+					pErr := patch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
 
 				Expect(func() { ifs.Run(srvCtx, configFile) }).Should(PanicWith("os.Exit called"))
 
