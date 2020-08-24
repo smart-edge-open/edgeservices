@@ -10,8 +10,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	cli "github.com/otcshare/edgecontroller/cmd/interfaceservicecli"
-	pb "github.com/otcshare/edgecontroller/pb/interfaceservice"
+	cli "github.com/otcshare/edgenode/edgecontroller/cmd/interfaceservicecli"
+	pb "github.com/otcshare/edgenode/edgecontroller/pb/interfaceservice"
 )
 
 var _ = Describe("CLI tests", func() {

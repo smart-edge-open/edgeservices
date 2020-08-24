@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/otcshare/edgecontroller/pb/interfaceservice"
+	pb "github.com/otcshare/edgenode/edgecontroller/pb/interfaceservice"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

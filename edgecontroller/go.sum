@@ -98,6 +98,7 @@ github.com/otcshare/common/log v0.0.0-20200410092658-0c4ca4ce7794 h1:RL9Z+lmbGu9
 github.com/otcshare/common/log v0.0.0-20200410092658-0c4ca4ce7794/go.mod h1:30kZGx52RercaMNsH35keYVwwh2KCNXBnXTAdm2XPfM=
 github.com/otcshare/common/proxy v0.0.0-20200410092658-0c4ca4ce7794 h1:BRvfF9IwLb/3cmVx5Kb4aAlt3ICjKFb1CgGc+Zu+c5E=
 github.com/otcshare/common/proxy v0.0.0-20200410092658-0c4ca4ce7794/go.mod h1:IFSNKTbdSLvDVV/BxgI8Ff2pUt/12a37gVGm/vLFhJ0=
+github.com/otcshare/edgenode v0.0.0-20200824092939-341dc18901ec h1:Jn+w3Gf4UtnXyG5DR5Wgu27wUDMBFUZ9VVzPeidrjeA=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

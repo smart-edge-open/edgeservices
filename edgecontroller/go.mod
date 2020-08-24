@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2019 Intel Corporation
 
-module github.com/otcshare/edgecontroller
+module github.com/otcshare/edgenode/edgecontroller
 
 go 1.14
 

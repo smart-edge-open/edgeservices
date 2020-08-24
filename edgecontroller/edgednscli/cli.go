@@ -14,7 +14,7 @@ import (
 	"os"
 	"time"
 
-	edgednspb "github.com/otcshare/edgecontroller/edgednscli/pb"
+	edgednspb "github.com/otcshare/edgenode/edgecontroller/edgednscli/pb"
 	"google.golang.org/grpc/credentials"
 
 	"google.golang.org/grpc"
