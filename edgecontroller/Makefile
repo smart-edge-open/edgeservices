@@ -2,39 +2,6 @@
 # Copyright (c) 2019-2020 Intel Corporation
 
 export GO111MODULE = on
-export MINIKUBE_WANTUPDATENOTIFICATION=false
-export MINIKUBE_WANTREPORTERRORPROMPT=false
-export MINIKUBE_HOME=$(HOME)
-export CHANGE_MINIKUBE_NONE_USER=true
-export KUBECONFIG=$(HOME)/.kube/config
-
-# Build CCE run flags to be passed to docker-compose. This must be declared
-# before any command declarations since docker-compose depends on this variable
-# to always be set.
-define CCE_FLAGS_BASE
-	-adminPass $(CCE_ADMIN_PASSWORD) \
-	-dsn root:$(MYSQL_ROOT_PASSWORD)@tcp(mysql:3306)/controller_ce \
-	-log-level $(CCE_LOG_LEVEL)
-endef
-
-# Pass kubernetes related flags if and only if the user specified kubernetes
-# as the orchestration mode. Otherwise, assume native orchestration mode and
-# pass in base flags.
-ifeq ($(CCE_ORCHESTRATION_MODE),$(filter $(CCE_ORCHESTRATION_MODE),kubernetes kubernetes-ovn))
-define CCE_FLAGS
-	$(CCE_FLAGS_BASE) \
-	-orchestration-mode $(CCE_ORCHESTRATION_MODE) \
-	-k8s-client-ca-path /artifacts/k8s/ca.pem \
-	-k8s-client-cert-path /artifacts/k8s/cert.pem \
-	-k8s-client-key-path /artifacts/k8s/key.pem \
-	-k8s-master-host $(CCE_K8S_MASTER_HOST) \
-	-k8s-api-path $(CCE_K8S_API_PATH) \
-	-k8s-master-user $(CCE_K8S_MASTER_USER)
-endef
-	export CCE_FLAGS
-else
-	export CCE_FLAGS=$(CCE_FLAGS_BASE)
-endif
 
 .PHONY: help clean build build-ifsvccli build-dnscli vas-sidecar \
 	lint test test-ifsvccli test-dnscli

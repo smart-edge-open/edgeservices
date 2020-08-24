@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+edgecontroller/vas-sidecar/vas-sidecar
 
 # Test binary, build with `go test -c`
 *.test
@@ -15,8 +16,6 @@
 dist/
 edgecontroller/dist
 
-# Container build binary artifact
-edgecontroller/cce
 #
 # # Go build dependencies
 edgecontroller/vendor/
@@ -33,4 +32,3 @@ edgecontroller/.vscode/*
 
 # # Runtime artifacts
 edgecontroller/artifacts/
-
