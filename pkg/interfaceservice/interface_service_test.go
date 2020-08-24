@@ -418,7 +418,7 @@ var _ = Describe("InterfaceService", func() {
 	})
 
 	Describe("Call uncovered functions", func() {
-		FContext("call getKernelNetworkDevices which is mocked in other tests", func() {
+		Context("call getKernelNetworkDevices which is mocked in other tests", func() {
 			It("should return no error", func() {
 				ifsKernelNetworkDevicesProvider()
 			})
@@ -1359,7 +1359,7 @@ var _ = Describe("InterfaceService", func() {
 				srvCtx, srvCancel := context.WithCancel(context.Background())
 
 				// set HeartbeatInterval
-				period := "50ms"
+				period := "200ms"
 				err := ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
 				{
 					"endpoint": "%s",
@@ -1393,11 +1393,8 @@ var _ = Describe("InterfaceService", func() {
 				_, err = interfaceServiceClient.Get(ctx, &empty.Empty{}, grpc.WaitForReady(true))
 				Expect(err).NotTo(HaveOccurred())
 
-				duration := 2 * time.Second
-				pollingInterval := 50 * time.Millisecond
+				duration := 1 * time.Second
 				Eventually(buffer, duration).Should(gbytes.Say(`Heartbeat`))
-				v := Consistently(buffer, duration, pollingInterval).Should(gbytes.Say(`Heartbeat`))
-				fmt.Println(v)
 
 				srvCancel()
 				wg.Wait()
