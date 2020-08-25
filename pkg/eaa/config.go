@@ -21,4 +21,5 @@ type Config struct {
 	ValidationEndpoint string        `json:"ValidationEndpoint"`
 	HeartbeatInterval  util.Duration `json:"HeartbeatInterval"`
 	Certs              CertsInfo     `json:"Certs"`
+	KafkaBroker        string        `json:"KafkaBroker"`
 }

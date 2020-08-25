@@ -9,5 +9,6 @@
         "ServerCertPath": "certs/eaa/server.pem",
         "ServerKeyPath": "certs/eaa/server.key",
         "CommonName": "eaa.openness"
-    }
+    },
+    "KafkaBroker": ""
 }
