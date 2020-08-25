@@ -155,7 +155,7 @@ var _ = Describe("Key management", func() {
 			err = ioutil.WriteFile(keyPath,
 				encodedKey1, os.FileMode(0600))
 			Expect(err).ToNot(HaveOccurred())
-			loadedKey, err = auth.LoadKey(keyPath)
+			_, err = auth.LoadKey(keyPath)
 			Expect(err).To(HaveOccurred())
 		})
 	})
