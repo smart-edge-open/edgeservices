@@ -107,6 +107,16 @@ var _ = Describe("Key management", func() {
 			err := auth.SaveKey(key, keyPath)
 			Expect(err).ToNot(HaveOccurred())
 
+			err = auth.SaveKey(key, "")
+			Expect(err).To(HaveOccurred())
+
+			err = auth.SaveKey(nil, keyPath)
+			Expect(err).To(HaveOccurred())
+
+			By("Check file permissions")
+			_, err = os.OpenFile(keyPath, os.O_WRONLY, 0)
+			Expect(err).ToNot(HaveOccurred())
+
 			By("Setting file permissions")
 			stat, err := os.Stat(keyPath)
 			Expect(err).ToNot(HaveOccurred())

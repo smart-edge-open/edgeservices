@@ -12,7 +12,7 @@ import (
 
 	. "github.com/otcshare/edgenode/internal/metadatahelpers"
 	metadata "github.com/otcshare/edgenode/pkg/app-metadata"
-	pb "github.com/otcshare/edgenode/pkg/eva/pb"
+	pb "github.com/otcshare/edgenode/pkg/app-metadata/pb"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

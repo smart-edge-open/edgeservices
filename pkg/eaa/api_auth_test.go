@@ -162,28 +162,6 @@ var _ = Describe("ApiAuth", func() {
 			})
 		})
 
-		Context("IP Verification failed", func() {
-			Specify("Will return response code set to 404", func() {
-
-				oldEvaResponse := responseFromEva
-				responseFromEva = ""
-
-				identity.Csr = CreateCSR(clientPriv,
-					PrepareCertificateRequestTemplate())
-
-				reqBody, err := json.Marshal(identity)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				resp, err := http.Post("http://"+cfg.OpenEndpoint+"/auth", "",
-					bytes.NewBuffer(reqBody))
-				Expect(err).ShouldNot(HaveOccurred())
-
-				Expect(resp.StatusCode).Should(
-					Equal(http.StatusUnauthorized))
-
-				responseFromEva = oldEvaResponse
-			})
-		})
 	})
 })
 
@@ -539,52 +517,6 @@ var _ = Describe("Initialization tests", func() {
 				// Init EAA
 				err := runEaa(startStopCh) // should fail
 				Expect(err).Should(HaveOccurred())
-			})
-		})
-	})
-})
-
-var _ = Describe("Auth API error tests", func() {
-	var (
-		clientPriv crypto.PrivateKey
-		identity   eaa.AuthIdentity
-	)
-	Describe("Wrong initialization parameters", func() {
-		Context("Wrong validation endpoint provided", func() {
-			Specify("Auth request should fail", func() {
-				ValidationEndpointBackup := cfg.ValidationEndpoint
-				cfg.ValidationEndpoint = ",,,"
-				generateConfigs()
-
-				startStopCh := make(chan bool)
-				err := runEaa(startStopCh)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				clientPriv, err = ecdsa.GenerateKey(
-					elliptic.P256(),
-					rand.Reader,
-				)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				identity.Csr = CreateCSR(clientPriv,
-					PrepareCertificateRequestTemplate())
-
-				reqBody, err := json.Marshal(identity)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				resp, err := http.Post("http://"+cfg.OpenEndpoint+"/auth", "",
-					bytes.NewBuffer(reqBody))
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(resp.StatusCode).ShouldNot(Equal(
-					http.StatusOK))
-
-				exitCode := stopEaa(startStopCh)
-				Expect(exitCode).NotTo(Equal(0))
-
-				removeCerts()
-
-				cfg.ValidationEndpoint = ValidationEndpointBackup
-				generateConfigs()
 			})
 		})
 	})
