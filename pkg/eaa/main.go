@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/google/uuid"
 	logger "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/pkg/config"
 	"github.com/otcshare/edgenode/pkg/util"
@@ -99,7 +100,13 @@ func RunServer(parentCtx context.Context, eaaCtx *eaaContext) error {
 	serverAuth := &http.Server{Addr: eaaCtx.cfg.OpenEndpoint,
 		Handler: authRouter}
 
-	eaaCtx.msgBrokerCtx = &kafkaMsgBroker{}
+	// Each EAA instance should be in a different Consumer Group to get all Service Updates
+	instanceID := uuid.New()
+	msgBrokerCtx := newKafkaMsgBroker(eaaCtx, "EAA_"+instanceID.String())
+	msgBrokerCtx.addPublisher(servicesPublisher, servicesTopic, nil)
+	msgBrokerCtx.addSubscriber(servicesSubscriber, servicesTopic, nil)
+
+	eaaCtx.msgBrokerCtx = msgBrokerCtx
 
 	lis, err := net.Listen("tcp", eaaCtx.cfg.TLSEndpoint)
 	if err != nil {

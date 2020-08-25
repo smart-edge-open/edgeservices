@@ -54,6 +54,18 @@ type Service struct {
 	Info          json.RawMessage          `json:"info,omitempty"`
 }
 
+// ServiceMsg is a message sent/received by a message broker
+type ServiceMsg struct {
+	Svc    *Service `json:"service"`
+	Action string   `json:"action"`
+}
+
+// Service 'Action' values
+const (
+	serviceActionRegister   = "register"
+	serviceActionDeregister = "deregister"
+)
+
 // SubscriptionList JSON struct
 type SubscriptionList struct {
 	Subscriptions []Subscription `json:"subscriptions,omitempty"`
@@ -82,4 +94,9 @@ type URN struct {
 	// The non-unique portion of the URN that identifies the class excluding
 	// a trailing separator.
 	Namespace string `json:"namespace,omitempty"`
+}
+
+// Provides string representation of URN
+func (u *URN) String() string {
+	return u.Namespace + ":" + u.ID
 }

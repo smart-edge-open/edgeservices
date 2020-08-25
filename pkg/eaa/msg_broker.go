@@ -4,9 +4,17 @@
 package eaa
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+)
+
+// Topic types
+const (
+	notificationsTopicPrefix = "ns_"
+	servicesTopic            = "services"
+	clientTopicPrefix        = "client_"
 )
 
 // Publisher type enum
@@ -48,4 +56,46 @@ type msgBroker interface {
 	publish(publisherID string, msg *message.Message) error
 	addSubscriber(t subscriberType, id string, r *http.Request) error
 	removeSubscriber(id string) error
+}
+
+// Callbacks
+
+// All messages from 'services' topic should be handled by this callback.
+func handleServiceUpdates(messages <-chan *message.Message, eaaCtx *eaaContext) {
+	for msg := range messages {
+		log.Debugf("received message: %s, payload: %s", msg.UUID, string(msg.Payload))
+
+		var svcMsg ServiceMsg
+		err := json.Unmarshal(msg.Payload, &svcMsg)
+		if err != nil {
+			log.Errf("Error Decoding: %s", err.Error())
+			msg.Nack()
+			continue
+		}
+
+		commonName := svcMsg.Svc.URN.String()
+
+		switch svcMsg.Action {
+		case serviceActionRegister:
+			if err = addService(commonName, *svcMsg.Svc, eaaCtx); err != nil {
+				log.Errf("Register Application error: %s", err.Error())
+				msg.Ack()
+				continue
+			}
+		case serviceActionDeregister:
+			if err = removeService(commonName, eaaCtx); err != nil {
+				log.Errf("Deregister Application error: %s", err.Error())
+				msg.Ack()
+				continue
+			}
+		default:
+			log.Errf("Unknown Service Actions: %v", svcMsg.Action)
+			msg.Ack()
+			continue
+		}
+
+		// we need to Acknowledge that we received and processed the message,
+		// otherwise, it will be resent over and over again.
+		msg.Ack()
+	}
 }

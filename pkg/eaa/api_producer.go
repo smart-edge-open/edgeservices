@@ -52,25 +52,24 @@ func addService(commonName string, serv Service, eaaCtx *eaaContext) error {
 
 	}
 	eaaCtx.serviceInfo[commonName] = serv
+	log.Infof("Successfully added '%v' service", commonName)
 
 	return nil
 }
 
-func removeService(commonName string, eaaCtx *eaaContext) (int, error) {
+func removeService(commonName string, eaaCtx *eaaContext) error {
 	if eaaCtx.serviceInfo == nil {
-		return http.StatusInternalServerError,
-			errors.New(
-				"EAA context is not initialized. Call Init() function first")
+		return errors.New("EAA context is not initialized. Call Init() function first")
 	}
 
 	_, servicefound := eaaCtx.serviceInfo[commonName]
 	if servicefound {
 		delete(eaaCtx.serviceInfo, commonName)
-		return http.StatusNoContent, nil
+		log.Infof("Successfully removed '%v' service", commonName)
+		return nil
 	}
 
-	return http.StatusNotFound,
-		errors.New(http.StatusText(http.StatusNotFound))
+	return errors.New(http.StatusText(http.StatusNotFound))
 }
 
 func getUniqueSubsList(nsList []string, servList []string) []string {

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gorilla/mux"
 )
 
@@ -18,13 +19,35 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 
 	clientCert := r.TLS.PeerCertificates[0]
 	commonName := clientCert.Subject.CommonName
-	statCode, err := removeService(commonName, eaaCtx)
-
-	w.WriteHeader(statCode)
-
+	URN, err := CommonNameStringToURN(commonName)
 	if err != nil {
-		log.Errf("Error in Service Deregistration: %s", err.Error())
+		log.Errf("Error during converting Common Name to URN: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
+
+	// Prepare Service structure
+	var serv Service
+	serv.URN = &URN
+	svcMsg := ServiceMsg{Svc: &serv, Action: serviceActionDeregister}
+
+	// Create Watermill Message and publish it
+	data, err := json.Marshal(svcMsg)
+	if err != nil {
+		log.Errf("Error during Service structure marshalling: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	msg := message.NewMessage(serv.URN.String(), data)
+
+	err = eaaCtx.msgBrokerCtx.publish(servicesTopic, msg)
+	if err != nil {
+		log.Errf("Error during Message publishing: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 
 	log.Debugf("Successfully processed DeregisterApplication from %s",
 		commonName)
@@ -153,8 +176,30 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = addService(commonName, serv, eaaCtx); err != nil {
-		log.Errf("Register Application: %s", err.Error())
+	if serv.URN == nil {
+		var URN URN
+		if URN, err = CommonNameStringToURN(commonName); err != nil {
+			log.Errf("Error during URN generation: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		serv.URN = &URN
+	}
+
+	svcMsg := ServiceMsg{Svc: &serv, Action: serviceActionRegister}
+
+	// Create Watermill Message and publish it
+	data, err := json.Marshal(svcMsg)
+	if err != nil {
+		log.Errf("Error during Service structure marshalling: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	msg := message.NewMessage(commonName, data)
+
+	err = eaaCtx.msgBrokerCtx.publish(servicesTopic, msg)
+	if err != nil {
+		log.Errf("Error during Message publishing: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
