@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+apiVersion: kubevirt.io/v1alpha3
+kind: VirtualMachine
+metadata:
+  name: debian-sriov-vm 
+spec:
+  running: false
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: debian-sriov-vm
+    spec:
+      domain:
+        cpu:
+          cores: 2
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: containervolume
+          - disk:
+              bus: virtio
+            name: cloudinitvolume
+          interfaces:
+          - name: default
+            bridge: {}
+          - name: sriov-net
+            sriov: {}
+        resources:
+          requests:
+            memory: 4096M
+      networks:
+      - name: default
+        pod: {}
+      - multus:
+          networkName: sriov-openness-vm #name of the NetworkAttachmentDefinition
+        name: sriov-net
+      volumes:
+        - name: containervolume
+          containerDisk:
+            image: tedezed/debian-container-disk:9.0
+        - name: cloudinitvolume
+          cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              chpasswd:
+                list: |
+                  debian:debian
+                  root:toor
+                expire: False
