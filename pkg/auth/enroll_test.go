@@ -6,6 +6,7 @@ package auth_test
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -22,11 +23,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/otcshare/edgenode/pkg/auth"
 	pb "github.com/otcshare/edgenode/pkg/auth/pb"
+	. "github.com/undefinedlabs/go-mpatch"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcCreds "google.golang.org/grpc/credentials"
@@ -398,6 +402,187 @@ var _ = Describe("Enrollment", func() {
 				Expect(err).To(HaveOccurred())
 			})
 		})
+
+		When("Chmod must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(syscall.Chmod, func(_ string,
+					_ uint32) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				tp := filepath.Join(os.TempDir(), "certs")
+				err = auth.Enroll(tp, "", time.Second, auth.EnrollClient{})
+				defer os.Remove(tp)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Chmod must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveKey, func(_ crypto.PrivateKey,
+					_ string) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				tp := filepath.Join(os.TempDir(), "certs")
+				err = auth.Enroll(tp, "", time.Second, auth.EnrollClient{})
+				defer os.Remove(tp)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Get credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(x509.SystemCertPool, func() (*x509.CertPool,
+					error) {
+					return nil, errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "", time.Second,
+					auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Load credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.LoadKey, func(_ string) (crypto.PrivateKey,
+					error) {
+					return nil, nil
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "", time.Second,
+					auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("os MkdirAll Must be panic", func() {
+				patches, err := PatchMethod(os.MkdirAll, func(_ string,
+					_ os.FileMode) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("os Chmod Must be panic", func() {
+				patches, err := PatchMethod(os.MkdirAll, func(path string,
+					_ os.FileMode) error {
+					err := os.RemoveAll(path)
+					Expect(err).ToNot(HaveOccurred())
+					return nil
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveKey, func(_ crypto.PrivateKey,
+					_ string) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveCert, func(_ string,
+					_ ...*x509.Certificate) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveCert, func(_ string,
+					_ ...*x509.Certificate) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveCert, func(path string,
+					_ ...*x509.Certificate) error {
+					if strings.Contains(path, auth.CAChainName) {
+						return errors.New("Failed")
+					} else {
+						return nil
+					}
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveCert, func(path string,
+					_ ...*x509.Certificate) error {
+					if strings.Contains(path, auth.CAPoolName) {
+						return errors.New("Failed")
+					} else {
+						return nil
+					}
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Verify credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(x509.MarshalPKIXPublicKey,
+					func(_ interface{}) ([]byte, error) {
+						return nil, errors.New("Failed")
+					})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
 		When("Received credentials are correct", func() {
 			It("Saves credentials and returns no error", func() {
 				err := auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",

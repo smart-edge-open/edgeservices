@@ -16,14 +16,17 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/otcshare/edgenode/pkg/auth"
+	. "github.com/undefinedlabs/go-mpatch"
 )
 
 func TestPKI(t *testing.T) {
@@ -157,6 +160,28 @@ var _ = Describe("Key management", func() {
 			Expect(err).ToNot(HaveOccurred())
 			_, err = auth.LoadKey(keyPath)
 			Expect(err).To(HaveOccurred())
+
+			By("Make os.Stat occure error")
+			var s *os.File
+			fd, err := os.Create("/tmp/testfile")
+			Expect(err).ToNot(HaveOccurred())
+			patche1, err := PatchMethod(os.OpenFile, func(_ string,
+				_ int, _ os.FileMode) (*os.File, error) {
+				return fd, nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+			defer patche1.Unpatch()
+			patche2, err := PatchInstanceMethodByName(reflect.TypeOf(s),
+				"Stat", func(_ *os.File) (os.FileInfo, error) {
+					return nil, errors.New("Failed")
+				})
+			Expect(err).ToNot(HaveOccurred())
+			defer patche2.Unpatch()
+			Expect(err).ToNot(HaveOccurred())
+			_, err = auth.LoadKey(keyPath)
+			Expect(err).To(HaveOccurred())
+			err = os.Remove("/tmp/testfile")
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 	Describe("SaveKey", func() {
@@ -184,6 +209,38 @@ var _ = Describe("Key management", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(data).To(Equal(encodedKey))
+		})
+		It("Must be panic", func() {
+			patches, err := PatchMethod(os.OpenFile, func(_ string,
+				_ int, _ os.FileMode) (*os.File, error) {
+				return nil, nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+			defer patches.Unpatch()
+			err = auth.SaveKey(key, keyPath)
+			Expect(err).To(HaveOccurred())
+		})
+		It("Must be panic", func() {
+			var s *os.File
+			fd, err := os.Create("/tmp/testfile")
+			Expect(err).ToNot(HaveOccurred())
+			patche1, err := PatchMethod(os.OpenFile, func(_ string,
+				_ int, _ os.FileMode) (*os.File, error) {
+				return fd, nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+			defer patche1.Unpatch()
+			patche2, err := PatchInstanceMethodByName(reflect.TypeOf(s),
+				"Write", func(_ *os.File, _ []byte) (int, error) {
+					return 0, errors.New("Failed")
+				})
+			Expect(err).ToNot(HaveOccurred())
+			defer patche2.Unpatch()
+			Expect(err).ToNot(HaveOccurred())
+			err = auth.SaveKey(key, keyPath)
+			Expect(err).To(HaveOccurred())
+			err = os.Remove("/tmp/testfile")
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
@@ -320,6 +377,26 @@ var _ = Describe("Cert management", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(data).To(Equal(encodedCert))
+		})
+		It("Must be panic", func() {
+			patches, err := PatchMethod(os.OpenFile, func(_ string,
+				_ int, _ os.FileMode) (*os.File, error) {
+				return nil, nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+			defer patches.Unpatch()
+			err = auth.SaveCert(certPath, cert)
+			Expect(err).To(HaveOccurred())
+
+		})
+		It("Must be panic", func() {
+			patches, err := PatchMethod(pem.Encode, func(_ io.Writer, _ *pem.Block) error {
+				return errors.New("Failed")
+			})
+			Expect(err).ToNot(HaveOccurred())
+			defer patches.Unpatch()
+			err = auth.SaveCert(certPath, cert)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

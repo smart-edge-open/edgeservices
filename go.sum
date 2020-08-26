@@ -238,6 +238,8 @@ github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJy
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
+github.com/undefinedlabs/go-mpatch v1.0.6 h1:h8q5ORH/GaOE1Se1DMhrOyljXZEhRcROO7agMqWXCOY=
+github.com/undefinedlabs/go-mpatch v1.0.6/go.mod h1:TyJZDQ/5AgyN7FSLiBJ8RO9u2c6wbtRvK827b6AVqY4=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf h1:3J37+NPjNyGW/dbfXtj3yWuF9OEepIdGOXRaJGbORV8=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
 github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc h1:R83G5ikgLMxrBvLh22JhdfI8K6YXEPHx5P03Uu3DRs4=
