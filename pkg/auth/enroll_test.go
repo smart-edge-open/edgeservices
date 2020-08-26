@@ -539,9 +539,8 @@ var _ = Describe("Enrollment", func() {
 					_ ...*x509.Certificate) error {
 					if strings.Contains(path, auth.CAChainName) {
 						return errors.New("Failed")
-					} else {
-						return nil
 					}
+					return nil
 				})
 				Expect(err).ToNot(HaveOccurred())
 				defer patches.Unpatch()
@@ -557,9 +556,8 @@ var _ = Describe("Enrollment", func() {
 					_ ...*x509.Certificate) error {
 					if strings.Contains(path, auth.CAPoolName) {
 						return errors.New("Failed")
-					} else {
-						return nil
 					}
+					return nil
 				})
 				Expect(err).ToNot(HaveOccurred())
 				defer patches.Unpatch()
