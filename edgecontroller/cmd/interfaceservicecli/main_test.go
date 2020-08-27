@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2019-2020 Intel Corporation
 
-package main_test
+package main
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	cli "github.com/otcshare/edgenode/edgecontroller/cmd/interfaceservicecli"
+
 	pb "github.com/otcshare/edgenode/edgecontroller/pb/interfaceservice"
 	monkey "github.com/undefinedlabs/go-mpatch"
 )
@@ -19,13 +19,13 @@ import (
 var _ = Describe("CLI tests", func() {
 
 	BeforeEach(func() {
-		cli.Cfg.Endpoint = ""
-		cli.Cfg.ServiceName = ""
-		cli.Cfg.Cmd = ""
-		cli.Cfg.Pci = ""
-		cli.Cfg.Brg = ""
-		cli.Cfg.Drv = ""
-		cli.Cfg.CertsDir = "./certs"
+		Cfg.Endpoint = ""
+		Cfg.ServiceName = ""
+		Cfg.Cmd = ""
+		Cfg.Pci = ""
+		Cfg.Brg = ""
+		Cfg.Drv = ""
+		Cfg.CertsDir = "./certs"
 	})
 
 	AfterEach(func() {
@@ -34,14 +34,14 @@ var _ = Describe("CLI tests", func() {
 		Iserv.attachReturnErr = nil
 		Iserv.detachReturnErr = nil
 
-		cli.Cfg.Endpoint = ""
-		cli.Cfg.ServiceName = ""
-		cli.Cfg.Cmd = ""
-		cli.Cfg.Pci = ""
-		cli.Cfg.Brg = ""
-		cli.Cfg.Drv = ""
-		cli.Cfg.CertsDir = "./certs"
-		cli.Cfg.Timeout = 20
+		Cfg.Endpoint = ""
+		Cfg.ServiceName = ""
+		Cfg.Cmd = ""
+		Cfg.Pci = ""
+		Cfg.Brg = ""
+		Cfg.Drv = ""
+		Cfg.CertsDir = "./certs"
+		Cfg.Timeout = 20
 	})
 
 	Context("start Cli without command", func() {
@@ -50,7 +50,7 @@ var _ = Describe("CLI tests", func() {
 			read, write, _ := os.Pipe()
 			os.Stdout = write
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err).NotTo(HaveOccurred())
 
 			write.Close()
@@ -67,8 +67,8 @@ var _ = Describe("CLI tests", func() {
 			read, write, _ := os.Pipe()
 			os.Stdout = write
 
-			cli.Cfg.Cmd = "help"
-			err := cli.StartCli()
+			Cfg.Cmd = "help"
+			err := StartCli()
 			Expect(err).NotTo(HaveOccurred())
 
 			write.Close()
@@ -85,8 +85,8 @@ var _ = Describe("CLI tests", func() {
 			read, write, _ := os.Pipe()
 			os.Stdout = write
 
-			cli.Cfg.Cmd = "test123"
-			err := cli.StartCli()
+			Cfg.Cmd = "test123"
+			err := StartCli()
 			Expect(err).NotTo(HaveOccurred())
 
 			write.Close()
@@ -99,13 +99,13 @@ var _ = Describe("CLI tests", func() {
 
 	Context("'attach' command on existing interface", func() {
 		It("should call 'Attach'", func() {
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "attach"
-			cli.Cfg.Pci = "5201:54:00.0"
-			cli.Cfg.Brg = "br-local"
-			cli.Cfg.Drv = "kernel"
+			Cfg.Cmd = "attach"
+			Cfg.Pci = "5201:54:00.0"
+			Cfg.Brg = "br-local"
+			Cfg.Drv = "kernel"
 
 			Ni := &pb.Port{
 				Driver:     0,
@@ -118,39 +118,39 @@ var _ = Describe("CLI tests", func() {
 				Ports: []*pb.Port{Ni},
 			}
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	Context("'attach' DPDK interface", func() {
 		It("should call 'Attach'", func() {
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "attach"
-			cli.Cfg.Pci = "5201:54:00.0"
-			cli.Cfg.Brg = "br-dpdk"
-			cli.Cfg.Drv = "dpdk"
+			Cfg.Cmd = "attach"
+			Cfg.Pci = "5201:54:00.0"
+			Cfg.Brg = "br-dpdk"
+			Cfg.Drv = "dpdk"
 
 			Iserv.getReturnNi = &pb.Ports{
 				Ports: []*pb.Port{},
 			}
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	Context("'attach' command on unknown interface", func() {
 		It("should dont call 'Attach'", func() {
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "attach"
-			cli.Cfg.Pci = "5222:54:00.0"
-			cli.Cfg.Brg = "br-local"
-			cli.Cfg.Drv = "kernel"
+			Cfg.Cmd = "attach"
+			Cfg.Pci = "5222:54:00.0"
+			Cfg.Brg = "br-local"
+			Cfg.Drv = "kernel"
 
 			Ni := &pb.Port{
 				Driver:     0,
@@ -163,20 +163,20 @@ var _ = Describe("CLI tests", func() {
 				Ports: []*pb.Port{Ni},
 			}
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	Context("'attach' command on invalid interface", func() {
 		It("should dont call 'Attach'", func() {
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "attach"
-			cli.Cfg.Pci = "123:123:00"
-			cli.Cfg.Brg = "br-local"
-			cli.Cfg.Drv = "kernel"
+			Cfg.Cmd = "attach"
+			Cfg.Pci = "123:123:00"
+			Cfg.Brg = "br-local"
+			Cfg.Drv = "kernel"
 
 			Ni := &pb.Port{
 				Driver:     0,
@@ -189,20 +189,20 @@ var _ = Describe("CLI tests", func() {
 				Ports: []*pb.Port{Ni},
 			}
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	Context("'attach' command on unknown OVS bridge", func() {
 		It("should dont call 'Attach'", func() {
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "attach"
-			cli.Cfg.Pci = "5201:54:00.0"
-			cli.Cfg.Brg = "br-unknown"
-			cli.Cfg.Drv = "kernel"
+			Cfg.Cmd = "attach"
+			Cfg.Pci = "5201:54:00.0"
+			Cfg.Brg = "br-unknown"
+			Cfg.Drv = "kernel"
 
 			Iserv.attachReturnErr = errors.New("")
 
@@ -210,20 +210,20 @@ var _ = Describe("CLI tests", func() {
 				Ports: []*pb.Port{},
 			}
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err)
 		})
 	})
 
 	Context("'attach' command with get error", func() {
 		It("should dont call 'Attach'", func() {
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "attach"
-			cli.Cfg.Pci = "5201:54:00.0"
-			cli.Cfg.Brg = "br-unknown"
-			cli.Cfg.Drv = "kernel"
+			Cfg.Cmd = "attach"
+			Cfg.Pci = "5201:54:00.0"
+			Cfg.Brg = "br-unknown"
+			Cfg.Drv = "kernel"
 
 			Iserv.attachReturnErr = errors.New("")
 
@@ -233,18 +233,18 @@ var _ = Describe("CLI tests", func() {
 
 			Iserv.getReturnErr = errors.New("")
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err)
 		})
 	})
 
 	Context("'detach' command on existing interface", func() {
 		It("should call 'Detach'", func() {
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "detach"
-			cli.Cfg.Pci = "5201:54:00.0"
+			Cfg.Cmd = "detach"
+			Cfg.Pci = "5201:54:00.0"
 
 			Ni := &pb.Port{
 				Driver:     1,
@@ -257,17 +257,17 @@ var _ = Describe("CLI tests", func() {
 				Ports: []*pb.Port{Ni},
 			}
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	Context("'get' command", func() {
 		It("should return interfaces", func() {
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "get"
+			Cfg.Cmd = "get"
 
 			Ni := &pb.Port{
 				Driver:     0,
@@ -308,33 +308,33 @@ var _ = Describe("CLI tests", func() {
 				Ports: []*pb.Port{Ni, Ni2, Ni3, Ni4, Ni5},
 			}
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	Context("'get' command with no interfaces", func() {
 		It("should return error", func() {
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "get"
+			Cfg.Cmd = "get"
 
 			Iserv.getReturnNi = &pb.Ports{
 				Ports: []*pb.Port{},
 			}
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err)
 		})
 	})
 
 	Context("'get' command with 'Get' error", func() {
 		It("should return error", func() {
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "get"
+			Cfg.Cmd = "get"
 
 			Iserv.getReturnNi = &pb.Ports{
 				Ports: []*pb.Port{},
@@ -342,22 +342,22 @@ var _ = Describe("CLI tests", func() {
 
 			Iserv.getReturnErr = errors.New("")
 
-			err := cli.StartCli()
+			err := StartCli()
 			Expect(err)
 		})
 	})
 
-	Context("'get' command with empty cli.Cfg.CertsDir path", func() {
+	Context("'get' command with empty Cfg.CertsDir path", func() {
 		It("should panic", func() {
 			saveStd := os.Stdout
 			read, write, _ := os.Pipe()
 			os.Stdout = write
 
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "get"
-			cli.Cfg.CertsDir = ""
+			Cfg.Cmd = "get"
+			Cfg.CertsDir = ""
 
 			Iserv.getReturnNi = &pb.Ports{
 				Ports: []*pb.Port{},
@@ -373,7 +373,7 @@ var _ = Describe("CLI tests", func() {
 				Expect(pErr).NotTo(HaveOccurred())
 			}()
 			Expect(func() {
-				cErr := cli.StartCli()
+				cErr := StartCli()
 				Expect(cErr).NotTo(HaveOccurred())
 			}).Should(PanicWith("os.Exit called"))
 
@@ -392,12 +392,12 @@ var _ = Describe("CLI tests", func() {
 			read, write, _ := os.Pipe()
 			os.Stdout = write
 
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "get"
+			Cfg.Cmd = "get"
 
-			caPath := filepath.Clean(filepath.Join(cli.Cfg.CertsDir, "root.pem"))
+			caPath := filepath.Clean(filepath.Join(Cfg.CertsDir, "root.pem"))
 			caPathBak := caPath + ".bak"
 			err := os.Rename(caPath, caPathBak)
 			Expect(err).NotTo(HaveOccurred())
@@ -417,7 +417,7 @@ var _ = Describe("CLI tests", func() {
 				Expect(pErr).NotTo(HaveOccurred())
 			}()
 			Expect(func() {
-				cErr := cli.StartCli()
+				cErr := StartCli()
 				Expect(cErr).NotTo(HaveOccurred())
 			}).Should(PanicWith("os.Exit called"))
 
@@ -436,12 +436,12 @@ var _ = Describe("CLI tests", func() {
 			read, write, _ := os.Pipe()
 			os.Stdout = write
 
-			cli.Cfg.Endpoint = Iserv.Endpoint
-			cli.Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			Cfg.ServiceName = "localhost"
 
-			cli.Cfg.Cmd = "get"
+			Cfg.Cmd = "get"
 
-			caPath := filepath.Clean(filepath.Join(cli.Cfg.CertsDir, "root.pem"))
+			caPath := filepath.Clean(filepath.Join(Cfg.CertsDir, "root.pem"))
 
 			wf, wfErr := newWreckFile(caPath)
 			Expect(wfErr).NotTo(HaveOccurred())
@@ -464,7 +464,7 @@ var _ = Describe("CLI tests", func() {
 				Expect(pErr).NotTo(HaveOccurred())
 			}()
 			Expect(func() {
-				cErr := cli.StartCli()
+				cErr := StartCli()
 				Expect(cErr).NotTo(HaveOccurred())
 			}).Should(PanicWith("os.Exit called"))
 
@@ -483,14 +483,14 @@ var _ = Describe("CLI tests", func() {
 			read, write, _ := os.Pipe()
 			os.Stdout = write
 
-			cli.Cfg.ServiceName = "wreckhost"
-			originTimeout := cli.Cfg.Timeout
-			cli.Cfg.Timeout = 1
+			Cfg.ServiceName = "wreckhost"
+			originTimeout := Cfg.Timeout
+			Cfg.Timeout = 1
 			defer func() {
-				cli.Cfg.Timeout = originTimeout
+				Cfg.Timeout = originTimeout
 			}()
 
-			cli.Cfg.Cmd = "get"
+			Cfg.Cmd = "get"
 
 			fakeExit := func(int) {
 				panic("os.Exit called")
@@ -502,7 +502,7 @@ var _ = Describe("CLI tests", func() {
 				Expect(pErr).NotTo(HaveOccurred())
 			}()
 			Expect(func() {
-				cErr := cli.StartCli()
+				cErr := StartCli()
 				Expect(cErr).NotTo(HaveOccurred())
 			}).Should(PanicWith("os.Exit called"))
 
@@ -511,6 +511,49 @@ var _ = Describe("CLI tests", func() {
 			os.Stdout = saveStd
 			outString := string(out[:])
 			ErrorOut := "Error when dialing:  err:context deadline exceeded\n"
+			Expect(outString).To(Equal(ErrorOut))
+		})
+	})
+
+	Context("'get' command with no interfaces", func() {
+		It("should panic", func() {
+			saveStd := os.Stdout
+			read, write, _ := os.Pipe()
+			os.Stdout = write
+
+			Cfg.ServiceName = "localhost"
+			Cfg.Endpoint = Iserv.Endpoint
+			originTimeout := Cfg.Timeout
+
+			Iserv.getReturnNi = &pb.Ports{
+				Ports: []*pb.Port{},
+			}
+
+			Cfg.Timeout = 1
+			defer func() {
+				Cfg.Timeout = originTimeout
+			}()
+
+			Cfg.Cmd = "get"
+
+			fakeExit := func(int) {
+				panic("os.Exit called")
+			}
+			patch, err := monkey.PatchMethod(os.Exit, fakeExit)
+			Expect(err).NotTo(HaveOccurred())
+			defer func() {
+				pErr := patch.Unpatch()
+				Expect(pErr).NotTo(HaveOccurred())
+			}()
+			Expect(func() {
+				main()
+			}).Should(PanicWith("os.Exit called"))
+
+			write.Close()
+			out, _ := ioutil.ReadAll(read)
+			os.Stdout = saveStd
+			outString := string(out[:])
+			ErrorOut := "@@@ 'Get' from GRPC server @@@\nError when executing command: [get] err: No interfaces found on node\n"
 			Expect(outString).To(Equal(ErrorOut))
 		})
 	})
