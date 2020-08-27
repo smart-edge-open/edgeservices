@@ -7,11 +7,13 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	cli "github.com/otcshare/edgenode/edgecontroller/cmd/interfaceservicecli"
 	pb "github.com/otcshare/edgenode/edgecontroller/pb/interfaceservice"
+	monkey "github.com/undefinedlabs/go-mpatch"
 )
 
 var _ = Describe("CLI tests", func() {
@@ -31,6 +33,15 @@ var _ = Describe("CLI tests", func() {
 		Iserv.getReturnErr = nil
 		Iserv.attachReturnErr = nil
 		Iserv.detachReturnErr = nil
+
+		cli.Cfg.Endpoint = ""
+		cli.Cfg.ServiceName = ""
+		cli.Cfg.Cmd = ""
+		cli.Cfg.Pci = ""
+		cli.Cfg.Brg = ""
+		cli.Cfg.Drv = ""
+		cli.Cfg.CertsDir = "./certs"
+		cli.Cfg.Timeout = 20
 	})
 
 	Context("start Cli without command", func() {
@@ -333,6 +344,174 @@ var _ = Describe("CLI tests", func() {
 
 			err := cli.StartCli()
 			Expect(err)
+		})
+	})
+
+	Context("'get' command with empty cli.Cfg.CertsDir path", func() {
+		It("should panic", func() {
+			saveStd := os.Stdout
+			read, write, _ := os.Pipe()
+			os.Stdout = write
+
+			cli.Cfg.Endpoint = Iserv.Endpoint
+			cli.Cfg.ServiceName = "localhost"
+
+			cli.Cfg.Cmd = "get"
+			cli.Cfg.CertsDir = ""
+
+			Iserv.getReturnNi = &pb.Ports{
+				Ports: []*pb.Port{},
+			}
+
+			fakeExit := func(int) {
+				panic("os.Exit called")
+			}
+			patch, err := monkey.PatchMethod(os.Exit, fakeExit)
+			Expect(err).NotTo(HaveOccurred())
+			defer func() {
+				pErr := patch.Unpatch()
+				Expect(pErr).NotTo(HaveOccurred())
+			}()
+			Expect(func() {
+				cErr := cli.StartCli()
+				Expect(cErr).NotTo(HaveOccurred())
+			}).Should(PanicWith("os.Exit called"))
+
+			write.Close()
+			out, _ := ioutil.ReadAll(read)
+			os.Stdout = saveStd
+			outString := string(out[:])
+			ErrorOut := "Error when creating transport credentials: open cert.pem: no such file or directory\n"
+			Expect(outString).To(Equal(ErrorOut))
+		})
+	})
+
+	Context("'get' command without root.pem file", func() {
+		It("should panic", func() {
+			saveStd := os.Stdout
+			read, write, _ := os.Pipe()
+			os.Stdout = write
+
+			cli.Cfg.Endpoint = Iserv.Endpoint
+			cli.Cfg.ServiceName = "localhost"
+
+			cli.Cfg.Cmd = "get"
+
+			caPath := filepath.Clean(filepath.Join(cli.Cfg.CertsDir, "root.pem"))
+			caPathBak := caPath + ".bak"
+			err := os.Rename(caPath, caPathBak)
+			Expect(err).NotTo(HaveOccurred())
+
+			defer func() {
+				err = os.Rename(caPathBak, caPath)
+				Expect(err).NotTo(HaveOccurred())
+			}()
+
+			fakeExit := func(int) {
+				panic("os.Exit called")
+			}
+			patch, err := monkey.PatchMethod(os.Exit, fakeExit)
+			Expect(err).NotTo(HaveOccurred())
+			defer func() {
+				pErr := patch.Unpatch()
+				Expect(pErr).NotTo(HaveOccurred())
+			}()
+			Expect(func() {
+				cErr := cli.StartCli()
+				Expect(cErr).NotTo(HaveOccurred())
+			}).Should(PanicWith("os.Exit called"))
+
+			write.Close()
+			out, _ := ioutil.ReadAll(read)
+			os.Stdout = saveStd
+			outString := string(out[:])
+			ErrorOut := "Error when creating transport credentials: open certs/root.pem: no such file or directory\n"
+			Expect(outString).To(Equal(ErrorOut))
+		})
+	})
+
+	Context("'get' command with incorrect root.pem file", func() {
+		It("should panic", func() {
+			saveStd := os.Stdout
+			read, write, _ := os.Pipe()
+			os.Stdout = write
+
+			cli.Cfg.Endpoint = Iserv.Endpoint
+			cli.Cfg.ServiceName = "localhost"
+
+			cli.Cfg.Cmd = "get"
+
+			caPath := filepath.Clean(filepath.Join(cli.Cfg.CertsDir, "root.pem"))
+
+			wf, wfErr := newWreckFile(caPath)
+			Expect(wfErr).NotTo(HaveOccurred())
+
+			wfErr = wf.wreckFile()
+			Expect(wfErr).NotTo(HaveOccurred())
+
+			defer func() {
+				wfErr = wf.recoverFile()
+				Expect(wfErr).NotTo(HaveOccurred())
+			}()
+
+			fakeExit := func(int) {
+				panic("os.Exit called")
+			}
+			patch, err := monkey.PatchMethod(os.Exit, fakeExit)
+			Expect(err).NotTo(HaveOccurred())
+			defer func() {
+				pErr := patch.Unpatch()
+				Expect(pErr).NotTo(HaveOccurred())
+			}()
+			Expect(func() {
+				cErr := cli.StartCli()
+				Expect(cErr).NotTo(HaveOccurred())
+			}).Should(PanicWith("os.Exit called"))
+
+			write.Close()
+			out, _ := ioutil.ReadAll(read)
+			os.Stdout = saveStd
+			outString := string(out[:])
+			ErrorOut := "Error when creating transport credentials: Failed append CA certs from certs/root.pem\n"
+			Expect(outString).To(Equal(ErrorOut))
+		})
+	})
+
+	Context("'get' command with incorrect gRPC server address", func() {
+		It("should panic", func() {
+			saveStd := os.Stdout
+			read, write, _ := os.Pipe()
+			os.Stdout = write
+
+			cli.Cfg.ServiceName = "wreckhost"
+			originTimeout := cli.Cfg.Timeout
+			cli.Cfg.Timeout = 1
+			defer func() {
+				cli.Cfg.Timeout = originTimeout
+			}()
+
+			cli.Cfg.Cmd = "get"
+
+			fakeExit := func(int) {
+				panic("os.Exit called")
+			}
+			patch, err := monkey.PatchMethod(os.Exit, fakeExit)
+			Expect(err).NotTo(HaveOccurred())
+			defer func() {
+				pErr := patch.Unpatch()
+				Expect(pErr).NotTo(HaveOccurred())
+			}()
+			Expect(func() {
+				cErr := cli.StartCli()
+				Expect(cErr).NotTo(HaveOccurred())
+			}).Should(PanicWith("os.Exit called"))
+
+			write.Close()
+			out, _ := ioutil.ReadAll(read)
+			os.Stdout = saveStd
+			outString := string(out[:])
+			ErrorOut := "Error when dialing:  err:context deadline exceeded\n"
+			Expect(outString).To(Equal(ErrorOut))
 		})
 	})
 })

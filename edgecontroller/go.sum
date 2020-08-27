@@ -98,6 +98,8 @@ github.com/otcshare/common/log v0.0.0-20200410092658-0c4ca4ce7794 h1:RL9Z+lmbGu9
 github.com/otcshare/common/log v0.0.0-20200410092658-0c4ca4ce7794/go.mod h1:30kZGx52RercaMNsH35keYVwwh2KCNXBnXTAdm2XPfM=
 github.com/otcshare/common/proxy v0.0.0-20200410092658-0c4ca4ce7794 h1:BRvfF9IwLb/3cmVx5Kb4aAlt3ICjKFb1CgGc+Zu+c5E=
 github.com/otcshare/common/proxy v0.0.0-20200410092658-0c4ca4ce7794/go.mod h1:IFSNKTbdSLvDVV/BxgI8Ff2pUt/12a37gVGm/vLFhJ0=
+github.com/otcshare/edgecontroller v0.0.0-20200806031839-080ec6a8ae84 h1:HT5lFcwWJI6O0JJMVryYd3spGKS0qvm6RRs3OGGexjk=
+github.com/otcshare/edgecontroller v0.0.0-20200806031839-080ec6a8ae84/go.mod h1:DQVC+YRfpErZPGgKYXttK8WOaIpeoz3j45VOexgRv6U=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
@@ -116,6 +118,8 @@ github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
+github.com/undefinedlabs/go-mpatch v1.0.6 h1:h8q5ORH/GaOE1Se1DMhrOyljXZEhRcROO7agMqWXCOY=
+github.com/undefinedlabs/go-mpatch v1.0.6/go.mod h1:TyJZDQ/5AgyN7FSLiBJ8RO9u2c6wbtRvK827b6AVqY4=
 golang.org/x/crypto v0.0.0-20181025213731-e84da0312774/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2 h1:VklqNMn3ovrHsnt90PveolxSbWFaJdECFbxSq0Mqo2M=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
