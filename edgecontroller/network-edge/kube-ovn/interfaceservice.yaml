@@ -1,0 +1,128 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: interfaceservice
+  namespace: openness
+spec:
+  clusterIP: None
+  selector:
+    name: interfaceservice
+  ports:
+  - name: interfaceservice
+    protocol: TCP
+    port: 42101
+    targetPort: 42101
+
+---
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: interfaceservice
+  namespace: openness
+spec:
+  selector:
+    matchLabels:
+      name: interfaceservice
+  template:
+    metadata:
+      labels:
+        name: interfaceservice
+    spec:
+      containers:
+      - name: interfaceservice
+        image: interfaceservice:1.0
+        imagePullPolicy: Never
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: "0.1"
+          limits:
+            cpu: "1"
+            memory: "128Mi"
+        volumeMounts:
+        - name: configs
+          mountPath: /home/interfaceservice/configs
+          readOnly: true
+        - name: certs
+          mountPath: /home/interfaceservice/certs
+          readOnly: true
+        - name: host-netdevs
+          mountPath: /var/host_net_devices
+          readOnly: true
+        - name: host-ns
+          mountPath: /var/host_ns
+          readOnly: true
+        - name: devices
+          mountPath: /sys/devices
+        - name: devices
+          mountPath: /devices
+          readOnly: true
+        - name: run
+          mountPath: /var/run/openvswitch
+          readOnly: true
+        - name: sys-pci
+          mountPath: /sys/bus/pci
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
+      initContainers:
+      - name: openssl
+        image: emberstack/openssl:latest
+        command: ["/root/certgen/entrypoint_tls.sh", "interfaceservice.openness", "/root/certs", "/root/CA"]
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "0.1"
+          limits:
+            cpu: "0.1"
+            memory: "128Mi"
+        volumeMounts:
+        - name: ca
+          mountPath: /root/CA
+        - name: certs
+          mountPath: /root/certs
+        - name: certgen
+          mountPath: /root/certgen
+      tolerations:
+      - effect: NoSchedule
+        key: cmk
+        operator: Exists
+      volumes:
+      - name: configs
+        hostPath:
+          path: /etc/openness/configs
+      - name: certs
+        hostPath:
+          path: /etc/openness/certs/interfaceservice
+      - name: host-netdevs
+        hostPath:
+          path: /sys/class/net
+      - name: host-ns
+        hostPath:
+          path: /proc/1/ns
+      - name: devices
+        hostPath:
+          path: /sys/devices
+      - name: run
+        hostPath:
+          path: /var/run/openvswitch
+      - name: sys-pci
+        hostPath:
+          path: /sys/bus/pci
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+      - name: ca
+        secret:
+          secretName: root-ca
+      - name: certgen
+        secret:
+          secretName: certgen
+          defaultMode: 0744

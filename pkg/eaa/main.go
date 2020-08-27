@@ -28,6 +28,7 @@ type eaaContext struct {
 	subscriptionInfo    NotificationSubscriptions
 	certsEaaCa          Certs
 	cfg                 Config
+	msgBrokerCtx        msgBroker
 }
 
 // Certs stores certs and keys for root ca and eaa
@@ -97,6 +98,8 @@ func RunServer(parentCtx context.Context, eaaCtx *eaaContext) error {
 	authRouter := NewAuthRouter(eaaCtx)
 	serverAuth := &http.Server{Addr: eaaCtx.cfg.OpenEndpoint,
 		Handler: authRouter}
+
+	eaaCtx.msgBrokerCtx = &kafkaMsgBroker{}
 
 	lis, err := net.Listen("tcp", eaaCtx.cfg.TLSEndpoint)
 	if err != nil {

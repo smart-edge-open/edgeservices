@@ -1,0 +1,162 @@
+#!/bin/bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2019-2020 Intel Corporation
+
+set -uo pipefail
+
+CERTS_DIRECTORY="/etc/openness/certs/client/interfaceservice/"
+
+error() {
+    >&2 echo -e "[ERROR] ${*}"
+}
+
+log() {
+    echo -e "[INFO]  ${*}"
+}
+
+usage() {
+    local -r exit_code=${1}
+
+    echo "Executes grpc request to interface service on node to get/attach/detach network interfaces to OVS"
+    echo
+    echo "Usage:"
+    echo "    kubectl interfaceservice get <node_hostname>"
+    echo "    kubectl interfaceservice attach <node_hostname> <pci_addr1,pci_addr2,...> [<ovs_bridge>] [<driver>]"
+    echo "    kubectl interfaceservice detach <node_hostname> <pci_addr1,pci_addr2,...>"
+    echo "    kubectl interfaceservice ( --help | -h)"
+    echo
+    echo "Actions:"
+    echo "    get                     Get network interfaces on remote node"
+    echo "    attach                  Attach network interface(s) to node OVS"
+    echo "    detach                  Detach network interface(s) from node OVS"
+    echo "    --help | -h             Print this message"
+    echo
+    echo "Drivers:"
+    echo "    kernel                  Interface will use kernel driver [default]"
+    echo "    dpdk                    Interface will use dpdk enabled userspace driver"
+    echo
+    echo "Bridges:"
+    echo "    br-local                Default kernel bridge [default]"
+    echo "    br-userspace            Default userspace (dpdk) bridge"
+    echo
+    exit "${exit_code}"
+}
+
+fail_if_node_not_exist() {
+    local node=${1:-}
+    if ! kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers | grep -q "^${node}\$"; then
+        error "Node '${node}' not found"
+        exit 1
+    fi
+}
+
+fail_if_var_empty() {
+    local var=${1:-}
+    local var_name=${2:-}
+
+    if [[ ! "${var}" ]]; then
+        error "Expected non-empty value for ${var_name}\n"
+        usage 1
+    fi
+}
+
+get_node_service() {
+    node=${1:-}
+    svc=${2:-}
+    endpoints=$(kubectl get endpoints -o custom-columns=NAME:.metadata.name,NODE:.subsets[*].addresses[*].ip,IP:.subsets[*].addresses[*].nodeName -n openness --no-headers | grep "^${svc}")
+
+    if [[ ! "${endpoints}" ]] ; then
+        error "Service '${svc}' not found on node '${node}'"
+        exit 1
+    fi   
+
+    ifscv=($endpoints)
+
+    IFS=',' read -r -a array_addrs <<< "${ifscv[1]}"
+    IFS=',' read -r -a array_nodes <<< "${ifscv[2]}"
+
+    if [[ "${#array_addrs[@]}" -ne "${#array_nodes[@]}" ]] ; then
+        error "Number of nodes does not match number of service endpoints - openness daemonset error!"
+        exit 1
+    fi
+
+    for index in "${!array_nodes[@]}"
+    do
+        if [[ "${array_nodes[index]}" = "${node}" ]] ; then
+            ip=${array_addrs[index]}
+            return
+        fi
+    done
+}
+
+# main
+if [ "$#" -ge 1 ]; then
+    action=${1:-}
+
+    if [[ "${action}" == "--help" || "${action}" == "-h" ]]; then
+        usage 0
+    elif [[ "${action}" = "get" ]]; then
+        if [[ "$#" -ne 2 ]]; then
+            error "Get action requires one argument: kubectl interfaceservice get <node_hostname>"
+            usage 1
+        fi
+        node=${2:-}
+        fail_if_var_empty "${node}" "<node_hostname>"
+        fail_if_node_not_exist "${node}"
+        get_node_service  "${node}" "interfaceservice"
+
+        if [[ ! ${ip} ]] ; then 
+            error "Error when retreiving node IP address"
+            exit 1
+        fi
+        /usr/local/bin/interfaceservicecli -endpoint="${ip}:42101" -servicename=interfaceservice.openness -certsdir=${CERTS_DIRECTORY} -cmd=get
+    elif [[ "${action}" == "attach" || "${action}" == "detach" ]]; then
+        if [[ "${action}" == "attach" && "$#" -lt 3 ]]; then
+            error "Action ${action} requires at least two arguments: kubectl interfaceservice ${action} <node_hostname> <pci_addr> [<driver>] [<ovs_bridge>]\n"
+            usage 1
+        elif [[ "${action}" == "attach" && "$#" -gt 5 ]]; then
+            error "Too many arguments. Action ${action} supports up to four arguments: kubectl interfaceservice ${action} <node_hostname> <pci_addr> [<driver>] [<ovs_bridge>]\n"
+            usage 1
+        elif [[ "${action}" == "detach" && "$#" -ne 3 ]]; then
+            error "Action ${action} requires two arguments: kubectl interfaceservice ${action} <node_hostname> <pci_addr>\n"
+            usage 1 
+        fi
+
+        node=${2:-}
+        pci_addr=${3:-}
+
+        ovs_bridge=""
+        driver=""
+
+        if [[ "${action}" == "attach" && "$#" -eq 5 ]]; then
+            if [[ "${5:-}" != "kernel" && "${5:-}" != "dpdk" ]]; then
+                error "Drivers other than 'kernel' and 'dpdk' are currently not supported\n"
+                usage 1 
+            fi
+            ovs_bridge=${4:-}
+            driver=${5:-}
+        elif [[ "${action}" == "attach" && "$#" -eq 4 ]]; then
+            ovs_bridge=${4:-}
+        fi
+
+        fail_if_var_empty "${node}" "<node_hostname>"
+        fail_if_var_empty "${pci_addr}" "<pci_addr>"
+
+        fail_if_node_not_exist "${node}"
+        get_node_service  "${node}" "interfaceservice"
+
+        if [[ ! ${ip} ]] ; then 
+            error "Error when retreiving node IP address"
+            exit 1
+        fi
+
+        /usr/local/bin/interfaceservicecli -endpoint="${ip}:42101" -servicename=interfaceservice.openness -certsdir=${CERTS_DIRECTORY} -cmd="${action}" -pci="${pci_addr}" -brg="${ovs_bridge}" -drv="${driver}"
+    else
+        error "Unrecognized action: ${action}\n"
+        usage 1
+    fi
+else
+    error "Wrong usage\n"
+    usage 1
+fi

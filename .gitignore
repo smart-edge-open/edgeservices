@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+edgecontroller/vas-sidecar/vas-sidecar
 
 # Test binary, build with `go test -c`
 *.test
@@ -13,3 +14,21 @@
 
 # Distributables folder
 dist/
+edgecontroller/dist
+
+#
+# # Go build dependencies
+edgecontroller/vendor/
+
+# # Certificates folder
+edgecontroller/certificates/
+
+# # IDE files
+edgecontroller/.idea/*
+edgecontroller/.vscode/*
+
+# # Log files
+*.log
+
+# # Runtime artifacts
+edgecontroller/artifacts/
