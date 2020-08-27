@@ -553,7 +553,9 @@ var _ = Describe("CLI tests", func() {
 			out, _ := ioutil.ReadAll(read)
 			os.Stdout = saveStd
 			outString := string(out[:])
-			ErrorOut := "@@@ 'Get' from GRPC server @@@\nError when executing command: [get] err: No interfaces found on node\n"
+			ErrorOut := `@@@ 'Get' from GRPC server @@@
+Error when executing command: [get] err: No interfaces found on node
+`
 			Expect(outString).To(Equal(ErrorOut))
 		})
 	})
