@@ -423,15 +423,49 @@ var _ = Describe("InterfaceService", func() {
 				ifsKernelNetworkDevicesProvider()
 			})
 			It("should return error", func() {
-				commandCMD := "/usr/bin/command"
-				commandCMDBak := commandCMD + ".bak"
-				_, err := os.Stat(commandCMD)
+				fakeGetNetworkPCIs := func() ([]elahelpers.NetworkDevice, error) {
+					return nil, errors.New("elahelpers.NetworkDevice errors")
+				}
+
+				GetNetworkPCIsPatch, err := monkey.PatchMethod(elahelpers.GetNetworkPCIs, fakeGetNetworkPCIs)
 				Expect(err).NotTo(HaveOccurred())
-				os.Rename(commandCMD, commandCMDBak)
-				defer os.Rename(commandCMDBak, commandCMD)
+				defer func() {
+					pErr := GetNetworkPCIsPatch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
 
 				_, err = ifsKernelNetworkDevicesProvider()
 				Expect(err).To(HaveOccurred())
+			})
+			It("should return no error", func() {
+
+				// elahelpers.GetNetworkPCIs
+				fakeGetNetworkPCIs := func() ([]elahelpers.NetworkDevice, error) {
+					var ret []elahelpers.NetworkDevice
+					return ret, nil
+				}
+
+				GetNetworkPCIsPatch, err := monkey.PatchMethod(elahelpers.GetNetworkPCIs, fakeGetNetworkPCIs)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					pErr := GetNetworkPCIsPatch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
+
+				// FillMACAddrForKernelDevs
+				fakeFillMACAddrForKernelDevs := func([]elahelpers.NetworkDevice) error {
+					return nil
+				}
+
+				FillMACAddrForKernelDevsPatch, err := monkey.PatchMethod(elahelpers.FillMACAddrForKernelDevs, fakeFillMACAddrForKernelDevs)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					pErr := FillMACAddrForKernelDevsPatch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
+
+				_, err = ifsKernelNetworkDevicesProvider()
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -454,7 +488,7 @@ var _ = Describe("InterfaceService", func() {
 			})
 		})
 		Context("call getKernelNetworkDevices", func() {
-			It("interfaceservice.ReattachDpdkPorts deattach error", func() {
+			It("interfaceservice.ReattachDpdkPorts detach error", func() {
 				e := errors.New("Error attaching device")
 				vsctlMock.AddResult("", nil) // resp for show
 
