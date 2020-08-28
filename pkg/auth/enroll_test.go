@@ -521,20 +521,6 @@ var _ = Describe("Enrollment", func() {
 
 		When("Save credentials must be panic", func() {
 			It("Must be panic", func() {
-				patches, err := PatchMethod(auth.SaveCert, func(_ string,
-					_ ...*x509.Certificate) error {
-					return errors.New("Failed")
-				})
-				Expect(err).ToNot(HaveOccurred())
-				defer patches.Unpatch()
-				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
-					time.Second, auth.EnrollClient{})
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
-		When("Save credentials must be panic", func() {
-			It("Must be panic", func() {
 				patches, err := PatchMethod(auth.SaveCert, func(path string,
 					_ ...*x509.Certificate) error {
 					if strings.Contains(path, auth.CAChainName) {
