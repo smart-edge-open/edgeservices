@@ -4,6 +4,7 @@
 package auth_test
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -90,6 +91,9 @@ var _ = Describe("Key management", func() {
 			_, err = auth.LoadKey(keyPath)
 			Expect(err).To(HaveOccurred())
 
+			_, err = auth.LoadKey("./key.pem")
+			Expect(err).To(HaveOccurred())
+
 			err = os.Chmod(keyPath, os.FileMode(0600))
 			Expect(err).ToNot(HaveOccurred())
 
@@ -100,7 +104,6 @@ var _ = Describe("Key management", func() {
 
 		})
 	})
-
 	Describe("SaveKey", func() {
 		It("Should save a key to file", func() {
 			By("Saving key")
@@ -132,9 +135,11 @@ var _ = Describe("Key management", func() {
 
 var _ = Describe("Cert management", func() {
 	var (
-		cert        *x509.Certificate
-		encodedCert []byte
-		certPath    = filepath.Join(os.TempDir(), "cert.pem")
+		cert         *x509.Certificate
+		encodedCert  []byte
+		certPath     = filepath.Join(os.TempDir(), "cert.pem")
+		encodedCert1 []byte
+		encodedCert2 []byte
 	)
 
 	BeforeEach(func() {
@@ -151,6 +156,22 @@ var _ = Describe("Cert management", func() {
 			},
 		)
 		Expect(encodedCert).ToNot(BeNil())
+		encodedCert1 = pem.EncodeToMemory(
+			&pem.Block{
+				Type:  "CERTIFICATE1",
+				Bytes: cert.Raw,
+			},
+		)
+		Expect(encodedCert1).ToNot(BeNil())
+
+		tb := []byte{1}
+		encodedCert2 = pem.EncodeToMemory(
+			&pem.Block{
+				Type:  "CERTIFICATE",
+				Bytes: bytes.Join([][]byte{cert.Raw, tb}, tb),
+			},
+		)
+		Expect(encodedCert2).ToNot(BeNil())
 	})
 	AfterEach(func() {
 		os.Remove(certPath)
@@ -187,7 +208,23 @@ var _ = Describe("Cert management", func() {
 			Expect(err).To(HaveOccurred())
 
 			os.Remove(certPath)
-			data := append(encodedCert, encodedCert...)
+			data := append(encodedCert1, encodedCert1...)
+			err = ioutil.WriteFile(certPath,
+				data, os.FileMode(0600))
+			Expect(err).ToNot(HaveOccurred())
+			_, err = auth.LoadCerts(certPath)
+			Expect(err).To(HaveOccurred())
+
+			os.Remove(certPath)
+			data = append(encodedCert2, encodedCert2...)
+			err = ioutil.WriteFile(certPath,
+				data, os.FileMode(0600))
+			Expect(err).ToNot(HaveOccurred())
+			_, err = auth.LoadCerts(certPath)
+			Expect(err).To(HaveOccurred())
+
+			os.Remove(certPath)
+			data = append(encodedCert, encodedCert...)
 			err = ioutil.WriteFile(certPath,
 				data, os.FileMode(0644))
 			Expect(err).ToNot(HaveOccurred())
@@ -216,6 +253,9 @@ var _ = Describe("Cert management", func() {
 			By("Saving certificate")
 			err := auth.SaveCert(certPath, cert)
 			Expect(err).ToNot(HaveOccurred())
+
+			err = auth.SaveCert("", cert)
+			Expect(err).To(HaveOccurred())
 
 			By("Setting file permissions")
 			stat, err := os.Stat(certPath)

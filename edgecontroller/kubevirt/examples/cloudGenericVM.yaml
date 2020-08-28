@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+apiVersion: kubevirt.io/v1alpha3
+kind: VirtualMachine
+metadata:
+  name: centos-vm
+spec:
+  running: false
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: centos
+    spec:
+      domain:
+        cpu:
+          cores: 2
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: rootfs
+          - disk:
+              bus: virtio
+            name: cloudinit
+          interfaces:
+          - name: default
+            bridge: {}
+        resources:
+          requests:
+            memory: 2056M
+      networks:
+      - name: default
+        pod: {}
+      volumes:
+        - name: rootfs
+          persistentVolumeClaim:
+            claimName: centos-dv
+        - name: cloudinit
+          cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              package_upgrade: true
+
+              packages:
+                - git
+                - net-tools
+                - tcpdump
+                - vim
+
+              write_files:
+                - content: | # Bugfix https://bugs.centos.org/view.php?id=16282
+                  owner: root:root
+                  path: /etc/sysconfig/64bit_strstr_via_64bit_strstr_sse2_unaligned
+
+              users:
+                - name: root
+                  password: root
+                  sudo: ALL=(ALL) NOPASSWD:ALL
+                  ssh_authorized_keys:
+                    - ssh-rsa <controller-public-key> <user>@<node>
+

@@ -1,0 +1,115 @@
+#!/bin/bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2019-2020 Intel Corporation
+
+set -uo pipefail
+
+CERTS_DIRECTORY="/etc/openness/certs/client/edgedns"
+
+error() {
+    >&2 echo -e "[ERROR] ${*}"
+}
+
+log() {
+    echo -e "[INFO]  ${*}"
+}
+
+usage() {
+    local -r exit_code=${1}
+
+    echo "Executes grpc request to edgedns on node to set/del dns entry"
+    echo
+    echo "Usage:"
+    echo "    kubectl edgedns set <node_hostname> <JSON filename>"
+    echo "    kubectl edgedns del <node_hostname> <JSON filename>"
+    echo "    kubectl edgedns ( --help | -h)"
+    echo
+    echo "Actions:"
+    echo "    set                     Send set request to set DNS"
+    echo "    del                     Removes DNS entry"
+    echo "    --help | -h             Print this message"
+    echo
+    exit "${exit_code}"
+}
+
+fail_if_node_not_exist() {
+    local node=${1:-}
+    if ! kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers | grep -q "^${node}\$"; then
+        error "Node '${node}' not found"
+        exit 1
+    fi
+}
+
+fail_if_var_empty() {
+    local var=${1:-}
+    local var_name=${2:-}
+
+    if [[ ! "${var}" ]]; then
+        error "Expected non-empty value for ${var_name}\n"
+        usage 1
+    fi
+}
+
+get_node_service() {
+    node=${1:-}
+    svc=${2:-}
+    endpoints=$(kubectl get endpoints -o custom-columns=NAME:.metadata.name,NODE:.subsets[*].addresses[*].ip,IP:.subsets[*].addresses[*].nodeName -n openness --no-headers | grep "^${svc}")
+
+    if [[ ! "${endpoints}" ]] ; then
+        error "Service '${svc}' not found on node '${node}'"
+        exit 1
+    fi
+
+    ifscv=($endpoints)
+
+    IFS=',' read -r -a array_addrs <<< "${ifscv[1]}"
+    IFS=',' read -r -a array_nodes <<< "${ifscv[2]}"
+
+    if [[ "${#array_addrs[@]}" -ne "${#array_nodes[@]}" ]] ; then
+        error "Number of nodes does not match number of service endpoints - openness daemonset error!"
+        exit 1
+    fi
+
+    for index in "${!array_nodes[@]}"
+    do
+        if [[ "${array_nodes[index]}" = "${node}" ]] ; then
+            ip=${array_addrs[index]}
+            return
+        fi
+    done
+
+}
+
+# main
+if [ "$#" -ge 1 ]; then
+    action=${1:-}
+
+    if [[ "${action}" == "--help" || "${action}" == "-h" ]]; then
+        usage 0
+    elif [[ "${action}" == "del" || "${action}" == "set" ]]; then
+        if [ "$#" -ne 3 ]; then
+            error "Action ${action} requires two arguments: kubectl edgedns ${action} <node_hostname> <JSON_filepath>"
+            usage 1
+        fi
+        node=${2:-}
+        JSON_filepath=${3:-}
+        fail_if_var_empty "${node}" "<node_hostname>"
+        fail_if_var_empty "${JSON_filepath}" "<JSON_filepath>"
+        fail_if_node_not_exist "${node}"
+        get_node_service  "${node}" "edgedns"
+
+        if [[ ! ${ip} ]] ; then
+            error "Error when retreiving node IP address"
+            exit 1
+        fi
+
+        edgednscli -address="${ip}:4204" -cert=${CERTS_DIRECTORY}/cert.pem -key=${CERTS_DIRECTORY}/key.pem -ca=${CERTS_DIRECTORY}/root.pem -name=edgedns.openness -${action}=$JSON_filepath
+    else
+        error "Unrecognized action: ${action}\n"
+        usage 1
+    fi
+else
+    error "Wrong usage\n"
+    usage 1
+fi
