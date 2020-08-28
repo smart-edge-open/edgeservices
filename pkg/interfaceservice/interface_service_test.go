@@ -457,7 +457,8 @@ var _ = Describe("InterfaceService", func() {
 					return nil
 				}
 
-				FillMACAddrForKernelDevsPatch, err := monkey.PatchMethod(elahelpers.FillMACAddrForKernelDevs, fakeFillMACAddrForKernelDevs)
+				FillMACAddrForKernelDevsPatch, err := monkey.PatchMethod(elahelpers.FillMACAddrForKernelDevs,
+					fakeFillMACAddrForKernelDevs)
 				Expect(err).NotTo(HaveOccurred())
 				defer func() {
 					pErr := FillMACAddrForKernelDevsPatch.Unpatch()
