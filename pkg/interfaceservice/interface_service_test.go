@@ -1504,7 +1504,7 @@ var _ = Describe("InterfaceService", func() {
 				defer conn.Close()
 
 				interfaceServiceClient := pb.NewInterfaceServiceClient(conn)
-				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
 				_, err = interfaceServiceClient.Get(ctx, &empty.Empty{}, grpc.WaitForReady(true))
