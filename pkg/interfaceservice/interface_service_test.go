@@ -1209,17 +1209,12 @@ var _ = Describe("InterfaceService", func() {
 
 				ifs.ReattachDpdkPorts = reatachPortsMock
 
-				var grpcServer *grpc.Server
-				grpcServer = grpc.NewServer()
+				grpcServer := grpc.NewServer()
 
-				var fakeRegisterPatch *monkey.Patch
-				var fakeServerPatch *monkey.Patch
-				var pErr error
-
-				fakeRegisterPatch, pErr = monkey.PatchInstanceMethodByName(
+				fakeRegisterPatch, pErr := monkey.PatchInstanceMethodByName(
 					reflect.TypeOf(grpcServer), "RegisterService",
 					func(s *grpc.Server, sd *grpc.ServiceDesc, ss interface{}) {
-						return
+						log.Info("Fake RegisterService: ", sd.ServiceName)
 					})
 				Expect(pErr).NotTo(HaveOccurred())
 
@@ -1228,7 +1223,7 @@ var _ = Describe("InterfaceService", func() {
 					Expect(pErr).NotTo(HaveOccurred())
 				}()
 
-				fakeServerPatch, pErr = monkey.PatchInstanceMethodByName(
+				fakeServerPatch, pErr := monkey.PatchInstanceMethodByName(
 					reflect.TypeOf(grpcServer), "Serve",
 					func(s *grpc.Server, lis net.Listener) error {
 						return errors.New("Fake gRPC Error")
