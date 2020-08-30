@@ -1211,28 +1211,28 @@ var _ = Describe("InterfaceService", func() {
 
 				grpcServer := grpc.NewServer()
 
-				fakeRegisterPatch, pErr := monkey.PatchInstanceMethodByName(
+				fakeRegisterPatch, irErr := monkey.PatchInstanceMethodByName(
 					reflect.TypeOf(grpcServer), "RegisterService",
 					func(s *grpc.Server, sd *grpc.ServiceDesc, ss interface{}) {
 						log.Info("Fake RegisterService: ", sd.ServiceName)
 					})
-				Expect(pErr).NotTo(HaveOccurred())
+				Expect(irErr).NotTo(HaveOccurred())
 
 				defer func() {
-					pErr := fakeRegisterPatch.Unpatch()
-					Expect(pErr).NotTo(HaveOccurred())
+					uErr := fakeRegisterPatch.Unpatch()
+					Expect(uErr).NotTo(HaveOccurred())
 				}()
 
-				fakeServerPatch, pErr := monkey.PatchInstanceMethodByName(
+				fakeServerPatch, isErr := monkey.PatchInstanceMethodByName(
 					reflect.TypeOf(grpcServer), "Serve",
 					func(s *grpc.Server, lis net.Listener) error {
 						return errors.New("Fake gRPC Error")
 					})
-				Expect(pErr).NotTo(HaveOccurred())
+				Expect(isErr).NotTo(HaveOccurred())
 
 				defer func() {
-					pErr := fakeServerPatch.Unpatch()
-					Expect(pErr).NotTo(HaveOccurred())
+					uErr := fakeServerPatch.Unpatch()
+					Expect(uErr).NotTo(HaveOccurred())
 				}()
 
 				fakeNewServer := func(_ ...grpc.ServerOption) *grpc.Server {
@@ -1242,8 +1242,8 @@ var _ = Describe("InterfaceService", func() {
 				patch, err := monkey.PatchMethod(grpc.NewServer, fakeNewServer)
 				Expect(err).NotTo(HaveOccurred())
 				defer func() {
-					pErr := patch.Unpatch()
-					Expect(pErr).NotTo(HaveOccurred())
+					uErr := patch.Unpatch()
+					Expect(uErr).NotTo(HaveOccurred())
 				}()
 
 				err = ifs.Run(srvCtx, configFile)
