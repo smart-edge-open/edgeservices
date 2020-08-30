@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 	"time"
 
@@ -1178,6 +1180,83 @@ var _ = Describe("InterfaceService", func() {
 				}()
 
 				Expect(func() { ifs.Run(srvCtx, configFile) }).Should(PanicWith("os.Exit called"))
+
+				srvCancel()
+			})
+		})
+
+		Context("call run with gRPC error", func() {
+			var (
+				buffer *gbytes.Buffer
+			)
+
+			BeforeEach(func() {
+				var err error
+				r, w, err := os.Pipe()
+				Expect(err).NotTo(HaveOccurred())
+				log.SetOutput(w)
+				buffer = gbytes.BufferReader(r)
+			})
+
+			AfterEach(func() {
+				log.SetOutput(GinkgoWriter)
+			})
+
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				var grpcServer *grpc.Server
+				grpcServer = grpc.NewServer()
+
+				var fakeRegisterPatch *monkey.Patch
+				var fakeServerPatch *monkey.Patch
+				var pErr error
+
+				fakeRegisterPatch, pErr = monkey.PatchInstanceMethodByName(
+					reflect.TypeOf(grpcServer), "RegisterService",
+					func(s *grpc.Server, sd *grpc.ServiceDesc, ss interface{}) {
+						return
+					})
+				Expect(pErr).NotTo(HaveOccurred())
+
+				defer func() {
+					pErr := fakeRegisterPatch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
+
+				fakeServerPatch, pErr = monkey.PatchInstanceMethodByName(
+					reflect.TypeOf(grpcServer), "Serve",
+					func(s *grpc.Server, lis net.Listener) error {
+						return errors.New("Fake gRPC Error")
+					})
+				Expect(pErr).NotTo(HaveOccurred())
+
+				defer func() {
+					pErr := fakeServerPatch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
+
+				fakeNewServer := func(_ ...grpc.ServerOption) *grpc.Server {
+					return grpcServer
+				}
+
+				patch, err := monkey.PatchMethod(grpc.NewServer, fakeNewServer)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					pErr := patch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
+
+				err = ifs.Run(srvCtx, configFile)
+				Expect(err).To(MatchError("Fake gRPC Error"))
+
+				duration := 1 * time.Second
+				Eventually(buffer, duration).Should(
+					gbytes.Say(`grpcServer.Serve error: Fake gRPC Error`))
 
 				srvCancel()
 			})
