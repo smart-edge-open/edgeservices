@@ -4,7 +4,9 @@
 package auth_test
 
 import (
+	"bytes"
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -21,11 +23,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/otcshare/edgenode/pkg/auth"
 	pb "github.com/otcshare/edgenode/pkg/auth/pb"
+	. "github.com/undefinedlabs/go-mpatch"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcCreds "google.golang.org/grpc/credentials"
@@ -110,7 +115,7 @@ const certFileEnv = "SSL_CERT_FILE"
 func (fs *fakeAuthServer) RequestCredentials(ctx context.Context,
 	id *pb.Identity) (*pb.Credentials, error) {
 
-	return credSuccess(id)
+	return credSuccess(id, true, true, true, true)
 }
 
 func (fs *fakeAuthServer) startFakeAuthServer(endpoint string) error {
@@ -159,10 +164,16 @@ func (c enrollClientStub) Get(id *pb.Identity, timeout time.Duration,
 
 var getCredSuccess = func(id *pb.Identity,
 	timeout time.Duration, endpoint string) (*pb.Credentials, error) {
-	return credSuccess(id)
+	return credSuccess(id, true, true, true, true)
 }
 
-func credSuccess(id *pb.Identity) (*pb.Credentials, error) {
+var getNotCACredSuccess = func(id *pb.Identity,
+	timeout time.Duration, endpoint string) (*pb.Credentials, error) {
+	return credSuccess(id, false, true, true, true)
+}
+
+func credSuccess(id *pb.Identity, isCA, isRightBlockBytes1,
+	isRightBlockBytes2, isCACaChain bool) (*pb.Credentials, error) {
 	var c pb.Credentials
 
 	csrPEM, _ := pem.Decode([]byte(id.GetCsr()))
@@ -172,7 +183,7 @@ func credSuccess(id *pb.Identity) (*pb.Credentials, error) {
 
 	caKey, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	Expect(err).ToNot(HaveOccurred())
-	caCert, err := genCert(caKey)
+	caCert, err := genCert(caKey, isCA)
 	Expect(err).ToNot(HaveOccurred())
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
@@ -188,6 +199,9 @@ func credSuccess(id *pb.Identity) (*pb.Credentials, error) {
 		caKey,
 	)
 	Expect(err).ToNot(HaveOccurred())
+	if !isRightBlockBytes1 {
+		der = bytes.ToLower(der)
+	}
 	encodedCert := pem.EncodeToMemory(
 		&pem.Block{
 			Type:  "CERTIFICATE",
@@ -195,9 +209,15 @@ func credSuccess(id *pb.Identity) (*pb.Credentials, error) {
 		},
 	)
 	Expect(encodedCert).ToNot(BeNil())
+
+	caChainType := "CERTIFICATE"
+	if !isCACaChain {
+		caChainType = "CERTIFICATE1"
+	}
+
 	encodedCA := pem.EncodeToMemory(
 		&pem.Block{
-			Type:  "CERTIFICATE",
+			Type:  caChainType,
 			Bytes: caCert.Raw,
 		},
 	)
@@ -206,6 +226,15 @@ func credSuccess(id *pb.Identity) (*pb.Credentials, error) {
 	c.Certificate = string(encodedCert)
 	c.CaChain = []string{string(encodedCA), string(encodedCA)}
 	c.CaPool = []string{string(encodedCA), string(encodedCA)}
+	if !isRightBlockBytes2 {
+		wrongEncodedCA := pem.EncodeToMemory(
+			&pem.Block{
+				Type:  caChainType,
+				Bytes: bytes.ToLower(caCert.Raw),
+			},
+		)
+		c.CaPool = append(c.CaPool, string(wrongEncodedCA))
+	}
 	return &c, nil
 }
 
@@ -214,11 +243,40 @@ var getCredFail = func(id *pb.Identity,
 	return nil, errors.New("Get credentials failed")
 }
 
+var getCredFailBlock = func(id *pb.Identity,
+	timeout time.Duration, endpoint string) (*pb.Credentials, error) {
+	c, err := credSuccess(id, true, false, true, true)
+	Expect(err).ToNot(HaveOccurred())
+	return c, nil
+}
+
 var getCredFailCert = func(id *pb.Identity,
 	timeout time.Duration, endpoint string) (*pb.Credentials, error) {
 	c, err := getCredSuccess(id, timeout, "")
 	Expect(err).ToNot(HaveOccurred())
 	c.Certificate = ""
+	return c, nil
+}
+
+var getCredWrongCAChain = func(id *pb.Identity,
+	timeout time.Duration, endpoint string) (*pb.Credentials, error) {
+	c, err := getCredSuccess(id, timeout, "")
+	Expect(err).ToNot(HaveOccurred())
+	c.CaChain = []string{"1"}
+	return c, nil
+}
+
+var getCredWrongTypeCAChain = func(id *pb.Identity,
+	timeout time.Duration, endpoint string) (*pb.Credentials, error) {
+	c, err := credSuccess(id, true, true, true, false)
+	Expect(err).ToNot(HaveOccurred())
+	return c, nil
+}
+
+var getCredWrongCAPoll = func(id *pb.Identity,
+	timeout time.Duration, endpoint string) (*pb.Credentials, error) {
+	c, err := credSuccess(id, true, true, false, true)
+	Expect(err).ToNot(HaveOccurred())
 	return c, nil
 }
 
@@ -234,7 +292,13 @@ var getCredFailCAPool = func(id *pb.Identity,
 	timeout time.Duration, endpoint string) (*pb.Credentials, error) {
 	c, err := getCredSuccess(id, timeout, "")
 	Expect(err).ToNot(HaveOccurred())
-	c.CaPool = []string{}
+
+	key, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	Expect(err).ToNot(HaveOccurred())
+
+	cert, err := genCert(key, true)
+	Expect(err).ToNot(HaveOccurred())
+	c.CaPool = []string{string(getTestCert(cert, errorNone))}
 	return c, nil
 }
 
@@ -272,7 +336,7 @@ var _ = Describe("Enrollment", func() {
 				Expect(err).To(HaveOccurred())
 
 				err = auth.Enroll(certDir, "", time.Second,
-					enrollClientStub{getCredFailCert})
+					enrollClientStub{getCredFailBlock})
 				Expect(err).To(HaveOccurred())
 
 				err = auth.Enroll(certDir, "", time.Second,
@@ -280,20 +344,233 @@ var _ = Describe("Enrollment", func() {
 				Expect(err).To(HaveOccurred())
 
 				err = auth.Enroll(certDir, "", time.Second,
-					enrollClientStub{getCredFailCAPool})
+					enrollClientStub{getCredWrongTypeCAChain})
 				Expect(err).To(HaveOccurred())
+
+				err = auth.Enroll(certDir, "", time.Second,
+					enrollClientStub{getCredFailCAPool})
+				log.Println(err)
+				Expect(err).To(HaveOccurred())
+
+				err = auth.Enroll(certDir, "", time.Second,
+					enrollClientStub{getCredWrongCAPoll})
+				Expect(err).To(HaveOccurred())
+
+				err = auth.Enroll(certDir, "", time.Second,
+					enrollClientStub{getCredWrongCAChain})
+				Expect(err).To(HaveOccurred())
+
+				certTempPath := filepath.Join(certDir, "cert.pem")
+				err = ioutil.WriteFile(certTempPath, CACert,
+					os.FileMode(0600))
+				Expect(err).ToNot(HaveOccurred())
+				err = auth.Enroll(certDir, "", time.Second,
+					enrollClientStub{getCredFailCert})
+				Expect(err).To(HaveOccurred())
+
+				caChainTempPath := filepath.Join(certDir, "cacerts.pem")
+				err = ioutil.WriteFile(caChainTempPath, CACert,
+					os.FileMode(0600))
+				Expect(err).ToNot(HaveOccurred())
+				err = auth.Enroll(certDir, "", time.Second,
+					enrollClientStub{getCredFailCert})
+				Expect(err).To(HaveOccurred())
+
+				caPoolTempPath := filepath.Join(certDir, "root.pem")
+				err = ioutil.WriteFile(caPoolTempPath, CACert,
+					os.FileMode(0600))
+				Expect(err).ToNot(HaveOccurred())
+				err = auth.Enroll(certDir, "", time.Second,
+					enrollClientStub{getCredFailCert})
+				Expect(err).To(HaveOccurred())
+
+				err = os.Remove(certTempPath)
+				Expect(err).ToNot(HaveOccurred())
+				err = os.Remove(caChainTempPath)
+				Expect(err).ToNot(HaveOccurred())
+				err = os.Remove(caPoolTempPath)
+				Expect(err).ToNot(HaveOccurred())
 
 				err = os.Chmod(certDir, os.FileMode(0456))
 				Expect(err).ToNot(HaveOccurred())
+				err = auth.Enroll(certDir, "", time.Nanosecond,
+					auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+
+				err = auth.Enroll(certDir, "", time.Second,
+					enrollClientStub{getNotCACredSuccess})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Chmod must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(syscall.Chmod, func(_ string,
+					_ uint32) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				tp := filepath.Join(os.TempDir(), "certs")
+				err = auth.Enroll(tp, "", time.Second, auth.EnrollClient{})
+				defer os.Remove(tp)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Chmod must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveKey, func(_ crypto.PrivateKey,
+					_ string) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				tp := filepath.Join(os.TempDir(), "certs")
+				err = auth.Enroll(tp, "", time.Second, auth.EnrollClient{})
+				defer os.Remove(tp)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Get credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(x509.SystemCertPool, func() (*x509.CertPool,
+					error) {
+					return nil, errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
 				err = auth.Enroll(certDir, "", time.Second,
 					auth.EnrollClient{})
 				Expect(err).To(HaveOccurred())
 			})
 		})
+
+		When("Load credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.LoadKey, func(_ string) (crypto.PrivateKey,
+					error) {
+					return nil, nil
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "", time.Second,
+					auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("os MkdirAll Must be panic", func() {
+				patches, err := PatchMethod(os.MkdirAll, func(_ string,
+					_ os.FileMode) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("os Chmod Must be panic", func() {
+				patches, err := PatchMethod(os.MkdirAll, func(path string,
+					_ os.FileMode) error {
+					err := os.RemoveAll(path)
+					Expect(err).ToNot(HaveOccurred())
+					return nil
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveKey, func(_ crypto.PrivateKey,
+					_ string) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveCert, func(_ string,
+					_ ...*x509.Certificate) error {
+					return errors.New("Failed")
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveCert, func(path string,
+					_ ...*x509.Certificate) error {
+					if strings.Contains(path, auth.CAChainName) {
+						return errors.New("Failed")
+					}
+					return nil
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Save credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(auth.SaveCert, func(path string,
+					_ ...*x509.Certificate) error {
+					if strings.Contains(path, auth.CAPoolName) {
+						return errors.New("Failed")
+					}
+					return nil
+				})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("Verify credentials must be panic", func() {
+			It("Must be panic", func() {
+				patches, err := PatchMethod(x509.MarshalPKIXPublicKey,
+					func(_ interface{}) ([]byte, error) {
+						return nil, errors.New("Failed")
+					})
+				Expect(err).ToNot(HaveOccurred())
+				defer patches.Unpatch()
+				err = auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
 		When("Received credentials are correct", func() {
 			It("Saves credentials and returns no error", func() {
-				err := auth.Enroll(certDir, "dns:///enroll.controller.openness:61919", time.Second,
-					auth.EnrollClient{})
+				err := auth.Enroll(certDir, "dns:///enroll.controller.openness:61919",
+					time.Second, auth.EnrollClient{})
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(certDir).To(BeADirectory())
