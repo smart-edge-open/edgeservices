@@ -21,7 +21,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37 // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	google.golang.org/genproto v0.0.0-20200831141814-d751682dd103
-	google.golang.org/grpc v1.30.1
+	google.golang.org/grpc v1.31.0
 	gopkg.in/square/go-jose.v2 v2.5.1
 	k8s.io/api v0.0.0-20190515023547-db5a9d1c40eb
 	k8s.io/apimachinery v0.0.0-20190515023456-b74e4c97951f
