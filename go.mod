@@ -32,6 +32,7 @@ require (
 	github.com/otcshare/common/log v0.0.0-20200410092658-0c4ca4ce7794
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.5.1 // indirect
+	github.com/undefinedlabs/go-mpatch v1.0.6
 	go.etcd.io/bbolt v1.3.2
 	golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6 // indirect
 	golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5 // indirect
