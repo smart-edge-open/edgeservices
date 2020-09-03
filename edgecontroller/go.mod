@@ -18,7 +18,7 @@ require (
 	github.com/otcshare/common/proxy v0.0.0-20200410092658-0c4ca4ce7794
 	github.com/pkg/errors v0.8.1
 	github.com/satori/go.uuid v1.2.0
-	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37 // indirect
+	github.com/undefinedlabs/go-mpatch v1.0.6
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	google.golang.org/genproto v0.0.0-20190927181202-20e1ac93f88c
 	google.golang.org/grpc v1.29.1

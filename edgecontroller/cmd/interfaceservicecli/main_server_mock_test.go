@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2019-2020 Intel Corporation
 
-package main_test
+package main
 
 import (
 	"context"
