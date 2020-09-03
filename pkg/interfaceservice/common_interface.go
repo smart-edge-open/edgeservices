@@ -77,7 +77,7 @@ func findDrvToBind(port pb.Port, current string,
 	drvIdx := 0
 	if port.Driver == pb.Port_USERSPACE {
 		if current == defaultDpdkDriver {
-			return "", errors.New("Could not bind device " + port.Pci + " to DPDK driver - device already binded")
+			return "", errors.New("Could not bind device " + port.Pci + " to DPDK driver - device already bound")
 		}
 
 		found := false
@@ -118,7 +118,7 @@ func bindDriver(port pb.Port) error {
 	if current == "" && unused == nil {
 		return errors.New(port.Pci + ": no such device")
 	} else if current == "" {
-		return errors.New("Device: " + port.Pci + " is not binded to any driver.")
+		return errors.New("Device: " + port.Pci + " is not bound to any driver.")
 	}
 
 	drv, err := findDrvToBind(port, current, unused)
@@ -128,7 +128,7 @@ func bindDriver(port pb.Port) error {
 	if drv != "" {
 		_, err := Devbind("-b", drv, port.Pci)
 		if err == nil {
-			log.Info("Port ", port.Pci, " binded to drver ", drv)
+			log.Info("Port ", port.Pci, " bound to driver ", drv)
 		}
 		return err
 	}
@@ -153,7 +153,7 @@ func getPortName(pci string) (string, error) {
 		}
 	}
 
-	return "", errors.New("Failed to get interface's name - interface may be not binded to any driver")
+	return "", errors.New("Failed to get interface's name - interface may be not bound to any driver")
 }
 
 // getOvsBridgeType returns datapath_type for selected bridge, return value may be netdev or ""
