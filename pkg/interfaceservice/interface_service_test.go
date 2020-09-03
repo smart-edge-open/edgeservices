@@ -1494,17 +1494,6 @@ var _ = Describe("InterfaceService", func() {
 					}
 				}
 
-				conn, err := grpc.Dial(testEndpointFake, grpc.WithTransportCredentials(transportCreds))
-				Expect(err).NotTo(HaveOccurred())
-				defer conn.Close()
-
-				interfaceServiceClient := pb.NewInterfaceServiceClient(conn)
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-
-				_, err = interfaceServiceClient.Get(ctx, &empty.Empty{}, grpc.WaitForReady(true))
-				Expect(err).NotTo(HaveOccurred())
-
 				duration := 1 * time.Second
 				Eventually(buffer, duration).Should(gbytes.Say(`Heartbeat`))
 
