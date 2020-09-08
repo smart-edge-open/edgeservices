@@ -3,6 +3,8 @@
 
 package eaa
 
+import "sync"
+
 // SubscriberIds stores subscriber ids as a slice of strings
 type SubscriberIds []string
 
@@ -24,9 +26,12 @@ type UniqueNotif struct {
 	notifVersion string
 }
 
-// NotificationSubscriptions is a map of a namespace notification struct
+// NotificationSubscriptions is a synchronized map of a namespace notification struct
 // to the consumer subscription struct
-type NotificationSubscriptions map[UniqueNotif]*ConsumerSubscription
+type NotificationSubscriptions struct {
+	sync.RWMutex
+	m map[UniqueNotif]*ConsumerSubscription
+}
 
 // RemoveSubscriber delete consumer ID from subscribers list
 func (sI *SubscriberIds) RemoveSubscriber(commonName string) bool {
@@ -45,13 +50,13 @@ func (sI *SubscriberIds) RemoveSubscriber(commonName string) bool {
 // NamespaceNotif struct to allow for subscription
 func initNamespaceNotification(key UniqueNotif, notif NotificationDescriptor,
 	eaaCtx *Context) {
-	if _, ok := eaaCtx.subscriptionInfo[key]; !ok {
+	if _, ok := eaaCtx.subscriptionInfo.m[key]; !ok {
 		conSub := &ConsumerSubscription{
 			namespaceSubscriptions: SubscriberIds{},
 			serviceSubscriptions:   map[string]SubscriberIds{},
 			notification:           notif,
 		}
-		eaaCtx.subscriptionInfo[key] = conSub
+		eaaCtx.subscriptionInfo.m[key] = conSub
 	}
 }
 
@@ -61,9 +66,9 @@ func initServiceNotification(key UniqueNotif, serviceID string,
 	notif NotificationDescriptor, eaaCtx *Context) {
 	initNamespaceNotification(key, notif, eaaCtx)
 
-	if _, ok := eaaCtx.subscriptionInfo[key].
+	if _, ok := eaaCtx.subscriptionInfo.m[key].
 		serviceSubscriptions[serviceID]; !ok {
-		eaaCtx.subscriptionInfo[key].serviceSubscriptions[serviceID] =
+		eaaCtx.subscriptionInfo.m[key].serviceSubscriptions[serviceID] =
 			SubscriberIds{}
 	}
 }
@@ -78,7 +83,7 @@ func (sL *SubscriptionList) addNamespaceSubscriptionToList(
 		if s.URN.ID == "" && s.URN.Namespace == nameNotif.namespace {
 			sL.Subscriptions[i].Notifications = append(
 				sL.Subscriptions[i].Notifications,
-				eaaCtx.subscriptionInfo[nameNotif].notification)
+				eaaCtx.subscriptionInfo.m[nameNotif].notification)
 			found = true
 			break
 		}
@@ -91,7 +96,7 @@ func (sL *SubscriptionList) addNamespaceSubscriptionToList(
 					Namespace: nameNotif.namespace,
 				},
 				Notifications: []NotificationDescriptor{
-					eaaCtx.subscriptionInfo[nameNotif].notification,
+					eaaCtx.subscriptionInfo.m[nameNotif].notification,
 				},
 			})
 	}
@@ -108,7 +113,7 @@ func (sL *SubscriptionList) addServiceSubscriptionToList(
 			s.URN.ID == srvID {
 			sL.Subscriptions[i].Notifications = append(
 				sL.Subscriptions[i].Notifications,
-				eaaCtx.subscriptionInfo[nameNotif].notification)
+				eaaCtx.subscriptionInfo.m[nameNotif].notification)
 			found = true
 			break
 		}
@@ -121,7 +126,7 @@ func (sL *SubscriptionList) addServiceSubscriptionToList(
 					Namespace: nameNotif.namespace,
 				},
 				Notifications: []NotificationDescriptor{
-					eaaCtx.subscriptionInfo[nameNotif].notification,
+					eaaCtx.subscriptionInfo.m[nameNotif].notification,
 				},
 			})
 	}

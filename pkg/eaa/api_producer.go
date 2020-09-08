@@ -32,12 +32,15 @@ func validServiceNotifications(
 }
 
 func isServicePresent(commonName string, eaaCtx *Context) bool {
-	_, serviceFound := eaaCtx.serviceInfo[commonName]
+	_, serviceFound := eaaCtx.serviceInfo.m[commonName]
 	return serviceFound
 }
 
 func addService(commonName string, serv Service, eaaCtx *Context) error {
-	if eaaCtx.serviceInfo == nil {
+	eaaCtx.serviceInfo.Lock()
+	defer eaaCtx.serviceInfo.Unlock()
+
+	if eaaCtx.serviceInfo.m == nil {
 		return errors.New(
 			"EAA context is not initialized. Call Init() function first")
 	}
@@ -46,20 +49,23 @@ func addService(commonName string, serv Service, eaaCtx *Context) error {
 		serv.Notifications = validServiceNotifications(serv.Notifications)
 	}
 
-	eaaCtx.serviceInfo[commonName] = serv
+	eaaCtx.serviceInfo.m[commonName] = serv
 	log.Infof("Successfully added '%v' service", commonName)
 
 	return nil
 }
 
 func removeService(commonName string, eaaCtx *Context) error {
-	if eaaCtx.serviceInfo == nil {
+	eaaCtx.serviceInfo.Lock()
+	defer eaaCtx.serviceInfo.Unlock()
+
+	if eaaCtx.serviceInfo.m == nil {
 		return errors.New("EAA context is not initialized. Call Init() function first")
 	}
 
 	servicefound := isServicePresent(commonName, eaaCtx)
 	if servicefound {
-		delete(eaaCtx.serviceInfo, commonName)
+		delete(eaaCtx.serviceInfo.m, commonName)
 		log.Infof("Successfully removed '%v' service", commonName)
 		return nil
 	}
@@ -91,7 +97,10 @@ func sendNotificationToAllSubscribers(commonName string, notif *NotificationFrom
 
 	var subscriberList []string
 
-	if eaaCtx.serviceInfo == nil {
+	eaaCtx.serviceInfo.RLock()
+	defer eaaCtx.serviceInfo.RUnlock()
+
+	if eaaCtx.serviceInfo.m == nil {
 		return errors.New("EAA context is not initialized")
 	}
 
@@ -110,7 +119,7 @@ func sendNotificationToAllSubscribers(commonName string, notif *NotificationFrom
 		return errors.Wrap(err, "Failed to marshal norification JSON")
 	}
 
-	_, serviceFound := eaaCtx.serviceInfo[commonName]
+	_, serviceFound := eaaCtx.serviceInfo.m[commonName]
 	if !serviceFound {
 		return errors.New("Producer is not registered")
 	}
@@ -121,7 +130,10 @@ func sendNotificationToAllSubscribers(commonName string, notif *NotificationFrom
 		notifVersion: notif.Version,
 	}
 
-	namespaceSubsInfo, ok := eaaCtx.subscriptionInfo[namespaceKey]
+	eaaCtx.subscriptionInfo.RLock()
+	defer eaaCtx.subscriptionInfo.RUnlock()
+
+	namespaceSubsInfo, ok := eaaCtx.subscriptionInfo.m[namespaceKey]
 	if !ok {
 		log.Infof("No subscription to notification %v", namespaceKey)
 		return nil
@@ -148,19 +160,30 @@ func sendNotificationToAllSubscribers(commonName string, notif *NotificationFrom
 
 func sendNotificationToSubscriber(subID string, msgPayload []byte,
 	eaaCtx *Context) error {
-	possibleConnection, connectionFound := eaaCtx.consumerConnections[subID]
+
+	eaaCtx.consumerConnections.RLock()
+
+	possibleConnection, connectionFound := eaaCtx.consumerConnections.m[subID]
 	log.Infof("Looking for websocket: %s from %v", subID,
-		eaaCtx.consumerConnections)
+		eaaCtx.consumerConnections.m)
 	if connectionFound {
 		if possibleConnection.connection == nil {
+			// Unlock consumer connections to allow the other thread to update it
+			eaaCtx.consumerConnections.RUnlock()
+
 			if err := waitForConnectionAssigned(subID, eaaCtx); err != nil {
 				return errors.Wrap(err, "websocket isn't properly created")
 			}
+			eaaCtx.consumerConnections.RLock()
 		}
 		messageType := websocket.TextMessage
-		conn := eaaCtx.consumerConnections[subID].connection
-		return conn.WriteMessage(messageType, msgPayload)
+		conn := eaaCtx.consumerConnections.m[subID].connection
+		err := conn.WriteMessage(messageType, msgPayload)
+		eaaCtx.consumerConnections.RUnlock()
+		return err
 	}
+
+	eaaCtx.consumerConnections.RUnlock()
 	return errors.New("no websocket connection created " +
 		"by GET /notifications API")
 }
@@ -172,9 +195,14 @@ func sendNotificationToSubscriber(subID string, msgPayload []byte,
 func waitForConnectionAssigned(subID string, eaaCtx *Context) error {
 	deadline := time.Now().Add(1 * time.Second)
 	for {
-		if eaaCtx.consumerConnections[subID].connection != nil {
+		eaaCtx.consumerConnections.RLock()
+		if eaaCtx.consumerConnections.m[subID].connection != nil {
+			eaaCtx.consumerConnections.RUnlock()
 			return nil
 		}
+		// Unlock consumer connections to allow the other thread to update it
+		eaaCtx.consumerConnections.RUnlock()
+
 		if time.Now().After(deadline) {
 			return errors.New("Timeout reached")
 		}

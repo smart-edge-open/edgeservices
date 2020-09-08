@@ -65,10 +65,12 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 func GetNotifications(w http.ResponseWriter, r *http.Request) {
 	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 
-	if eaaCtx.serviceInfo == nil {
+	eaaCtx.serviceInfo.RLock()
+	if eaaCtx.serviceInfo.m == nil {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+	eaaCtx.serviceInfo.RUnlock()
 
 	statCode, err := createWsConn(w, r)
 	if err != nil {
@@ -106,12 +108,15 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 
-	if eaaCtx.serviceInfo == nil {
+	eaaCtx.serviceInfo.RLock()
+	defer eaaCtx.serviceInfo.RUnlock()
+
+	if eaaCtx.serviceInfo.m == nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	for _, serv := range eaaCtx.serviceInfo {
+	for _, serv := range eaaCtx.serviceInfo.m {
 		servList.Services = append(servList.Services, serv)
 	}
 
@@ -179,7 +184,10 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if a Service exists
-	_, serviceFound := eaaCtx.serviceInfo[commonName]
+	eaaCtx.serviceInfo.RLock()
+	defer eaaCtx.serviceInfo.RUnlock()
+
+	_, serviceFound := eaaCtx.serviceInfo.m[commonName]
 	if !serviceFound {
 		log.Err("Producer is not registered")
 		w.WriteHeader(http.StatusInternalServerError)

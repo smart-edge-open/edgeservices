@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/google/uuid"
 	logger "github.com/otcshare/common/log"
@@ -20,8 +21,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-type services map[string]Service
-type consumerConns map[string]ConsumerConnection
+type services struct {
+	sync.RWMutex
+	m map[string]Service
+}
+
+type consumerConns struct {
+	sync.RWMutex
+	m map[string]ConsumerConnection
+}
 
 // Context holds all EAA structures
 type Context struct {
@@ -63,9 +71,10 @@ func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
 
 // InitEaaContext initializes the Eaa Context
 func InitEaaContext(cfgPath string, eaaCtx *Context) error {
-	eaaCtx.serviceInfo = services{}
-	eaaCtx.consumerConnections = consumerConns{}
-	eaaCtx.subscriptionInfo = NotificationSubscriptions{}
+	eaaCtx.serviceInfo = services{m: make(map[string]Service)}
+	eaaCtx.consumerConnections = consumerConns{m: make(map[string]ConsumerConnection)}
+	eaaCtx.subscriptionInfo = NotificationSubscriptions{
+		m: make(map[UniqueNotif]*ConsumerSubscription)}
 
 	var err error
 

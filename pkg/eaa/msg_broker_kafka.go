@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/Shopify/sarama"
 	"github.com/ThreeDotsLabs/watermill"
@@ -18,13 +19,23 @@ import (
 	"github.com/pkg/errors"
 )
 
+type publishers struct {
+	sync.RWMutex
+	m map[string]*kafka.Publisher
+}
+
+type subscribers struct {
+	sync.RWMutex
+	m map[string]*kafka.Subscriber
+}
+
 // KafkaMsgBroker is a Kafka-backed msgBroker
 type KafkaMsgBroker struct {
 	eaaCtx           *Context
 	consumerGroup    string
 	defaultPublisher *kafka.Publisher
-	publishers       map[string]*kafka.Publisher
-	subscribers      map[string]*kafka.Subscriber
+	pubs             publishers
+	subs             subscribers
 }
 
 // NewKafkaMsgBroker creates and returns a Kafka-backed msgBroker
@@ -37,8 +48,8 @@ func NewKafkaMsgBroker(eaaCtx *Context, consumerGroup string) (*KafkaMsgBroker, 
 	}
 
 	broker.defaultPublisher = defaultPublisher
-	broker.publishers = make(map[string]*kafka.Publisher)
-	broker.subscribers = make(map[string]*kafka.Subscriber)
+	broker.pubs = publishers{m: make(map[string]*kafka.Publisher)}
+	broker.subs = subscribers{m: make(map[string]*kafka.Subscriber)}
 
 	return &broker, nil
 }
@@ -109,12 +120,24 @@ func (b *KafkaMsgBroker) createDefaultPublisher() (*kafka.Publisher, error) {
 // for different message types is the key generation process and keyGenerator() function can
 // recognize the type of a message based on the topic prefix.
 func (b *KafkaMsgBroker) addPublisher(t publisherType, topic string, r *http.Request) error {
+	b.pubs.Lock()
+	defer b.pubs.Unlock()
+
 	// Only one Publisher per topic is permitted
-	if _, found := b.publishers[topic]; found {
+	if _, found := b.pubs.m[topic]; found {
 		return objectAlreadyExistsError{fmt.Errorf("Publisher with ID '%v' already exists", topic)}
 	}
 
-	b.publishers[topic] = b.defaultPublisher
+	// Default Publisher may have been removed in removeAll()
+	if b.defaultPublisher == nil {
+		defaultPublisher, err := b.createDefaultPublisher()
+		if err != nil {
+			return errors.Wrap(err, "Failed to create a KafkaMsgBroker")
+		}
+		b.defaultPublisher = defaultPublisher
+	}
+
+	b.pubs.m[topic] = b.defaultPublisher
 	log.Infof("Added Publisher for a topic: %v", topic)
 
 	return nil
@@ -122,8 +145,11 @@ func (b *KafkaMsgBroker) addPublisher(t publisherType, topic string, r *http.Req
 
 // Remove a Publisher for a given topic.
 func (b *KafkaMsgBroker) removePublisher(topic string) error {
-	if _, found := b.publishers[topic]; found {
-		delete(b.publishers, topic)
+	b.pubs.Lock()
+	defer b.pubs.Unlock()
+
+	if _, found := b.pubs.m[topic]; found {
+		delete(b.pubs.m, topic)
 		return nil
 	}
 
@@ -132,7 +158,11 @@ func (b *KafkaMsgBroker) removePublisher(topic string) error {
 
 // Publish a msg using a Publisher to a given topic.
 func (b *KafkaMsgBroker) publish(topic string, msg *message.Message) error {
-	if publisher, found := b.publishers[topic]; found {
+	// kafka.Publisher::Publish() method is thread-safe - we can use Reader lock
+	b.pubs.RLock()
+	defer b.pubs.RUnlock()
+
+	if publisher, found := b.pubs.m[topic]; found {
 		err := publisher.Publish(topic, msg)
 		if err != nil {
 			err = errors.Wrapf(err, "Error when Publishing a message to the topic: %v",
@@ -229,8 +259,11 @@ func (b *KafkaMsgBroker) createClientSubscriber(topic string) (*kafka.Subscriber
 // The Subsriber can be later accessed using its topic.
 // If a Subscriber for a given topic already exists, objectAlreadyExistsError is returned.
 func (b *KafkaMsgBroker) addSubscriber(t subscriberType, topic string, r *http.Request) error {
+	b.subs.Lock()
+	defer b.subs.Unlock()
+
 	// Only one Subscriber per topic is permitted
-	if _, found := b.subscribers[topic]; found {
+	if _, found := b.subs.m[topic]; found {
 		return objectAlreadyExistsError{fmt.Errorf("Subscriber for a topic '%v' already exists",
 			topic)}
 	}
@@ -254,7 +287,7 @@ func (b *KafkaMsgBroker) addSubscriber(t subscriberType, topic string, r *http.R
 			topic)
 	}
 
-	b.subscribers[topic] = subscriber
+	b.subs.m[topic] = subscriber
 	log.Infof("Added Subscriber for a topic: %v", topic)
 
 	return nil
@@ -262,9 +295,12 @@ func (b *KafkaMsgBroker) addSubscriber(t subscriberType, topic string, r *http.R
 
 // Close and remove a Subscriber for a given topic.
 func (b *KafkaMsgBroker) removeSubscriber(topic string) error {
-	if subscriber, found := b.subscribers[topic]; found {
+	b.subs.Lock()
+	defer b.subs.Unlock()
+
+	if subscriber, found := b.subs.m[topic]; found {
 		err := subscriber.Close()
-		delete(b.subscribers, topic)
+		delete(b.subs.m, topic)
 		if err != nil {
 			err = errors.Wrapf(err, "Error when closing Subscriber for a topic: %v", topic)
 		}
@@ -276,8 +312,14 @@ func (b *KafkaMsgBroker) removeSubscriber(topic string) error {
 
 // Close and remove all Publishers and Subscribers
 func (b *KafkaMsgBroker) removeAll() error {
+	b.pubs.Lock()
+	defer b.pubs.Unlock()
+
+	b.subs.Lock()
+	defer b.subs.Unlock()
+
 	var errs []error
-	for topic, subscriber := range b.subscribers {
+	for topic, subscriber := range b.subs.m {
 		if subscriber != nil {
 			err := subscriber.Close()
 			if err != nil {
@@ -296,9 +338,11 @@ func (b *KafkaMsgBroker) removeAll() error {
 			"Failed to remove the Default Publisher"))
 	}
 
+	b.defaultPublisher = nil
+
 	// Clear the maps
-	b.publishers = make(map[string]*kafka.Publisher)
-	b.subscribers = make(map[string]*kafka.Subscriber)
+	b.pubs.m = make(map[string]*kafka.Publisher)
+	b.subs.m = make(map[string]*kafka.Subscriber)
 
 	// Return concatenated errors
 	if len(errs) > 0 {
