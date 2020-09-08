@@ -81,7 +81,7 @@ func newKafkaTLSConfig(clientCertFile, clientKeyFile, caCertFile string) (*tls.C
 
 	// Load CA cert
 	caCertPool := x509.NewCertPool()
-	caCert, err := ioutil.ReadFile(caCertFile)
+	caCert, err := ioutil.ReadFile(filepath.Clean(caCertFile))
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to load CA Cert1")
 	}

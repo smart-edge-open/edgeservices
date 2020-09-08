@@ -25,6 +25,7 @@ help:
 	@echo "  clean                  to clean build artifacts"
 	@echo "  lint                   to run linter on Go code"
 	@echo "  test                   to run tests on Go code"
+	@echo "  test-cov               to run coverage tests on Go code"
 	@echo "  help                   to show this message"
 	@echo "  build                  to build all executables without images"
 	@echo ""
@@ -46,7 +47,14 @@ clean:
 	rm -rf ./dist
 
 test: 
-	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor
+	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor,interfaceservicecli,edgednscli
+
+test-cov:
+	rm -rf coverage.out*
+	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor,interfaceservicecli,edgednscli \
+	-cover -coverprofile=coverage.out -outputdir=.
+	sed '1!{/^mode/d;}' coverage.out > coverage.out.fix
+	go tool cover -html=coverage.out.fix
 
 eaa:
 	GOOS=linux go build -o ./dist/$@/$@ ./cmd/$@

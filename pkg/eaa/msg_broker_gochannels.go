@@ -130,7 +130,7 @@ func (b *GoChannelMsgBroker) addSubscriber(t subscriberType, topic string, r *ht
 	}
 
 	// Create a new GoChannel
-	ch := gochannel.NewGoChannel(b.defaultConfig, watermill.NewStdLogger(true, true))
+	ch := gochannel.NewGoChannel(b.defaultConfig, watermill.NewStdLogger(false, false))
 
 	goChann := b.pubSubs.m[topic]
 	goChann.ch = ch

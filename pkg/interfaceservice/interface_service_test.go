@@ -5,28 +5,43 @@ package interfaceservice_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net"
+	"os"
+	"path/filepath"
+	"reflect"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
+	log "github.com/otcshare/common/log"
+	"github.com/otcshare/edgenode/internal/authtest"
+	"github.com/otcshare/edgenode/pkg/auth"
+	"github.com/otcshare/edgenode/pkg/config"
 	elahelpers "github.com/otcshare/edgenode/pkg/ela/helpers"
 	ifs "github.com/otcshare/edgenode/pkg/interfaceservice"
 	pb "github.com/otcshare/edgenode/pkg/interfaceservice/pb"
+	monkey "github.com/undefinedlabs/go-mpatch"
 )
 
 var (
-	vsctlMock   VsctlMock
-	devbindMock DevbindMock
-	debugMocks  = true
+	vsctlMock     VsctlMock
+	devbindMock   DevbindMock
+	debugMocks    = true
+	originVsctl   = ifs.Vsctl
+	originDevbind = ifs.Devbind
 
 	// store function pointers from interfaceservice pkg
 	// to be able to call them if ifs.ReattachDpdkPorts & ifs.KernelNetworkDevicesProvider
-	// are overritetten by mocks
+	// are overwritten by mocks
 	ifsReattachDpdkPortsFunction    = ifs.ReattachDpdkPorts
 	ifsKernelNetworkDevicesProvider = ifs.KernelNetworkDevicesProvider
 )
@@ -384,7 +399,7 @@ var _ = Describe("InterfaceService", func() {
 				devbindMock.AddResult(bindOut, nil)
 
 				vsctlMock.AddResult(strResultVsctl, nil) // resp for show
-				vsctlMock.AddResult("", nil)             // respo for del-port
+				vsctlMock.AddResult("", nil)             // resp for del-port
 				devbindMock.AddResult("", nil)           // resp for bind
 
 				Expect(ifs.DpdkEnabled).To(Equal(true))
@@ -409,7 +424,66 @@ var _ = Describe("InterfaceService", func() {
 			It("should return no error", func() {
 				ifsKernelNetworkDevicesProvider()
 			})
+			It("should return error", func() {
+				fakeGetNetworkPCIs := func() ([]elahelpers.NetworkDevice, error) {
+					return nil, errors.New("elahelpers.NetworkDevice errors")
+				}
+
+				GetNetworkPCIsPatch, err := monkey.PatchMethod(elahelpers.GetNetworkPCIs, fakeGetNetworkPCIs)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					pErr := GetNetworkPCIsPatch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
+
+				_, err = ifsKernelNetworkDevicesProvider()
+				Expect(err).To(HaveOccurred())
+			})
+			It("should return no error", func() {
+
+				// elahelpers.GetNetworkPCIs
+				fakeGetNetworkPCIs := func() ([]elahelpers.NetworkDevice, error) {
+					var ret []elahelpers.NetworkDevice
+					return ret, nil
+				}
+
+				GetNetworkPCIsPatch, err := monkey.PatchMethod(elahelpers.GetNetworkPCIs, fakeGetNetworkPCIs)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					pErr := GetNetworkPCIsPatch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
+
+				// FillMACAddrForKernelDevs
+				fakeFillMACAddrForKernelDevs := func([]elahelpers.NetworkDevice) error {
+					return nil
+				}
+
+				FillMACAddrForKernelDevsPatch, err := monkey.PatchMethod(elahelpers.FillMACAddrForKernelDevs,
+					fakeFillMACAddrForKernelDevs)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					pErr := FillMACAddrForKernelDevsPatch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
+
+				_, err = ifsKernelNetworkDevicesProvider()
+				Expect(err).NotTo(HaveOccurred())
+			})
 		})
+
+		Context("call vsctl which is mocked in other tests", func() {
+			It("should return no error", func() {
+				originVsctl()
+			})
+		})
+
+		Context("call devbind which is mocked in other tests", func() {
+			It("should return no error", func() {
+				originDevbind()
+			})
+		})
+
 		Context("call Get()", func() {
 			It("should return error as vsctl fails", func() {
 				_, err := get()
@@ -417,7 +491,7 @@ var _ = Describe("InterfaceService", func() {
 			})
 		})
 		Context("call getKernelNetworkDevices", func() {
-			It("iterfaceservice.ReattachDpdkPorts deattach error", func() {
+			It("interfaceservice.ReattachDpdkPorts detach error", func() {
 				e := errors.New("Error attaching device")
 				vsctlMock.AddResult("", nil) // resp for show
 
@@ -446,7 +520,7 @@ var _ = Describe("InterfaceService", func() {
 				Expect(err).To(HaveOccurred())
 			})
 
-			It("iterfaceservice.ReattachDpdkPorts attach error", func() {
+			It("interfaceservice.ReattachDpdkPorts attach error", func() {
 				e := errors.New("Error attaching device")
 				vsctlMock.AddResult("", nil) // resp for show
 
@@ -477,7 +551,7 @@ var _ = Describe("InterfaceService", func() {
 				Expect(err).To(HaveOccurred())
 			})
 
-			It("iterfaceservice.ReattachDpdkPorts attach error", func() {
+			It("interfaceservice.ReattachDpdkPorts attach error", func() {
 				e := errors.New("Error attaching device")
 				prepareMocks()
 				vsctlMock.AddResult("", nil) // resp for show
@@ -754,7 +828,7 @@ var _ = Describe("InterfaceService", func() {
 		Context("with bind step failure", func() {
 			It("should return error", func() {
 				vsctlMock.AddResult(strResultVsctl, nil) // resp for show
-				vsctlMock.AddResult("", nil)             // respo for del-port
+				vsctlMock.AddResult("", nil)             // resp for del-port
 
 				oldDpdkEnabled := ifs.DpdkEnabled
 				ifs.DpdkEnabled = false
@@ -782,7 +856,7 @@ var _ = Describe("InterfaceService", func() {
 				devbindMock.AddResult(bindOutShort2, nil)
 
 				vsctlMock.AddResult(strResultVsctl, nil) // resp for show
-				vsctlMock.AddResult("", nil)             // respo for del-port
+				vsctlMock.AddResult("", nil)             // resp for del-port
 				devbindMock.AddResult("", nil)           // resp for bind
 
 				Expect(ifs.DpdkEnabled).To(Equal(true))
@@ -874,4 +948,582 @@ var _ = Describe("InterfaceService", func() {
 			})
 		})
 	})
+
+	Describe("Server bootup", func() {
+		var (
+			testEndpointFake = "localhost:22201"
+			certsDirFake     string
+			configFile       = "interfaceserviceFake.json"
+			dpdkDevbindFake  = "dpdk-devbindFake.py"
+			originConfigJSON []byte
+		)
+
+		BeforeEach(func() {
+			// Generate certs
+			var err error
+			certsDirFake, err = ioutil.TempDir("", "elaCertsFake")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(authtest.EnrollStub(certsDirFake)).ToNot(HaveOccurred())
+
+			// Write ELA's config
+			err = ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
+			{
+				"endpoint": "%s",
+				"certsDirectory": "%s"
+			}`, testEndpointFake, certsDirFake)), os.FileMode(0644))
+			Expect(err).NotTo(HaveOccurred())
+
+			originConfigJSON, err = json.Marshal(ifs.Config)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+
+			err := json.Unmarshal(originConfigJSON, &ifs.Config)
+			Expect(err).NotTo(HaveOccurred())
+
+			os.RemoveAll(certsDirFake)
+			os.Remove(configFile)
+			os.Remove(dpdkDevbindFake)
+
+			devbindMock.Reset()
+			vsctlMock.Reset()
+		})
+
+		Context("call run with a damaged config file", func() {
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				err := ioutil.WriteFile(configFile, []byte("damage date"), os.FileMode(0644))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = ifs.Run(srvCtx, configFile)
+				Expect(err).To(HaveOccurred())
+				srvCancel()
+			})
+		})
+
+		Context("call run with an incorrect endpoint", func() {
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				// Write ELA's config
+				err := ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
+				{
+					"endpoint": "%s",
+					"certsDirectory": "%s"
+				}`, "#@#@#@:9999999", certsDirFake)), os.FileMode(0644))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = ifs.Run(srvCtx, configFile)
+				Expect(err).To(HaveOccurred())
+				srvCancel()
+			})
+		})
+
+		Context("call run with nonexistent dpdk-devbind.py", func() {
+			It("should return no error", func() {
+
+				devbindMock.AddResult(bindOut, nil)
+				Expect(ifs.DpdkEnabled).To(Equal(true))
+				// 13 times ovs-vsctl is called
+				for i := 0; i < 13; i++ {
+					vsctlMock.AddResult("", nil)
+				}
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				err := os.Remove("dpdk-devbind.py")
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					iErr := ioutil.WriteFile("./dpdk-devbind.py", []byte{}, os.ModePerm)
+					Expect(iErr).NotTo(HaveOccurred())
+					ifs.DpdkEnabled = true
+				}()
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					ifs.Run(srvCtx, configFile)
+					wg.Done()
+				}()
+
+				//waiting for interfaceservice.json
+				for start := time.Now(); time.Since(start) < 3*time.Second; {
+					if ifs.Config.Endpoint == testEndpointFake {
+						break
+					}
+				}
+
+				conn, err := grpc.Dial(testEndpointFake, grpc.WithTransportCredentials(transportCreds))
+				Expect(err).NotTo(HaveOccurred())
+				defer conn.Close()
+
+				interfaceServiceClient := pb.NewInterfaceServiceClient(conn)
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				defer cancel()
+
+				_, err = interfaceServiceClient.Get(ctx, &empty.Empty{}, grpc.WaitForReady(true))
+				Expect(err).NotTo(HaveOccurred())
+
+				// confirm ifs.DpdkEnabled to be false
+				Expect(ifs.DpdkEnabled).To(Equal(false))
+
+				srvCancel()
+				wg.Wait()
+			})
+		})
+
+		Context("call run with a empty CertsDir path", func() {
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				err := ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
+				{
+					"endpoint": "%s",
+					"certsDirectory": "%s"
+				}`, testEndpointFake, "")), os.FileMode(0644))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = ifs.Run(srvCtx, configFile)
+				Expect(err).To(HaveOccurred())
+				srvCancel()
+			})
+		})
+
+		Context("call run without root.pem file", func() {
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				var configFake ifs.Configuration
+				config.LoadJSONConfig(configFile, &configFake)
+
+				caPath := filepath.Clean(filepath.Join(configFake.CertsDir, auth.CAPoolName))
+				caPathBak := caPath + ".bak"
+				err := os.Rename(caPath, caPathBak)
+				Expect(err).NotTo(HaveOccurred())
+
+				defer func() {
+					err = os.Rename(caPathBak, caPath)
+					Expect(err).NotTo(HaveOccurred())
+				}()
+
+				err = ifs.Run(srvCtx, configFile)
+				Expect(err).To(HaveOccurred())
+				srvCancel()
+			})
+		})
+
+		Context("call run with incorrect root.pem file", func() {
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				var configFake ifs.Configuration
+				config.LoadJSONConfig(configFile, &configFake)
+
+				caPath := filepath.Clean(filepath.Join(configFake.CertsDir, auth.CAPoolName))
+				wf, wfErr := newWreckFile(caPath)
+				Expect(wfErr).NotTo(HaveOccurred())
+
+				wfErr = wf.wreckFile()
+				Expect(wfErr).NotTo(HaveOccurred())
+
+				defer func() {
+					wfErr = wf.recoverFile()
+					Expect(wfErr).NotTo(HaveOccurred())
+				}()
+
+				err := ifs.Run(srvCtx, configFile)
+				Expect(err).To(HaveOccurred())
+				srvCancel()
+			})
+		})
+
+		Context("call run with failure on 'ovs-vsctl show'", func() {
+			It("should panic", func() {
+				ifs.ReattachDpdkPorts = ifsReattachDpdkPortsFunction
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				fakeExit := func(int) {
+					panic("os.Exit called")
+				}
+				patch, err := monkey.PatchMethod(os.Exit, fakeExit)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					pErr := patch.Unpatch()
+					Expect(pErr).NotTo(HaveOccurred())
+				}()
+
+				Expect(func() { ifs.Run(srvCtx, configFile) }).Should(PanicWith("os.Exit called"))
+
+				srvCancel()
+			})
+		})
+
+		Context("call run with gRPC error", func() {
+			var (
+				buffer *gbytes.Buffer
+			)
+
+			BeforeEach(func() {
+				var err error
+				r, w, err := os.Pipe()
+				Expect(err).NotTo(HaveOccurred())
+				log.SetOutput(w)
+				buffer = gbytes.BufferReader(r)
+			})
+
+			AfterEach(func() {
+				log.SetOutput(GinkgoWriter)
+			})
+
+			It("should return error", func() {
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				grpcServer := grpc.NewServer()
+
+				fakeRegisterPatch, irErr := monkey.PatchInstanceMethodByName(
+					reflect.TypeOf(grpcServer), "RegisterService",
+					func(s *grpc.Server, sd *grpc.ServiceDesc, ss interface{}) {
+						log.Info("Fake RegisterService: ", sd.ServiceName)
+					})
+				Expect(irErr).NotTo(HaveOccurred())
+
+				defer func() {
+					uErr := fakeRegisterPatch.Unpatch()
+					Expect(uErr).NotTo(HaveOccurred())
+				}()
+
+				fakeServerPatch, isErr := monkey.PatchInstanceMethodByName(
+					reflect.TypeOf(grpcServer), "Serve",
+					func(s *grpc.Server, lis net.Listener) error {
+						return errors.New("Fake gRPC Error")
+					})
+				Expect(isErr).NotTo(HaveOccurred())
+
+				defer func() {
+					uErr := fakeServerPatch.Unpatch()
+					Expect(uErr).NotTo(HaveOccurred())
+				}()
+
+				fakeNewServer := func(_ ...grpc.ServerOption) *grpc.Server {
+					return grpcServer
+				}
+
+				patch, err := monkey.PatchMethod(grpc.NewServer, fakeNewServer)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					uErr := patch.Unpatch()
+					Expect(uErr).NotTo(HaveOccurred())
+				}()
+
+				err = ifs.Run(srvCtx, configFile)
+				Expect(err).To(MatchError("Fake gRPC Error"))
+
+				duration := 1 * time.Second
+				Eventually(buffer, duration).Should(
+					gbytes.Say(`grpcServer.Serve error: Fake gRPC Error`))
+
+				srvCancel()
+			})
+		})
+
+		Context("test reattachDpdkPorts", func() {
+			var (
+				w      os.File
+				buffer *gbytes.Buffer
+			)
+
+			BeforeEach(func() {
+				var err error
+				r, w, err := os.Pipe()
+				Expect(err).NotTo(HaveOccurred())
+				log.SetOutput(w)
+				buffer = gbytes.BufferReader(r)
+			})
+
+			AfterEach(func() {
+				log.SetOutput(GinkgoWriter)
+			})
+
+			It("should log 'detachPortFromOvs Error'", func() {
+
+				ifs.ReattachDpdkPorts = ifsReattachDpdkPortsFunction
+
+				// resp for show
+				vsctlMock.AddResult("", nil)
+				// resp for list-br
+				vsctlMock.AddResult("br-int\nbr-userspace", nil)
+				// resp for get bridge br-int datapath_type - this will be skipped
+				vsctlMock.AddResult("system", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("netdev", nil)
+				// list-interfaces
+				vsctlMock.AddResult("interface-ok\ninterface-error", nil)
+				// resp for get interface
+				// error for interface-error
+				vsctlMock.AddResult("Error attaching device 0000:00:00.1", nil)
+				// resp for Devbind("--status") in updateDPDKDevbindOutput
+				devbindMock.AddResult(
+					"0000:00:00.1 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb'"+
+						" if=eth1 drv=ixgbe unused=igb_uio", nil)
+
+				e := errors.New("detachPortFromOvs Error")
+				// resp for del-port eth1
+				vsctlMock.AddResult("", e)
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					ifs.Run(srvCtx, configFile)
+					wg.Done()
+				}()
+
+				//waiting for interfaceservice.json
+				for start := time.Now(); time.Since(start) < 3*time.Second; {
+					if ifs.Config.Endpoint == testEndpointFake {
+						break
+					}
+				}
+
+				d := 5 * time.Second
+				Eventually(buffer, d).Should(gbytes.Say(`detachPortFromOvs Error`))
+
+				srvCancel()
+				wg.Wait()
+				w.Close()
+			})
+
+			It("should log 'attachPortFromOvs Error'", func() {
+
+				ifs.ReattachDpdkPorts = ifsReattachDpdkPortsFunction
+
+				// resp for show
+				vsctlMock.AddResult("", nil)
+				// resp for list-br
+				vsctlMock.AddResult("br-int\nbr-userspace", nil)
+				// resp for get bridge br-int datapath_type - this will be skipped
+				vsctlMock.AddResult("system", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("netdev", nil)
+				// list-interfaces
+				vsctlMock.AddResult("interface-ok\ninterface-error", nil)
+				// resp for get interface
+				// error for interface-error
+				vsctlMock.AddResult("Error attaching device 0000:00:00.1", nil)
+				// resp for Devbind("--status") in updateDPDKDevbindOutput
+				devbindMock.AddResult(
+					"0000:00:00.1 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb'"+
+						" if=eth1 drv=ixgbe unused=igb_uio", nil)
+
+				ifs.KernelNetworkDevicesProvider = func() ([]elahelpers.NetworkDevice, error) {
+					return nil, errors.New("attachPortFromOvs Error")
+				}
+
+				// resp for del-port eth1
+				vsctlMock.AddResult("", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("netdev", nil)
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					ifs.Run(srvCtx, configFile)
+					wg.Done()
+				}()
+
+				//waiting for interfaceservice.json
+				for start := time.Now(); time.Since(start) < 3*time.Second; {
+					if ifs.Config.Endpoint == testEndpointFake {
+						break
+					}
+				}
+
+				d := 5 * time.Second
+				Eventually(buffer, d).Should(gbytes.Say(`attachPortFromOvs Error`))
+
+				srvCancel()
+				wg.Wait()
+				w.Close()
+			})
+
+			It("should log 'successfully reattached to bridge'", func() {
+
+				ifs.ReattachDpdkPorts = ifsReattachDpdkPortsFunction
+
+				// resp for show
+				vsctlMock.AddResult("", nil)
+				// resp for list-br
+				vsctlMock.AddResult("br-int\nbr-userspace", nil)
+				// resp for get bridge br-int datapath_type - this will be skipped
+				vsctlMock.AddResult("system", nil)
+				// resp for get bridge br-userspace datapath_type
+				vsctlMock.AddResult("netdev", nil)
+				// list-interfaces
+				vsctlMock.AddResult("interface-ok\ninterface-error", nil)
+				// resp for get interface
+				// error for interface-error
+				vsctlMock.AddResult("Error attaching device 0000:00:00.1", nil)
+				// resp for Devbind("--status") in updateDPDKDevbindOutput
+				devbindMock.AddResult(
+					"0000:00:00.1 '82599ES 10-Gigabit SFI/SFP+ Network Connection 10fb'"+
+						" if=eth1 drv=ixgbe unused=igb_uio", nil)
+				// resp for del-port eth1
+				vsctlMock.AddResult("", nil)
+				// resp for get bridge br-userspace datapath_type in attachPortToOvs
+				vsctlMock.AddResult("netdev", nil)
+				// resp for Devbind("-b", drv, port.Pci) in attachPortToOvs
+				devbindMock.AddResult("", nil)
+				// resp for --may-exist add-port in attachPortToOvs
+				vsctlMock.AddResult("", nil)
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					ifs.Run(srvCtx, configFile)
+					wg.Done()
+				}()
+
+				//waiting for interfaceservice.json
+				for start := time.Now(); time.Since(start) < 3*time.Second; {
+					if ifs.Config.Endpoint == testEndpointFake {
+						break
+					}
+				}
+
+				d := 5 * time.Second
+				Eventually(buffer, d).Should(gbytes.Say(`successfully reattached to bridge`))
+
+				srvCancel()
+				wg.Wait()
+				w.Close()
+			})
+		})
+
+		Context("confirm Heartbeat work", func() {
+			var (
+				w      os.File
+				buffer *gbytes.Buffer
+			)
+
+			BeforeEach(func() {
+				var err error
+				r, w, err := os.Pipe()
+				Expect(err).NotTo(HaveOccurred())
+				log.SetOutput(w)
+				buffer = gbytes.BufferReader(r)
+			})
+
+			AfterEach(func() {
+				log.SetOutput(GinkgoWriter)
+				os.Remove(configFile)
+			})
+			It("should log 'Heartbeat'", func() {
+
+				devbindMock.AddResult(bindOut, nil)
+				Expect(ifs.DpdkEnabled).To(Equal(true))
+				// 13 times ovs-vsctl is called
+				for i := 0; i < 13; i++ {
+					vsctlMock.AddResult("", nil)
+				}
+
+				ifs.ReattachDpdkPorts = reatachPortsMock
+
+				// Set up InterfaceService server
+				srvCtx, srvCancel := context.WithCancel(context.Background())
+
+				// set HeartbeatInterval
+				period := "200ms"
+				err := ioutil.WriteFile(configFile, []byte(fmt.Sprintf(`
+				{
+					"endpoint": "%s",
+					"HeartbeatInterval": "%s",
+					"certsDirectory": "%s"
+				}`, testEndpointFake, period, certsDirFake)), os.FileMode(0644))
+				Expect(err).NotTo(HaveOccurred())
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					ifs.Run(srvCtx, configFile)
+					wg.Done()
+				}()
+
+				//waiting for interfaceservice.json
+				for start := time.Now(); time.Since(start) < 3*time.Second; {
+					if ifs.Config.Endpoint == testEndpointFake {
+						break
+					}
+				}
+
+				duration := 1 * time.Second
+				Eventually(buffer, duration).Should(gbytes.Say(`Heartbeat`))
+
+				srvCancel()
+				wg.Wait()
+				w.Close()
+			})
+		})
+	})
+
+	Describe("GET", func() {
+		Context("make findDpdkPortName return an empty string", func() {
+			It("should return error", func() {
+				var strResultVsctl = `Bridge br-test options: {dpdk-devargs="0000:00:01.0"}
+						datapath_type: netdev
+
+							Interface eth0
+								type: dpdk
+								options: {dpdk-devargs="0000:00:01.0"}`
+
+				devbindMock.AddResult("", nil)           // updateDPDKDevbindOutput - Devbind("--status")
+				vsctlMock.AddResult(strResultVsctl, nil) // resp for port-to-br in Get - getBr
+				vsctlMock.AddResult(strResultVsctl, nil) // resp for show in Get - getPorts - getDpdkPortName
+
+				Expect(ifs.DpdkEnabled).To(Equal(true))
+
+				_, err := get()
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+	})
+
 })
