@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -18,18 +17,20 @@ import (
 	logger "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/pkg/config"
 	"github.com/otcshare/edgenode/pkg/util"
+	"github.com/pkg/errors"
 )
 
 type services map[string]Service
 type consumerConns map[string]ConsumerConnection
 
-type eaaContext struct {
+// Context holds all EAA structures
+type Context struct {
 	serviceInfo         services
 	consumerConnections consumerConns
 	subscriptionInfo    NotificationSubscriptions
 	certsEaaCa          Certs
 	cfg                 Config
-	msgBrokerCtx        msgBroker
+	MsgBrokerCtx        msgBroker
 }
 
 // Certs stores certs and keys for root ca and eaa
@@ -60,14 +61,19 @@ func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
 	return certPool, nil
 }
 
-// RunServer starts Edge Application Agent server listening
-// on port read from config file
-func RunServer(parentCtx context.Context, eaaCtx *eaaContext) error {
-	var err error
-
+// InitEaaContext initializes the Eaa Context
+func InitEaaContext(cfgPath string, eaaCtx *Context) error {
 	eaaCtx.serviceInfo = services{}
 	eaaCtx.consumerConnections = consumerConns{}
 	eaaCtx.subscriptionInfo = NotificationSubscriptions{}
+
+	var err error
+
+	err = config.LoadJSONConfig(cfgPath, &eaaCtx.cfg)
+	if err != nil {
+		log.Errf("Failed to load config: %#v", err)
+		return err
+	}
 
 	if eaaCtx.certsEaaCa.rca, err = InitRootCA(eaaCtx.cfg.Certs); err != nil {
 		log.Errf("CA cert creation error: %#v", err)
@@ -78,6 +84,14 @@ func RunServer(parentCtx context.Context, eaaCtx *eaaContext) error {
 		log.Errf("EAA cert creation error: %#v", err)
 		return err
 	}
+
+	return nil
+}
+
+// RunServer starts Edge Application Agent server listening
+// on port read from config file
+func RunServer(parentCtx context.Context, eaaCtx *Context) error {
+	var err error
 
 	certPool, err := CreateAndSetCACertPool(eaaCtx.cfg.Certs.CaRootPath)
 	if err != nil {
@@ -100,13 +114,17 @@ func RunServer(parentCtx context.Context, eaaCtx *eaaContext) error {
 	serverAuth := &http.Server{Addr: eaaCtx.cfg.OpenEndpoint,
 		Handler: authRouter}
 
-	// Each EAA instance should be in a different Consumer Group to get all Service Updates
-	instanceID := uuid.New()
-	msgBrokerCtx := newKafkaMsgBroker(eaaCtx, "EAA_"+instanceID.String())
-	msgBrokerCtx.addPublisher(servicesPublisher, servicesTopic, nil)
-	msgBrokerCtx.addSubscriber(servicesSubscriber, servicesTopic, nil)
-
-	eaaCtx.msgBrokerCtx = msgBrokerCtx
+	// Add Publisher and Subscriber for Services topic
+	err = eaaCtx.MsgBrokerCtx.addPublisher(servicesPublisher, servicesTopic, nil)
+	if err != nil {
+		return errors.Wrapf(err, "Couldn't add publisher of type %s and ID %s",
+			servicesPublisher.String(), servicesTopic)
+	}
+	err = eaaCtx.MsgBrokerCtx.addSubscriber(servicesSubscriber, servicesTopic, nil)
+	if err != nil {
+		return errors.Wrapf(err, "Couldn't add subscriber of type %s and ID %s",
+			servicesSubscriber.String(), servicesTopic)
+	}
 
 	lis, err := net.Listen("tcp", eaaCtx.cfg.TLSEndpoint)
 	if err != nil {
@@ -159,18 +177,33 @@ func RunServer(parentCtx context.Context, eaaCtx *eaaContext) error {
 	}
 	<-stopServerCh
 	<-stopServerCh
+
+	err = eaaCtx.MsgBrokerCtx.removePublisher(servicesTopic)
+	if err != nil {
+		log.Errf("Failed to remove Services Publisher: %v", err)
+	}
+	err = eaaCtx.MsgBrokerCtx.removeSubscriber(servicesTopic)
+	if err != nil {
+		log.Errf("Failed to remove Services Subscriber: %v", err)
+	}
+
 	return nil
 }
 
 // Run start EAA
 func Run(parentCtx context.Context, cfgPath string) error {
-	var eaaCtx eaaContext
+	var eaaCtx Context
 
-	err := config.LoadJSONConfig(cfgPath, &eaaCtx.cfg)
+	err := InitEaaContext(cfgPath, &eaaCtx)
 	if err != nil {
-		log.Errf("Failed to load config: %#v", err)
+		log.Errf("Failed to initialize EAA Context: %#v", err)
 		return err
 	}
+
+	// Each EAA instance should be in a different Consumer Group to get all Service Updates
+	instanceID := uuid.New()
+	msgBrokerCtx := NewKafkaMsgBroker(&eaaCtx, "EAA_"+instanceID.String())
+	eaaCtx.MsgBrokerCtx = msgBrokerCtx
 
 	return RunServer(parentCtx, &eaaCtx)
 }

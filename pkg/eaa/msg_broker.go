@@ -49,19 +49,31 @@ func (s subscriberType) String() string {
 	return [...]string{"Notification Subscriber", "Services Subscriber", "Client Subscriber"}[s]
 }
 
+// Object already exists error is returned when trying to add a publisher/subscriber that already
+// exists.
+type objectAlreadyExistsError struct {
+	error
+}
+
 // msgBroker specifies the Message Broker interface.
 type msgBroker interface {
 	addPublisher(t publisherType, id string, r *http.Request) error
 	removePublisher(id string) error
-	publish(publisherID string, msg *message.Message) error
+	publish(publisherID string, topic string, msg *message.Message) error
 	addSubscriber(t subscriberType, id string, r *http.Request) error
 	removeSubscriber(id string) error
 }
 
+// --------
 // Callbacks
 
-// All messages from 'services' topic should be handled by this callback.
-func handleServiceUpdates(messages <-chan *message.Message, eaaCtx *eaaContext) {
+// All messages from notificationSubscriber topic should be handled by this callback.
+func handleNotificationUpdates(messages <-chan *message.Message, eaaCtx *Context) {
+	// TODO: Implement
+}
+
+// All messages from servicesSubscriber topic should be handled by this callback.
+func handleServiceUpdates(messages <-chan *message.Message, eaaCtx *Context) {
 	for msg := range messages {
 		log.Debugf("received message: %s, payload: %s", msg.UUID, string(msg.Payload))
 
@@ -98,4 +110,9 @@ func handleServiceUpdates(messages <-chan *message.Message, eaaCtx *eaaContext) 
 		// otherwise, it will be resent over and over again.
 		msg.Ack()
 	}
+}
+
+// All messages from clientSubscriber topic should be handled by this callback.
+func handleClientUpdates(messages <-chan *message.Message, eaaCtx *Context) {
+	// TODO: Implement
 }

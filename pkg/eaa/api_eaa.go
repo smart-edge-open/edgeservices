@@ -13,7 +13,7 @@ import (
 
 // DeregisterApplication implements https API
 func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
@@ -26,6 +26,13 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check preemptively if a Service exists to return the HTTP code that is more likely to be
+	// correct
+	statusCode := http.StatusNoContent
+	if !isServicePresent(commonName, eaaCtx) {
+		statusCode = http.StatusNotFound
+	}
+
 	// Prepare Service structure
 	var serv Service
 	serv.URN = &URN
@@ -34,20 +41,20 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 	// Create Watermill Message and publish it
 	data, err := json.Marshal(svcMsg)
 	if err != nil {
-		log.Errf("Error during Service structure marshalling: %s", err.Error())
+		log.Errf("Error during Service structure marshaling: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	msg := message.NewMessage(serv.URN.String(), data)
 
-	err = eaaCtx.msgBrokerCtx.publish(servicesTopic, msg)
+	err = eaaCtx.MsgBrokerCtx.publish(servicesTopic, servicesTopic, msg)
 	if err != nil {
 		log.Errf("Error during Message publishing: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(statusCode)
 
 	log.Debugf("Successfully processed DeregisterApplication from %s",
 		commonName)
@@ -55,7 +62,7 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 
 // GetNotifications implements https API
 func GetNotifications(w http.ResponseWriter, r *http.Request) {
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 
 	if eaaCtx.serviceInfo == nil {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -79,7 +86,7 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 // GetServices implements https API
 func GetServices(w http.ResponseWriter, r *http.Request) {
 	var servList ServiceList
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -106,7 +113,7 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 
 // GetSubscriptions implements https API
 func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 
@@ -137,7 +144,7 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 
 // PushNotificationToSubscribers implements https API
 func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	var notif NotificationFromProducer
 
@@ -163,7 +170,7 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 // RegisterApplication implements https API
 func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 	var serv Service
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	clientCert := r.TLS.PeerCertificates[0]
@@ -176,28 +183,28 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if serv.URN == nil {
-		var URN URN
-		if URN, err = CommonNameStringToURN(commonName); err != nil {
-			log.Errf("Error during URN generation: %s", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		serv.URN = &URN
+	// Create URN from commonName
+	var URN URN
+	if URN, err = CommonNameStringToURN(commonName); err != nil {
+		log.Errf("Error during URN generation: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
+	serv.URN = &URN
 
+	// Prepare ServiceMsg that will published using a Message Broker
 	svcMsg := ServiceMsg{Svc: &serv, Action: serviceActionRegister}
 
 	// Create Watermill Message and publish it
 	data, err := json.Marshal(svcMsg)
 	if err != nil {
-		log.Errf("Error during Service structure marshalling: %s", err.Error())
+		log.Errf("Error during Service structure marshaling: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	msg := message.NewMessage(commonName, data)
 
-	err = eaaCtx.msgBrokerCtx.publish(servicesTopic, msg)
+	err = eaaCtx.MsgBrokerCtx.publish(servicesTopic, servicesTopic, msg)
 	if err != nil {
 		log.Errf("Error during Message publishing: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -212,7 +219,7 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 // SubscribeNamespaceNotifications implements https API
 func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 	var (
 		sub        []NotificationDescriptor
 		commonName string
@@ -247,7 +254,7 @@ func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 // SubscribeServiceNotifications implements https API
 func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 	var (
 		sub        []NotificationDescriptor
 		commonName string
@@ -280,7 +287,7 @@ func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 // UnsubscribeAllNotifications implements https API
 func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
 	statCode, err := removeAllSubscriptions(commonName, eaaCtx)
 	if err != nil {
@@ -295,7 +302,7 @@ func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {
 // UnsubscribeNamespaceNotifications implements https API
 func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 	var (
 		sub        []NotificationDescriptor
 		commonName string
@@ -330,7 +337,7 @@ func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 // UnsubscribeServiceNotifications implements https API
 func UnsubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 	var (
 		sub        []NotificationDescriptor
 		commonName string

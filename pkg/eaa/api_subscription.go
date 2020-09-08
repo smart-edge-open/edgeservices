@@ -11,7 +11,7 @@ import (
 // addSubscriptionToNamespace subscribes a consumer to a notification
 // in a namespace
 func addSubscriptionToNamespace(commonName string, namespace string,
-	notif []NotificationDescriptor, eaaCtx *eaaContext) (int, error) {
+	notif []NotificationDescriptor, eaaCtx *Context) (int, error) {
 	if eaaCtx.subscriptionInfo == nil {
 		return http.StatusInternalServerError,
 			errors.New("Eaa context not initialized. ")
@@ -39,7 +39,7 @@ func addSubscriptionToNamespace(commonName string, namespace string,
 // removeSubscriptionToNamespace unsubscribes a consumer from a specified
 // notification in a namespace
 func removeSubscriptionToNamespace(commonName string, namespace string,
-	notif []NotificationDescriptor, eaaCtx *eaaContext) (int, error) {
+	notif []NotificationDescriptor, eaaCtx *Context) (int, error) {
 	if eaaCtx.subscriptionInfo == nil {
 		return http.StatusInternalServerError,
 			errors.New("Eaa context not initialized. ")
@@ -75,7 +75,7 @@ func removeSubscriptionToNamespace(commonName string, namespace string,
 // in a specified service within a namespace
 func addSubscriptionToService(commonName string, namespace string,
 	serviceID string, notif []NotificationDescriptor,
-	eaaCtx *eaaContext) (int, error) {
+	eaaCtx *Context) (int, error) {
 	if eaaCtx.subscriptionInfo == nil {
 		return http.StatusInternalServerError,
 			errors.New("Eaa context not intialized. ")
@@ -114,7 +114,7 @@ func removeSubscriptionToService(commonName string,
 	namespace string,
 	serviceID string,
 	notif []NotificationDescriptor,
-	eaaCtx *eaaContext) (int, error) {
+	eaaCtx *Context) (int, error) {
 	if eaaCtx.subscriptionInfo == nil {
 		return http.StatusInternalServerError,
 			errors.New("Eaa context not initialized. ")
@@ -159,7 +159,7 @@ func removeSubscriptionToService(commonName string,
 // removeAllSubscriptions unsubscribes a consumer from
 // all notifications in all namespaces and services
 func removeAllSubscriptions(commonName string,
-	eaaCtx *eaaContext) (int, error) {
+	eaaCtx *Context) (int, error) {
 	if eaaCtx.subscriptionInfo == nil {
 		return http.StatusInternalServerError,
 			errors.New("EAA context not initialized")

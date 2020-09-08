@@ -20,7 +20,7 @@ var socket = websocket.Upgrader{
 // createWsConn creates a websocket connection for a consumer
 // to receive data from subscribed producers
 func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 
 	// Get the consumer app ID from the Common Name in the certificate
 	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
@@ -71,7 +71,7 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 // getConsumerSubscriptions returns a list of subscriptions belonging
 // to the consumer
 func getConsumerSubscriptions(commonName string,
-	eaaCtx *eaaContext) (*SubscriptionList, error) {
+	eaaCtx *Context) (*SubscriptionList, error) {
 
 	if eaaCtx.subscriptionInfo == nil {
 		return nil, errors.New("EAA context not initialized")
