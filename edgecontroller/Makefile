@@ -20,6 +20,7 @@ help:
 	@echo "  test              to run all tests"
 	@echo "  test-ifsvccli     to run interfaceservicecli tests"
 	@echo "  test-dnscli       to run edgednscli tests"
+	@echo "  test-cov          to run coverage with html output"
 
 clean:
 	rm -rf dist certificates artifacts
@@ -41,6 +42,13 @@ lint:
 test:
 	ginkgo -v -r --randomizeAllSpecs --randomizeSuites \
 		--skipPackage=vendor,k8s
+test-cov:
+	rm -rf coverage.out*
+	ginkgo -v -r --randomizeAllSpecs --randomizeSuites \
+		-cover -coverprofile=coverage.out -outputdir=. \
+                --skipPackage=vendor,k8s
+	sed '1!{/^mode/d;}' coverage.out > coverage.out.fix
+	go tool cover -html=coverage.out.fix
 
 test-ifsvccli:
 	ginkgo -v -r --randomizeAllSpecs --randomizeSuites cmd/interfaceservicecli
