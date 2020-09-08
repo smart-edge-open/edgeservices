@@ -19,23 +19,30 @@ import (
 
 // KafkaMsgBroker is a Kafka-backed msgBroker
 type KafkaMsgBroker struct {
-	eaaCtx        *Context
-	consumerGroup string
-	marshaller    kafka.MarshalerUnmarshaler
-	publishers    map[string]*kafka.Publisher
-	subscribers   map[string]*kafka.Subscriber
+	eaaCtx           *Context
+	consumerGroup    string
+	defaultPublisher *kafka.Publisher
+	publishers       map[string]*kafka.Publisher
+	subscribers      map[string]*kafka.Subscriber
 }
 
 // NewKafkaMsgBroker creates and returns a Kafka-backed msgBroker
-func NewKafkaMsgBroker(eaaCtx *Context, consumerGroup string) *KafkaMsgBroker {
+func NewKafkaMsgBroker(eaaCtx *Context, consumerGroup string) (*KafkaMsgBroker, error) {
 	broker := KafkaMsgBroker{eaaCtx: eaaCtx, consumerGroup: consumerGroup}
 
+	defaultPublisher, err := broker.createDefaultPublisher()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create a KafkaMsgBroker")
+	}
+
+	broker.defaultPublisher = defaultPublisher
 	broker.publishers = make(map[string]*kafka.Publisher)
 	broker.subscribers = make(map[string]*kafka.Subscriber)
-	broker.marshaller = kafka.NewWithPartitioningMarshaler(keyGenerator)
 
-	return &broker
+	return &broker, nil
 }
+
+// PUBLISHERS
 
 // Generate a message primary key depending on a topic type
 func keyGenerator(topic string, msg *message.Message) (string, error) {
@@ -45,21 +52,36 @@ func keyGenerator(topic string, msg *message.Message) (string, error) {
 		return "", nil
 
 	} else if strings.HasPrefix(topic, servicesTopic) {
-		// 'services' topic type
-
-		var svcMsg ServiceMsg
+		var svcMsg ServiceMessage
 		err := json.Unmarshal(msg.Payload, &svcMsg)
-
 		if err != nil {
 			return "", errors.Wrap(err, "Couldn't unmarshal a message to generate its key!")
+		}
+
+		if svcMsg.Svc.URN == nil {
+			return "", fmt.Errorf("URN shouldn't be nil (topic: %v)", topic)
 		}
 
 		return svcMsg.Svc.URN.String(), nil
 
 	} else if strings.HasPrefix(topic, clientTopicPrefix) {
-		// client subscriptions topic type
-		// TODO: Add client subscriptions messages handler
-		return "", nil
+		var subscriptionMsg SubscriptionMessage
+		err := json.Unmarshal(msg.Payload, &subscriptionMsg)
+		if err != nil {
+			return "", errors.Wrap(err, "Couldn't unmarshal a message to generate its key!")
+		}
+
+		// Unsubscribe All message has no URN
+		if subscriptionMsg.Action == subscriptionActionUnsubscribe &&
+			subscriptionMsg.Scope == subscriptionScopeAll {
+			return "", nil
+		}
+
+		if subscriptionMsg.Subscription.URN == nil {
+			return "", fmt.Errorf("URN shouldn't be nil (topic: %v)", topic)
+		}
+
+		return subscriptionMsg.Subscription.URN.String(), nil
 	}
 
 	return "", fmt.Errorf("Key generation failed for unknown topic type: %v", topic)
@@ -70,7 +92,7 @@ func (b *KafkaMsgBroker) createDefaultPublisher() (*kafka.Publisher, error) {
 	publisher, err := kafka.NewPublisher(
 		kafka.PublisherConfig{
 			Brokers:   []string{b.eaaCtx.cfg.KafkaBroker},
-			Marshaler: b.marshaller,
+			Marshaler: kafka.NewWithPartitioningMarshaler(keyGenerator),
 		},
 		watermill.NewStdLogger(false, false),
 	)
@@ -81,89 +103,68 @@ func (b *KafkaMsgBroker) createDefaultPublisher() (*kafka.Publisher, error) {
 	return publisher, nil
 }
 
-// Create Notification Publisher based on a HTTP request
-func (b *KafkaMsgBroker) createNotificationPublisher(r *http.Request) (*kafka.Publisher, error) {
-	// TODO: Implement
-	return nil, nil
-}
-
-// Create Services Publisher
-func (b *KafkaMsgBroker) createServicesPublisher() (*kafka.Publisher, error) {
-	return b.createDefaultPublisher()
-}
-
-// Create Client Publisher based on a HTTP request
-func (b *KafkaMsgBroker) createClientPublisher(r *http.Request) (*kafka.Publisher, error) {
-	// TODO: Implement
-	return nil, nil
-}
-
-// Add a Publisher of type t based on a HTTP request.
-// Later the Publisher can be accessed using its id.
-// If a Publisher with given id already exists, objectAlreadyExistsError is returned.
-func (b *KafkaMsgBroker) addPublisher(t publisherType, id string, r *http.Request) error {
-	// Only one Publisher per ID is permitted
-	if _, found := b.publishers[id]; found {
-		return objectAlreadyExistsError{fmt.Errorf("Publisher with ID '%v' already exists", id)}
+// Add a Publisher for a given topic.
+// All messages can be currently handled by a single Publisher - the only thing that differs
+// for different message types is the key generation process and keyGenerator() function can
+// recognize the type of a message based on the topic prefix.
+func (b *KafkaMsgBroker) addPublisher(t publisherType, topic string, r *http.Request) error {
+	// Only one Publisher per topic is permitted
+	if _, found := b.publishers[topic]; found {
+		return objectAlreadyExistsError{fmt.Errorf("Publisher with ID '%v' already exists", topic)}
 	}
 
-	var publisher *kafka.Publisher
-	var err error
-
-	switch t {
-	case notificationPublisher:
-		publisher, err = b.createNotificationPublisher(r)
-	case servicesPublisher:
-		publisher, err = b.createServicesPublisher()
-	case clientPublisher:
-		publisher, err = b.createClientPublisher(r)
-	default:
-		return fmt.Errorf("Unknown Publisher type: %v", t)
-	}
-
-	if err != nil {
-		return errors.Wrapf(err, "Couldn't create Publisher with ID: %v", id)
-	}
-
-	log.Errf("Added Publisher with ID: %v", id)
-
-	b.publishers[id] = publisher
+	b.publishers[topic] = b.defaultPublisher
+	log.Infof("Added Publisher for a topic: %v", topic)
 
 	return nil
 }
 
-// Close and remove a Publisher with a given id.
-func (b *KafkaMsgBroker) removePublisher(id string) error {
-	if publisher, found := b.publishers[id]; found {
-		err := publisher.Close()
-		delete(b.publishers, id)
-		if err != nil {
-			err = errors.Wrapf(err, "Error when closing a Publisher with ID: %v", id)
-		}
-		return err
+// Remove a Publisher for a given topic.
+func (b *KafkaMsgBroker) removePublisher(topic string) error {
+	if _, found := b.publishers[topic]; found {
+		delete(b.publishers, topic)
+		return nil
 	}
 
-	return fmt.Errorf("Invalid Publisher ID: %v", id)
+	return fmt.Errorf("Remove Publisher failed. Invalid Publisher topic: %v", topic)
 }
 
-// Publish a msg using a Publisher with given ID.
-func (b *KafkaMsgBroker) publish(publisherID string, topic string, msg *message.Message) error {
-	if publisher, found := b.publishers[publisherID]; found {
-		var err error
-		if err = publisher.Publish(topic, msg); err != nil {
-			err = errors.Wrapf(err, "Error when Publishing a message with publisherID: %v",
-				publisherID)
+// Publish a msg using a Publisher to a given topic.
+func (b *KafkaMsgBroker) publish(topic string, msg *message.Message) error {
+	if publisher, found := b.publishers[topic]; found {
+		err := publisher.Publish(topic, msg)
+		if err != nil {
+			err = errors.Wrapf(err, "Error when Publishing a message to the topic: %v",
+				topic)
 		}
 		return err
 	}
 
-	return fmt.Errorf("Invalid Publisher ID: %v", publisherID)
+	return fmt.Errorf("Invalid Publisher topic: %v", topic)
+}
+
+// SUBSCRIBERS
+
+func (b *KafkaMsgBroker) createSubscriber(config *sarama.Config) (*kafka.Subscriber, error) {
+	subscriber, err := kafka.NewSubscriber(
+		kafka.SubscriberConfig{
+			Brokers:               []string{b.eaaCtx.cfg.KafkaBroker},
+			Unmarshaler:           kafka.DefaultMarshaler{},
+			OverwriteSaramaConfig: config,
+			ConsumerGroup:         b.consumerGroup,
+		},
+		watermill.NewStdLogger(false, false),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create Kafka Subscriber!")
+	}
+	return subscriber, nil
 }
 
 // Create Notification Publisher based on a HTTP request
-func (b *KafkaMsgBroker) createNotificationSubscriber(r *http.Request) (*kafka.Subscriber, error) {
+func (b *KafkaMsgBroker) createNotificationSubscriber(topic string) (*kafka.Subscriber, error) {
 	// TODO: Implement
-	return nil, nil
+	return b.createSubscriber(kafka.DefaultSaramaSubscriberConfig())
 }
 
 // Create Services Publisher based on a HTTP request
@@ -172,22 +173,14 @@ func (b *KafkaMsgBroker) createServicesSubscriber() (*kafka.Subscriber, error) {
 	// equivalent of auto.offset.reset: earliest
 	saramaSubscriberConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
 
-	subscriber, err := kafka.NewSubscriber(
-		kafka.SubscriberConfig{
-			Brokers:               []string{b.eaaCtx.cfg.KafkaBroker},
-			Unmarshaler:           kafka.DefaultMarshaler{},
-			OverwriteSaramaConfig: saramaSubscriberConfig,
-			ConsumerGroup:         b.consumerGroup,
-		},
-		watermill.NewStdLogger(false, false),
-	)
+	subscriber, err := b.createSubscriber(saramaSubscriberConfig)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create Kafka Subscriber!")
+		return nil, errors.Wrap(err, "Services Subscriber creation failure!")
 	}
 
-	messages, err := subscriber.Subscribe(context.Background(), "services")
+	messages, err := subscriber.Subscribe(context.Background(), servicesTopic)
 	if err != nil {
-		return nil, errors.Wrap(err, "Namespace Notification Registration failure!")
+		return nil, errors.Wrap(err, "Services Subscriptions Registration failure!")
 	}
 
 	go handleServiceUpdates(messages, b.eaaCtx)
@@ -196,18 +189,34 @@ func (b *KafkaMsgBroker) createServicesSubscriber() (*kafka.Subscriber, error) {
 }
 
 // Create Client Publisher based on a HTTP request
-func (b *KafkaMsgBroker) createClientSubscriber(r *http.Request) (*kafka.Subscriber, error) {
-	// TODO: Implement
-	return nil, nil
+func (b *KafkaMsgBroker) createClientSubscriber(topic string) (*kafka.Subscriber, error) {
+	saramaSubscriberConfig := kafka.DefaultSaramaSubscriberConfig()
+	// equivalent of auto.offset.reset: earliest
+	saramaSubscriberConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+
+	subscriber, err := b.createSubscriber(saramaSubscriberConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "Client Subscriber creation failure!")
+	}
+
+	messages, err := subscriber.Subscribe(context.Background(), topic)
+	if err != nil {
+		return nil, errors.Wrap(err, "Client Subscriptions Registration failure!")
+	}
+
+	go handleClientUpdates(messages, b.eaaCtx)
+
+	return subscriber, nil
 }
 
-// Add a Subscriber of type t based on a HTTP request.
-// The Subsriber can be later accessed using its id.
-// If a Subscriber with a given id already exists, objectAlreadyExistsError is returned.
-func (b *KafkaMsgBroker) addSubscriber(t subscriberType, id string, r *http.Request) error {
-	// Only one Subscriber per ID is permitted
-	if _, found := b.subscribers[id]; found {
-		return objectAlreadyExistsError{fmt.Errorf("Subscriber with ID '%v' already exists", id)}
+// Add a Subscriber of type t for a topic based on a HTTP request r.
+// The Subsriber can be later accessed using its topic.
+// If a Subscriber for a given topic already exists, objectAlreadyExistsError is returned.
+func (b *KafkaMsgBroker) addSubscriber(t subscriberType, topic string, r *http.Request) error {
+	// Only one Subscriber per topic is permitted
+	if _, found := b.subscribers[topic]; found {
+		return objectAlreadyExistsError{fmt.Errorf("Subscriber for a topic '%v' already exists",
+			topic)}
 	}
 
 	var subscriber *kafka.Subscriber
@@ -215,34 +224,74 @@ func (b *KafkaMsgBroker) addSubscriber(t subscriberType, id string, r *http.Requ
 
 	switch t {
 	case notificationSubscriber:
-		subscriber, err = b.createNotificationSubscriber(r)
+		subscriber, err = b.createNotificationSubscriber(topic)
 	case servicesSubscriber:
 		subscriber, err = b.createServicesSubscriber()
 	case clientSubscriber:
-		subscriber, err = b.createClientSubscriber(r)
+		subscriber, err = b.createClientSubscriber(topic)
 	default:
 		return fmt.Errorf("Unknown Subscriber type: %v", t)
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "Couldn't create Subscriber with ID: %v", id)
+		return errors.Wrapf(err, "Couldn't create Subscriber of type '%v' for a topic: %v", t,
+			topic)
 	}
 
-	b.subscribers[id] = subscriber
+	b.subscribers[topic] = subscriber
+	log.Infof("Added Subscriber for a topic: %v", topic)
 
 	return nil
 }
 
-// Close and remove a Subscriber with a given id.
-func (b *KafkaMsgBroker) removeSubscriber(id string) error {
-	if subscriber, found := b.subscribers[id]; found {
+// Close and remove a Subscriber for a given topic.
+func (b *KafkaMsgBroker) removeSubscriber(topic string) error {
+	if subscriber, found := b.subscribers[topic]; found {
 		err := subscriber.Close()
-		delete(b.subscribers, id)
+		delete(b.subscribers, topic)
 		if err != nil {
-			err = errors.Wrapf(err, "Error when closing Subscriber with ID: %v", id)
+			err = errors.Wrapf(err, "Error when closing Subscriber for a topic: %v", topic)
 		}
 		return err
 	}
 
-	return fmt.Errorf("Invalid Subscriber ID: %v", id)
+	return fmt.Errorf("Invalid Subscriber topic: %v", topic)
+}
+
+// Close and remove all Publishers and Subscribers
+func (b *KafkaMsgBroker) removeAll() error {
+	var errs []error
+	for topic, subscriber := range b.subscribers {
+		if subscriber != nil {
+			err := subscriber.Close()
+			if err != nil {
+				errs = append(errs, errors.Wrapf(err,
+					"Failed to remove a Subscriber for a topic '%v'", topic))
+			}
+		} else {
+			errs = append(errs, fmt.Errorf("Subscriber '%v' is nil", topic))
+		}
+	}
+
+	// Kafka Broker uses only one Publisher
+	err := b.defaultPublisher.Close()
+	if err != nil {
+		errs = append(errs, errors.Wrapf(err,
+			"Failed to remove the Default Publisher"))
+	}
+
+	// Clear the maps
+	b.publishers = make(map[string]*kafka.Publisher)
+	b.subscribers = make(map[string]*kafka.Subscriber)
+
+	// Return concatenated errors
+	if len(errs) > 0 {
+		var errorStrings []string
+		for _, err = range errs {
+			errorStrings = append(errorStrings, err.Error())
+		}
+		return fmt.Errorf(strings.Join(errorStrings, "\n"))
+	}
+
+	return nil
 }

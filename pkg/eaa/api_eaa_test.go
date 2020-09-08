@@ -3279,9 +3279,6 @@ var _ = Describe("ApiEaa", func() {
 						`"id" : null,` +
 						`"namespace":"namespace-2"},` +
 						`"notifications":[` +
-						`{"name":"event_1",` +
-						`"version":"1.0.1",` +
-						`"description": null},` +
 						`{"name":"event_2",` +
 						`"version":"1.0.2",` +
 						`"description": null}]}]}`)
@@ -3326,9 +3323,6 @@ var _ = Describe("ApiEaa", func() {
 						`"id" : null,` +
 						`"namespace":"namespace-1"},` +
 						`"notifications":[` +
-						`{"name":"event",` +
-						`"version":"1.0.1",` +
-						`"description": null},` +
 						`{"name":"event",` +
 						`"version":"1.0.2",` +
 						`"description": null}]}]}`)
@@ -3868,9 +3862,6 @@ var _ = Describe("ApiEaa", func() {
 						`{"id":"producer-2",` +
 						`"namespace":"namespace-2"},` +
 						`"notifications":[` +
-						`{"name":"event_1",` +
-						`"version":"1.0.1",` +
-						`"description":null},` +
 						`{"name":"event_2",` +
 						`"version":"1.0.2",` +
 						`"description":null}]}]}`)
@@ -3915,9 +3906,6 @@ var _ = Describe("ApiEaa", func() {
 						`{"id":"producer-1",` +
 						`"namespace":"namespace-1"},` +
 						`"notifications":[` +
-						`{"name":"event",` +
-						`"version":"1.0.1",` +
-						`"description":null},` +
 						`{"name":"event",` +
 						`"version":"1.0.2",` +
 						`"description":null}]}]}`)

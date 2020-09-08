@@ -298,7 +298,11 @@ func runEaa(stopIndication chan bool) error {
 
 		switch cfg.MsgBrokerBackend.Type {
 		case KafkaBackend:
-			eaaCtx.MsgBrokerCtx = eaa.NewKafkaMsgBroker(&eaaCtx, "eaa_test_consumer")
+			eaaCtx.MsgBrokerCtx, err = eaa.NewKafkaMsgBroker(&eaaCtx, "eaa_test_consumer")
+			if err != nil {
+				log.Errf("Failed to create a Kafka Message Broker: %#v", err)
+				goto fail
+			}
 		case GochannelsBackend:
 			eaaCtx.MsgBrokerCtx = eaa.NewGoChannelMsgBroker(&eaaCtx)
 		default:
@@ -341,8 +345,8 @@ func runEaa(stopIndication chan bool) error {
 		return errors.New("starting appliance - timeout")
 	case <-eaaRunFail:
 		return errors.New("starting appliance - run fail")
-
 	}
+
 	return nil
 }
 

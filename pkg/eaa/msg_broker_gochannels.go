@@ -35,18 +35,17 @@ func NewGoChannelMsgBroker(eaaCtx *Context) *GoChannelMsgBroker {
 
 // GoChannel acts as a Publisher and Subscriber at the same time.
 // Publishing to a GoChannel that is not subsribed by anyone results in a noop.
-func (b *GoChannelMsgBroker) addPublisher(t publisherType, id string, r *http.Request) error {
+func (b *GoChannelMsgBroker) addPublisher(t publisherType, topic string, r *http.Request) error {
 	return nil
 }
 
 // Nothing to be done
-func (b *GoChannelMsgBroker) removePublisher(id string) error {
+func (b *GoChannelMsgBroker) removePublisher(topic string) error {
 	return nil
 }
 
-// Publish a msg using a Publisher with given ID.
-func (b *GoChannelMsgBroker) publish(publisherID string, topic string, msg *message.Message) error {
-	// There's a 1<->1 mapping between Subscriber ID and topic that it's being subscribed to
+// Publish a msg using a Publisher to a given topic.
+func (b *GoChannelMsgBroker) publish(topic string, msg *message.Message) error {
 	if goChannel, found := b.goChannels[topic]; found {
 		var err error
 		if err = goChannel.Publish(topic, msg); err != nil {
@@ -59,22 +58,22 @@ func (b *GoChannelMsgBroker) publish(publisherID string, topic string, msg *mess
 	return fmt.Errorf("Invalid topic: %v", topic)
 }
 
-// Add a Subscriber of type t with a given id.
-// The Subsriber can be later accessed using its id.
-// If a Subscriber with a given id already exists, objectAlreadyExistsError is returned.
-func (b *GoChannelMsgBroker) addSubscriber(t subscriberType, id string, r *http.Request) error {
-	if _, found := b.goChannels[id]; found {
+// Add a Subscriber of type t with for a given topic.
+// The Subsriber can be later accessed using its topic.
+// If a Subscriber with for a given topic already exists, objectAlreadyExistsError is returned.
+func (b *GoChannelMsgBroker) addSubscriber(t subscriberType, topic string, r *http.Request) error {
+	if _, found := b.goChannels[topic]; found {
 		// Only one Subscriber per ID is permitted
-		return objectAlreadyExistsError{fmt.Errorf("Subscriber with ID '%v' already exists", id)}
+		return objectAlreadyExistsError{fmt.Errorf("Subscriber with ID '%v' already exists", topic)}
 	}
 
 	// Create a new GoChannel
-	b.goChannels[id] = gochannel.NewGoChannel(b.defaultConfig,
+	b.goChannels[topic] = gochannel.NewGoChannel(b.defaultConfig,
 		watermill.NewStdLogger(true, true))
 
-	msgChannel, err := b.goChannels[id].Subscribe(context.Background(), id)
+	msgChannel, err := b.goChannels[topic].Subscribe(context.Background(), topic)
 	if err != nil {
-		return errors.Wrapf(err, "Error when Subscribing to topic: %v", id)
+		return errors.Wrapf(err, "Error when Subscribing to the topic: %v", topic)
 	}
 
 	switch t {
@@ -91,16 +90,31 @@ func (b *GoChannelMsgBroker) addSubscriber(t subscriberType, id string, r *http.
 	return nil
 }
 
-// Close and remove a Subscriber with a given id.
-func (b *GoChannelMsgBroker) removeSubscriber(id string) error {
-	if goChannel, found := b.goChannels[id]; found {
+// Close and remove a Subscriber for a given topic.
+func (b *GoChannelMsgBroker) removeSubscriber(topic string) error {
+	if goChannel, found := b.goChannels[topic]; found {
 		err := goChannel.Close()
-		delete(b.goChannels, id)
+		delete(b.goChannels, topic)
 		if err != nil {
-			err = errors.Wrapf(err, "Error when closing a GoChannel with ID: %v", id)
+			err = errors.Wrapf(err, "Failed to remove a Subscriber for the topic: %v", topic)
 		}
 		return err
 	}
 
-	return fmt.Errorf("Invalid Subscriber ID: %v", id)
+	return fmt.Errorf("Invalid Subscriber ID: %v", topic)
+}
+
+// Close and remove all GoChannels
+func (b *GoChannelMsgBroker) removeAll() error {
+	for topic, goChannel := range b.goChannels {
+		err := goChannel.Close()
+		if err != nil {
+			return errors.Wrapf(err, "Failed to remove all GoChannels (topic '%v')", topic)
+		}
+	}
+
+	// Clear the map
+	b.goChannels = make(map[string]*gochannel.GoChannel)
+
+	return nil
 }

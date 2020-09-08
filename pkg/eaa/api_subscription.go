@@ -5,16 +5,14 @@ package eaa
 
 import (
 	"errors"
-	"net/http"
 )
 
 // addSubscriptionToNamespace subscribes a consumer to a notification
 // in a namespace
 func addSubscriptionToNamespace(commonName string, namespace string,
-	notif []NotificationDescriptor, eaaCtx *Context) (int, error) {
+	notif []NotificationDescriptor, eaaCtx *Context) error {
 	if eaaCtx.subscriptionInfo == nil {
-		return http.StatusInternalServerError,
-			errors.New("Eaa context not initialized. ")
+		return errors.New("Eaa context not initialized. ")
 	}
 
 	for _, n := range notif {
@@ -33,16 +31,16 @@ func addSubscriptionToNamespace(commonName string, namespace string,
 		}
 	}
 
-	return http.StatusCreated, nil
+	return nil
 }
 
 // removeSubscriptionToNamespace unsubscribes a consumer from a specified
 // notification in a namespace
 func removeSubscriptionToNamespace(commonName string, namespace string,
-	notif []NotificationDescriptor, eaaCtx *Context) (int, error) {
+	notif []NotificationDescriptor, eaaCtx *Context) error {
+
 	if eaaCtx.subscriptionInfo == nil {
-		return http.StatusInternalServerError,
-			errors.New("Eaa context not initialized. ")
+		return errors.New("Eaa context not initialized. ")
 	}
 
 	for _, n := range notif {
@@ -68,17 +66,36 @@ func removeSubscriptionToNamespace(commonName string, namespace string,
 		}
 	}
 
-	return http.StatusNoContent, nil
+	return nil
+}
+
+// removeAllSubscriptionsToNamespace removes all Client subscriptions to a given Namespace
+// notifications
+func removeAllSubscriptionsToNamespace(commonName string, namespace string, eaaCtx *Context) error {
+	if eaaCtx.subscriptionInfo == nil {
+		return errors.New("Eaa context not initialized. ")
+	}
+
+	for key, consumerSub := range eaaCtx.subscriptionInfo {
+		if key.namespace == namespace {
+			if index := getNamespaceSubscriptionIndex(key, commonName, eaaCtx); index != -1 {
+				consumerSub.namespaceSubscriptions = append(
+					consumerSub.namespaceSubscriptions[:index],
+					consumerSub.namespaceSubscriptions[index+1:]...)
+			}
+		}
+	}
+
+	return nil
 }
 
 // addSubscriptionToService subscribes a consumer to a notification
 // in a specified service within a namespace
 func addSubscriptionToService(commonName string, namespace string,
 	serviceID string, notif []NotificationDescriptor,
-	eaaCtx *Context) (int, error) {
+	eaaCtx *Context) error {
 	if eaaCtx.subscriptionInfo == nil {
-		return http.StatusInternalServerError,
-			errors.New("Eaa context not intialized. ")
+		return errors.New("Eaa context not intialized. ")
 	}
 
 	for _, n := range notif {
@@ -105,19 +122,16 @@ func addSubscriptionToService(commonName string, namespace string,
 				commonName)
 	}
 
-	return http.StatusCreated, nil
+	return nil
 }
 
 // removeSubscriptionToService unsubscribes a consumer from
 // a notification in specified service within a namespace
-func removeSubscriptionToService(commonName string,
-	namespace string,
-	serviceID string,
-	notif []NotificationDescriptor,
-	eaaCtx *Context) (int, error) {
+func removeSubscriptionToService(commonName string, namespace string, serviceID string,
+	notif []NotificationDescriptor, eaaCtx *Context) error {
+
 	if eaaCtx.subscriptionInfo == nil {
-		return http.StatusInternalServerError,
-			errors.New("Eaa context not initialized. ")
+		return errors.New("Eaa context not initialized. ")
 	}
 
 	for _, n := range notif {
@@ -153,16 +167,41 @@ func removeSubscriptionToService(commonName string,
 		}
 	}
 
-	return http.StatusNoContent, nil
+	return nil
+}
+
+// removeAllSubscriptionsToNamespace removes all Client subscriptions to a given Service
+// notifications
+func removeAllSubscriptionsToService(commonName string, namespace string, serviceID string,
+	eaaCtx *Context) error {
+
+	if eaaCtx.subscriptionInfo == nil {
+		return errors.New("Eaa context not initialized. ")
+	}
+
+	// For each Notification check if its namespace and service ID corresponds to the ones we got
+	for key, consumerSub := range eaaCtx.subscriptionInfo {
+		_, serviceIDFound := consumerSub.serviceSubscriptions[serviceID]
+
+		if key.namespace == namespace && serviceIDFound {
+			if index := getServiceSubscriptionIndex(key, serviceID, commonName,
+				eaaCtx); index != -1 {
+				// Remove Client ID when it's present in SubscriberIDs
+				consumerSub.serviceSubscriptions[serviceID] =
+					append(consumerSub.serviceSubscriptions[serviceID][:index],
+						consumerSub.serviceSubscriptions[serviceID][index+1:]...)
+			}
+		}
+	}
+
+	return nil
 }
 
 // removeAllSubscriptions unsubscribes a consumer from
 // all notifications in all namespaces and services
-func removeAllSubscriptions(commonName string,
-	eaaCtx *Context) (int, error) {
+func removeAllSubscriptions(commonName string, eaaCtx *Context) error {
 	if eaaCtx.subscriptionInfo == nil {
-		return http.StatusInternalServerError,
-			errors.New("EAA context not initialized")
+		return errors.New("EAA context not initialized")
 	}
 
 	for _, nsSubsInfo := range eaaCtx.subscriptionInfo {
@@ -175,5 +214,5 @@ func removeAllSubscriptions(commonName string,
 		nsSubsInfo.namespaceSubscriptions.RemoveSubscriber(commonName)
 	}
 
-	return http.StatusNoContent, nil
+	return nil
 }

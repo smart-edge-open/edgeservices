@@ -114,19 +114,24 @@ func RunServer(parentCtx context.Context, eaaCtx *Context) error {
 	serverAuth := &http.Server{Addr: eaaCtx.cfg.OpenEndpoint,
 		Handler: authRouter}
 
+	stopServerCh := make(chan bool, 2)
+	var lis net.Listener
+
 	// Add Publisher and Subscriber for Services topic
 	err = eaaCtx.MsgBrokerCtx.addPublisher(servicesPublisher, servicesTopic, nil)
 	if err != nil {
-		return errors.Wrapf(err, "Couldn't add publisher of type %s and ID %s",
+		err = errors.Wrapf(err, "Couldn't add publisher of type %s and ID %s",
 			servicesPublisher.String(), servicesTopic)
+		goto cleanup
 	}
 	err = eaaCtx.MsgBrokerCtx.addSubscriber(servicesSubscriber, servicesTopic, nil)
 	if err != nil {
-		return errors.Wrapf(err, "Couldn't add subscriber of type %s and ID %s",
+		err = errors.Wrapf(err, "Couldn't add subscriber of type %s and ID %s",
 			servicesSubscriber.String(), servicesTopic)
+		goto cleanup
 	}
 
-	lis, err := net.Listen("tcp", eaaCtx.cfg.TLSEndpoint)
+	lis, err = net.Listen("tcp", eaaCtx.cfg.TLSEndpoint)
 	if err != nil {
 
 		log.Errf("net.Listen error: %+v", err)
@@ -135,19 +140,17 @@ func RunServer(parentCtx context.Context, eaaCtx *Context) error {
 		if ok {
 			log.Errf("net.Listen error: %+v", e.Error())
 		}
-		return err
+		goto cleanup
 	}
-
-	stopServerCh := make(chan bool, 2)
 
 	go func(stopServerCh chan bool) {
 		<-parentCtx.Done()
 		log.Info("Executing graceful stop")
-		if err = server.Close(); err != nil {
-			log.Errf("Could not close EAA server: %#v", err)
+		if servErr := server.Close(); servErr != nil {
+			log.Errf("Could not close EAA server: %#v", servErr)
 		}
-		if err = serverAuth.Close(); err != nil {
-			log.Errf("Could not close Auth server: %#v", err)
+		if servErr := serverAuth.Close(); servErr != nil {
+			log.Errf("Could not close Auth server: %#v", servErr)
 		}
 		log.Info("EAA server stopped")
 		log.Info("Auth server stopped")
@@ -158,8 +161,8 @@ func RunServer(parentCtx context.Context, eaaCtx *Context) error {
 
 	go func(stopServerCh chan bool) {
 		log.Infof("Serving Auth on: %s", eaaCtx.cfg.OpenEndpoint)
-		if err = serverAuth.ListenAndServe(); err != nil {
-			log.Info("Auth server error: " + err.Error())
+		if authErr := serverAuth.ListenAndServe(); authErr != nil {
+			log.Info("Auth server error: " + authErr.Error())
 		}
 		log.Errf("Stopped Auth serving")
 		stopServerCh <- true
@@ -173,21 +176,24 @@ func RunServer(parentCtx context.Context, eaaCtx *Context) error {
 	if err = server.ServeTLS(lis, eaaCtx.cfg.Certs.ServerCertPath,
 		eaaCtx.cfg.Certs.ServerKeyPath); err != http.ErrServerClosed {
 		log.Errf("server.Serve error: %#v", err)
-		return err
+		goto cleanup
+	} else {
+		err = nil
 	}
 	<-stopServerCh
 	<-stopServerCh
 
-	err = eaaCtx.MsgBrokerCtx.removePublisher(servicesTopic)
-	if err != nil {
-		log.Errf("Failed to remove Services Publisher: %v", err)
-	}
-	err = eaaCtx.MsgBrokerCtx.removeSubscriber(servicesTopic)
-	if err != nil {
-		log.Errf("Failed to remove Services Subscriber: %v", err)
+cleanup:
+	cleanupErr := eaaCtx.MsgBrokerCtx.removeAll()
+	if cleanupErr != nil {
+		if err == nil {
+			err = cleanupErr
+		} else {
+			err = errors.Wrap(err, cleanupErr.Error())
+		}
 	}
 
-	return nil
+	return err
 }
 
 // Run start EAA
@@ -202,7 +208,11 @@ func Run(parentCtx context.Context, cfgPath string) error {
 
 	// Each EAA instance should be in a different Consumer Group to get all Service Updates
 	instanceID := uuid.New()
-	msgBrokerCtx := NewKafkaMsgBroker(&eaaCtx, "EAA_"+instanceID.String())
+	msgBrokerCtx, err := NewKafkaMsgBroker(&eaaCtx, "EAA_"+instanceID.String())
+	if err != nil {
+		log.Errf("Failed to create a Kafka Message Broker: %#v", err)
+		return err
+	}
 	eaaCtx.MsgBrokerCtx = msgBrokerCtx
 
 	return RunServer(parentCtx, &eaaCtx)

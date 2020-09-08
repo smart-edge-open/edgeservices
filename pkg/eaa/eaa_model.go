@@ -54,13 +54,13 @@ type Service struct {
 	Info          json.RawMessage          `json:"info,omitempty"`
 }
 
-// ServiceMsg is a message sent/received by a message broker
-type ServiceMsg struct {
+// ServiceMessage is a message sent/received by a message broker
+type ServiceMessage struct {
 	Svc    *Service `json:"service"`
 	Action string   `json:"action"`
 }
 
-// Service 'Action' values
+// ServiceMessage 'Action' values
 const (
 	serviceActionRegister   = "register"
 	serviceActionDeregister = "deregister"
@@ -83,6 +83,27 @@ type Subscription struct {
 	// this namespace.
 	Notifications []NotificationDescriptor `json:"notifications,omitempty"`
 }
+
+// SubscriptionMessage is a message sent/received by a message broker
+type SubscriptionMessage struct {
+	ClientCommonName string
+	Subscription     *Subscription
+	Action           string
+	Scope            string
+}
+
+// SubscriptionMessage 'Action' values
+const (
+	subscriptionActionSubscribe   = "subscribe"
+	subscriptionActionUnsubscribe = "unsubscribe"
+)
+
+// SubscriptionMessage 'Scope' values
+const (
+	subscriptionScopeNamespace = "namespace"
+	subscriptionScopeService   = "service"
+	subscriptionScopeAll       = "all"
+)
 
 // URN describes a type used in EAA API
 type URN struct {

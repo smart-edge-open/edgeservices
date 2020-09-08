@@ -9,6 +9,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 // DeregisterApplication implements https API
@@ -36,7 +37,7 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 	// Prepare Service structure
 	var serv Service
 	serv.URN = &URN
-	svcMsg := ServiceMsg{Svc: &serv, Action: serviceActionDeregister}
+	svcMsg := ServiceMessage{Svc: &serv, Action: serviceActionDeregister}
 
 	// Create Watermill Message and publish it
 	data, err := json.Marshal(svcMsg)
@@ -45,9 +46,9 @@ func DeregisterApplication(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	msg := message.NewMessage(serv.URN.String(), data)
+	msg := message.NewMessage(commonName, data)
 
-	err = eaaCtx.MsgBrokerCtx.publish(servicesTopic, servicesTopic, msg)
+	err = eaaCtx.MsgBrokerCtx.publish(servicesTopic, msg)
 	if err != nil {
 		log.Errf("Error during Message publishing: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -77,6 +78,20 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(statCode)
 		}
 		return
+	}
+
+	// Subscribe to the Client topic to receive all of its subscriptions
+	topic := getClientTopicName(r.TLS.PeerCertificates[0].Subject.CommonName)
+	err = eaaCtx.MsgBrokerCtx.addSubscriber(clientSubscriber, topic, r)
+	if err != nil {
+		// Ignore objectAlreadyExistsError error
+		if _, ok := err.(objectAlreadyExistsError); !ok {
+			log.Errf("Error when adding a Subscriber of type: '%v', topic: '%v'", clientSubscriber,
+				topic)
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	log.Debugf("Successfully processed GetNotifications from %s",
@@ -192,8 +207,8 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 	}
 	serv.URN = &URN
 
-	// Prepare ServiceMsg that will published using a Message Broker
-	svcMsg := ServiceMsg{Svc: &serv, Action: serviceActionRegister}
+	// Prepare ServiceMessage that will be published using a Message Broker
+	svcMsg := ServiceMessage{Svc: &serv, Action: serviceActionRegister}
 
 	// Create Watermill Message and publish it
 	data, err := json.Marshal(svcMsg)
@@ -204,7 +219,7 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 	}
 	msg := message.NewMessage(commonName, data)
 
-	err = eaaCtx.MsgBrokerCtx.publish(servicesTopic, servicesTopic, msg)
+	err = eaaCtx.MsgBrokerCtx.publish(servicesTopic, msg)
 	if err != nil {
 		log.Errf("Error during Message publishing: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -220,33 +235,32 @@ func RegisterApplication(w http.ResponseWriter, r *http.Request) {
 func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
-	var (
-		sub        []NotificationDescriptor
-		commonName string
-		err        error
-		statCode   int
-	)
 
-	if err = json.NewDecoder(r.Body).Decode(&sub); err != nil {
+	var sub []NotificationDescriptor
+
+	err := json.NewDecoder(r.Body).Decode(&sub)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errf("Namespace Notification Registration: %s",
 			err.Error())
 		return
 	}
 
-	commonName = r.TLS.PeerCertificates[0].Subject.CommonName
+	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
 
-	vars := mux.Vars(r)
+	// Get the Notification Namespace
+	namespace := mux.Vars(r)["urn.namespace"]
+	urn := URN{Namespace: namespace}
 
-	statCode, err = addSubscriptionToNamespace(commonName,
-		vars["urn.namespace"], sub, eaaCtx)
-
+	err = processSubscriptionRequest(subscriptionActionSubscribe, subscriptionScopeNamespace,
+		commonName, &urn, sub, r, eaaCtx)
 	if err != nil {
-		log.Errf("Namespace Notification Registration: %s",
-			err.Error())
+		log.Errf("Error during Namespace Subscription Request processing: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	w.WriteHeader(statCode)
+	w.WriteHeader(http.StatusCreated)
 	log.Debugf("Successfully processed SubscribeNamespaceNotifications from %s",
 		commonName)
 }
@@ -255,31 +269,33 @@ func SubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
-	var (
-		sub        []NotificationDescriptor
-		commonName string
-		err        error
-		statCode   int
-	)
 
-	if err = json.NewDecoder(r.Body).Decode(&sub); err != nil {
+	var sub []NotificationDescriptor
+
+	err := json.NewDecoder(r.Body).Decode(&sub)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errf("Service Notification Registration: %s", err.Error())
 		return
 	}
 
-	commonName = r.TLS.PeerCertificates[0].Subject.CommonName
+	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
 
+	// Get the Notification Namespace and Service ID
 	vars := mux.Vars(r)
+	namespace := vars["urn.namespace"]
+	serviceID := vars["urn.id"]
+	urn := URN{Namespace: namespace, ID: serviceID}
 
-	statCode, err = addSubscriptionToService(commonName,
-		vars["urn.namespace"], vars["urn.id"], sub, eaaCtx)
-
+	err = processSubscriptionRequest(subscriptionActionSubscribe, subscriptionScopeService,
+		commonName, &urn, sub, r, eaaCtx)
 	if err != nil {
-		log.Errf("Service Notification Registration: %s", err.Error())
+		log.Errf("Error during Service Subscription Request processing: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	w.WriteHeader(statCode)
+	w.WriteHeader(http.StatusCreated)
 	log.Debugf("Successfully processed SubscribeServiceNotifications from %s",
 		commonName)
 }
@@ -288,13 +304,18 @@ func SubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
+
 	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
-	statCode, err := removeAllSubscriptions(commonName, eaaCtx)
+
+	err := processSubscriptionRequest(subscriptionActionUnsubscribe, subscriptionScopeAll,
+		commonName, nil, nil, r, eaaCtx)
 	if err != nil {
-		log.Errf("Error in UnsubscribeAllNotifications: %s", err.Error())
+		log.Errf("Error during All Unsubscription Request processing: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	w.WriteHeader(statCode)
+	w.WriteHeader(http.StatusNoContent)
 	log.Debugf("Successfully processed UnsubscribeAllNotifications from %s",
 		commonName)
 }
@@ -303,33 +324,31 @@ func UnsubscribeAllNotifications(w http.ResponseWriter, r *http.Request) {
 func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
-	var (
-		sub        []NotificationDescriptor
-		commonName string
-		err        error
-		statCode   int
-	)
+	var sub []NotificationDescriptor
 
-	if err = json.NewDecoder(r.Body).Decode(&sub); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&sub)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errf("Namespace Notification Unregistration: %s",
 			err.Error())
 		return
 	}
 
-	commonName = r.TLS.PeerCertificates[0].Subject.CommonName
+	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
 
-	vars := mux.Vars(r)
+	// Get the Notification Namespace
+	namespace := mux.Vars(r)["urn.namespace"]
+	urn := URN{Namespace: namespace}
 
-	statCode, err = removeSubscriptionToNamespace(commonName,
-		vars["urn.namespace"], sub, eaaCtx)
-
+	err = processSubscriptionRequest(subscriptionActionUnsubscribe, subscriptionScopeNamespace,
+		commonName, &urn, sub, r, eaaCtx)
 	if err != nil {
-		log.Errf("Namespace Notification Unregistration: %s",
-			err.Error())
+		log.Errf("Error during Namespace Unsubscription Request processing: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	w.WriteHeader(statCode)
+	w.WriteHeader(http.StatusNoContent)
 	log.Debugf("Successfully processed UnsubscribeNamespaceNotifications from"+
 		"%s", commonName)
 }
@@ -338,32 +357,98 @@ func UnsubscribeNamespaceNotifications(w http.ResponseWriter, r *http.Request) {
 func UnsubscribeServiceNotifications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
-	var (
-		sub        []NotificationDescriptor
-		commonName string
-		err        error
-		statCode   int
-	)
+	var sub []NotificationDescriptor
 
-	if err = json.NewDecoder(r.Body).Decode(&sub); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&sub)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errf("Service Notification Unregistration: %s", err.Error())
 		return
 	}
 
-	commonName = r.TLS.PeerCertificates[0].Subject.CommonName
+	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
 
+	// Get the Notification Namespace and Service ID
 	vars := mux.Vars(r)
+	namespace := vars["urn.namespace"]
+	serviceID := vars["urn.id"]
+	urn := URN{Namespace: namespace, ID: serviceID}
 
-	statCode, err = removeSubscriptionToService(commonName,
-		vars["urn.namespace"], vars["urn.id"], sub, eaaCtx)
-
+	err = processSubscriptionRequest(subscriptionActionUnsubscribe, subscriptionScopeService,
+		commonName, &urn, sub, r, eaaCtx)
 	if err != nil {
-		log.Errf("Service Notification Unregistration: %s",
-			err.Error())
+		log.Errf("Error during Service Unsubscription Request processing: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	w.WriteHeader(statCode)
+	w.WriteHeader(http.StatusNoContent)
 	log.Debugf("Successfully processed UnsubscribeServiceNotifications from %s",
 		commonName)
+}
+
+// processSubscriptionRequest adds Publisher and Subscriber to the Client topic and publishes the
+// SubscriptionMessage to it.
+// If subscriptionAction == subscriptionActionRegister it also subscribes to the
+// Namespace Notification topic.
+func processSubscriptionRequest(subscriptionAction string, subscriptionScope string,
+	clientCommonName string, URN *URN, subs []NotificationDescriptor, r *http.Request,
+	eaaCtx *Context) error {
+
+	// Subscribe to the Client topic (if not subscribed already) to receive all of its subscriptions
+	clientTopic := getClientTopicName(clientCommonName)
+	err := eaaCtx.MsgBrokerCtx.addSubscriber(clientSubscriber, clientTopic, r)
+	if err != nil {
+		// Ignore objectAlreadyExistsError error
+		if _, ok := err.(objectAlreadyExistsError); !ok {
+			return errors.Wrapf(err, "Error when adding a Subscriber of type: '%v', topic: '%v'",
+				clientSubscriber, clientTopic)
+		}
+	}
+
+	if subscriptionAction == subscriptionActionSubscribe {
+		// Subscribe to the Notification topic (if not subscribed already)
+		if URN == nil {
+			return errors.New("URN can't be nil when trying to Subscribe")
+		}
+		notifTopic := getNotificationTopicName(URN.Namespace)
+
+		err = eaaCtx.MsgBrokerCtx.addSubscriber(notificationSubscriber, notifTopic, r)
+		if err != nil {
+			// Ignore objectAlreadyExistsError error
+			if _, ok := err.(objectAlreadyExistsError); !ok {
+				return errors.Wrapf(err, "Error when subscribing to Notification topic '%v'",
+					notifTopic)
+			}
+		}
+	}
+
+	// Add a Publisher to the Client topic (if not subscribed already)
+	err = eaaCtx.MsgBrokerCtx.addPublisher(clientPublisher, clientTopic, r)
+	if err != nil {
+		// Ignore objectAlreadyExistsError error
+		if _, ok := err.(objectAlreadyExistsError); !ok {
+			return errors.Wrapf(err, "Error when adding a Publisher of type: '%v', id: '%v'",
+				clientPublisher, clientTopic)
+		}
+	}
+
+	// Prepare the message that will be published to the Client topic
+	subscription := Subscription{URN, subs}
+	subscriptionMsg := SubscriptionMessage{clientCommonName, &subscription, subscriptionAction,
+		subscriptionScope}
+
+	// Create and publish the Watermill Message
+	data, err := json.Marshal(subscriptionMsg)
+	if err != nil {
+		return errors.Wrap(err, "Error during SubscriptionMessage structure marshaling")
+	}
+	msg := message.NewMessage(clientCommonName, data)
+
+	err = eaaCtx.MsgBrokerCtx.publish(clientTopic, msg)
+	if err != nil {
+		return errors.Wrap(err, "Error during Message publishing")
+	}
+
+	return nil
 }
