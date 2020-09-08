@@ -86,18 +86,18 @@ func getUniqueSubsList(nsList []string, servList []string) []string {
 	return fullList
 }
 
-func sendNotificationToAllSubscribers(commonName string,
-	notif NotificationFromProducer, eaaCtx *Context) (int, error) {
+func sendNotificationToAllSubscribers(commonName string, notif *NotificationFromProducer,
+	eaaCtx *Context) error {
+
 	var subscriberList []string
 
 	if eaaCtx.serviceInfo == nil {
-		return http.StatusInternalServerError,
-			errors.New("EAA context is not initialized")
+		return errors.New("EAA context is not initialized")
 	}
 
 	prodURN, err := CommonNameStringToURN(commonName)
 	if err != nil {
-		return http.StatusUnauthorized, err
+		return err
 	}
 
 	msgPayload, err := json.Marshal(NotificationToConsumer{
@@ -107,14 +107,12 @@ func sendNotificationToAllSubscribers(commonName string,
 		URN:     prodURN,
 	})
 	if err != nil {
-		return http.StatusUnauthorized,
-			errors.Wrap(err, "Failed to marshal norification JSON")
+		return errors.Wrap(err, "Failed to marshal norification JSON")
 	}
 
 	_, serviceFound := eaaCtx.serviceInfo[commonName]
 	if !serviceFound {
-		return http.StatusInternalServerError,
-			errors.New("Producer is not registered")
+		return errors.New("Producer is not registered")
 	}
 
 	namespaceKey := UniqueNotif{
@@ -126,7 +124,7 @@ func sendNotificationToAllSubscribers(commonName string,
 	namespaceSubsInfo, ok := eaaCtx.subscriptionInfo[namespaceKey]
 	if !ok {
 		log.Infof("No subscription to notification %v", namespaceKey)
-		return http.StatusAccepted, nil
+		return nil
 	}
 
 	srvSubsList, ok := namespaceSubsInfo.serviceSubscriptions[prodURN.ID]
@@ -145,7 +143,7 @@ func sendNotificationToAllSubscribers(commonName string,
 				subID, err)
 		}
 	}
-	return http.StatusAccepted, nil
+	return nil
 }
 
 func sendNotificationToSubscriber(subID string, msgPayload []byte,

@@ -39,6 +39,12 @@ type NotificationToConsumer struct {
 	URN URN `json:"producer,omitempty"`
 }
 
+// NotificationMessage is a message sent/received by a message broker
+type NotificationMessage struct {
+	Notification *NotificationFromProducer
+	URN          *URN
+}
+
 // ServiceList JSON struct
 type ServiceList struct {
 	Services []Service `json:"services,omitempty"`

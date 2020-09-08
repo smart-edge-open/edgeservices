@@ -14,6 +14,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-kafka/v2/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -46,10 +47,10 @@ func NewKafkaMsgBroker(eaaCtx *Context, consumerGroup string) (*KafkaMsgBroker, 
 
 // Generate a message primary key depending on a topic type
 func keyGenerator(topic string, msg *message.Message) (string, error) {
+
 	if strings.HasPrefix(topic, notificationsTopicPrefix) {
-		// namespace notifications topic type
-		// TODO: Add namespace notification messages handler
-		return "", nil
+		// Each notification should get a different primary key to avoid log compaction
+		return uuid.New().String(), nil
 
 	} else if strings.HasPrefix(topic, servicesTopic) {
 		var svcMsg ServiceMessage
@@ -126,7 +127,7 @@ func (b *KafkaMsgBroker) removePublisher(topic string) error {
 		return nil
 	}
 
-	return fmt.Errorf("Remove Publisher failed. Invalid Publisher topic: %v", topic)
+	return fmt.Errorf("Invalid Publisher topic: %v", topic)
 }
 
 // Publish a msg using a Publisher to a given topic.
@@ -145,6 +146,7 @@ func (b *KafkaMsgBroker) publish(topic string, msg *message.Message) error {
 
 // SUBSCRIBERS
 
+// Create a Kafka Subscriber with a Sarama config
 func (b *KafkaMsgBroker) createSubscriber(config *sarama.Config) (*kafka.Subscriber, error) {
 	subscriber, err := kafka.NewSubscriber(
 		kafka.SubscriberConfig{
@@ -161,13 +163,27 @@ func (b *KafkaMsgBroker) createSubscriber(config *sarama.Config) (*kafka.Subscri
 	return subscriber, nil
 }
 
-// Create Notification Publisher based on a HTTP request
+// Create Notification Publisher
 func (b *KafkaMsgBroker) createNotificationSubscriber(topic string) (*kafka.Subscriber, error) {
-	// TODO: Implement
-	return b.createSubscriber(kafka.DefaultSaramaSubscriberConfig())
+	saramaSubscriberConfig := kafka.DefaultSaramaSubscriberConfig()
+	saramaSubscriberConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+
+	subscriber, err := b.createSubscriber(saramaSubscriberConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "Notifications Subscriber creation failure!")
+	}
+
+	messages, err := subscriber.Subscribe(context.Background(), topic)
+	if err != nil {
+		return nil, errors.Wrap(err, "Notifications Subscriptions Registration failure!")
+	}
+
+	go handleNotificationUpdates(messages, b.eaaCtx)
+
+	return subscriber, nil
 }
 
-// Create Services Publisher based on a HTTP request
+// Create Services Publisher
 func (b *KafkaMsgBroker) createServicesSubscriber() (*kafka.Subscriber, error) {
 	saramaSubscriberConfig := kafka.DefaultSaramaSubscriberConfig()
 	// equivalent of auto.offset.reset: earliest
@@ -188,7 +204,7 @@ func (b *KafkaMsgBroker) createServicesSubscriber() (*kafka.Subscriber, error) {
 	return subscriber, nil
 }
 
-// Create Client Publisher based on a HTTP request
+// Create Client Publisher
 func (b *KafkaMsgBroker) createClientSubscriber(topic string) (*kafka.Subscriber, error) {
 	saramaSubscriberConfig := kafka.DefaultSaramaSubscriberConfig()
 	// equivalent of auto.offset.reset: earliest

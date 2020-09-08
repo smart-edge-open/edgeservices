@@ -32,8 +32,7 @@ type publisherType int
 
 const (
 	// Notification Publisher is used to post Notifications from Services
-	// TODO: Lint error: Uncomment 'notificationPublisher' once it is used
-	// notificationPublisher publisherType = iota
+	notificationPublisher publisherType = iota
 	// Services Publisher is used to post Services (un)subscriptions
 	servicesPublisher publisherType = iota
 	// Services Publisher is used to post Client Notification (de)registrations
@@ -81,11 +80,42 @@ type msgBroker interface {
 
 // All messages from notificationSubscriber topics should be handled by this callback.
 func handleNotificationUpdates(messages <-chan *message.Message, eaaCtx *Context) {
-	// TODO: Implement
+	log.Info("handleNotificationUpdates() starts")
+	for msg := range messages {
+		log.Debugf("received notification message: %s, payload: %s", msg.UUID, string(msg.Payload))
+
+		var notifMsg NotificationMessage
+		err := json.Unmarshal(msg.Payload, &notifMsg)
+		if err != nil {
+			log.Errf("Error Decoding: %s", err.Error())
+			msg.Ack()
+			continue
+		}
+
+		if notifMsg.Notification == nil {
+			log.Err("Error: NotificationMessage.Notification is nil")
+			msg.Ack()
+			continue
+		}
+		if notifMsg.URN == nil {
+			log.Err("Error: NotificationMessage.URN is nil")
+			msg.Ack()
+			continue
+		}
+
+		err = sendNotificationToAllSubscribers(notifMsg.URN.String(), notifMsg.Notification, eaaCtx)
+		if err != nil {
+			log.Errf("Error in Publish Notification: %s", err.Error())
+		}
+
+		msg.Ack()
+	}
+	log.Info("handleNotificationUpdates() finishes")
 }
 
 // All messages from servicesSubscriber topic should be handled by this callback.
 func handleServiceUpdates(messages <-chan *message.Message, eaaCtx *Context) {
+	log.Info("handleServiceUpdates() starts")
 	for msg := range messages {
 		log.Debugf("received service message: %s, payload: %s", msg.UUID, string(msg.Payload))
 
@@ -98,12 +128,12 @@ func handleServiceUpdates(messages <-chan *message.Message, eaaCtx *Context) {
 		}
 
 		if svcMsg.Svc == nil {
-			log.Err("Svc is nil")
+			log.Err("Error: ServiceMessage.Svc is nil")
 			msg.Ack()
 			continue
 		}
 		if svcMsg.Svc.URN == nil {
-			log.Err("URN is nil")
+			log.Err("Error: ServiceMessage.Svc.URN is nil")
 			msg.Ack()
 			continue
 		}
@@ -126,10 +156,12 @@ func handleServiceUpdates(messages <-chan *message.Message, eaaCtx *Context) {
 		// otherwise, it will be resent over and over again.
 		msg.Ack()
 	}
+	log.Info("handleServiceUpdates() finishes")
 }
 
 // All messages from clientSubscriber topics should be handled by this callback.
 func handleClientUpdates(messages <-chan *message.Message, eaaCtx *Context) {
+	log.Info("handleClientUpdates() starts")
 	for msg := range messages {
 		log.Debugf("received client sub message: %s, payload: %s", msg.UUID, string(msg.Payload))
 
@@ -176,6 +208,7 @@ func handleClientUpdates(messages <-chan *message.Message, eaaCtx *Context) {
 
 		msg.Ack()
 	}
+	log.Info("handleClientUpdates() finishes")
 }
 
 func subscribeClient(subscriptionMsg *SubscriptionMessage, clientCommonName string,

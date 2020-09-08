@@ -163,8 +163,6 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	var notif NotificationFromProducer
 
-	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
-
 	err := json.NewDecoder(r.Body).Decode(&notif)
 	if err != nil {
 		log.Errf("Error in Publish Notification: %s", err.Error())
@@ -172,12 +170,54 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statCode, err := sendNotificationToAllSubscribers(commonName, notif, eaaCtx)
+	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
+	URN, err := CommonNameStringToURN(commonName)
 	if err != nil {
-		log.Errf("Error in Publish Notification: %s", err.Error())
+		log.Errf("Error during URN generation: %s", err.Error())
+		w.WriteHeader(http.StatusUnauthorized)
+		return
 	}
 
-	w.WriteHeader(statCode)
+	// Check if a Service exists
+	_, serviceFound := eaaCtx.serviceInfo[commonName]
+	if !serviceFound {
+		log.Err("Producer is not registered")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	notifTopic := getNotificationTopicName(URN.Namespace)
+
+	// Add a Publisher to the Notification Namespace topic (if not subscribed already)
+	err = eaaCtx.MsgBrokerCtx.addPublisher(notificationPublisher, notifTopic, r)
+	if err != nil {
+		// Ignore objectAlreadyExistsError error
+		if _, ok := err.(objectAlreadyExistsError); !ok {
+			log.Errf("Error when adding a Publisher of type: '%v', id: '%v'. Error: %s",
+				notificationPublisher, notifTopic, err.Error())
+		}
+	}
+
+	// Prepare NotificationMessage that will be published using a Message Broker
+	notifMsg := NotificationMessage{Notification: &notif, URN: &URN}
+
+	// Create Watermill Message and publish it
+	data, err := json.Marshal(notifMsg)
+	if err != nil {
+		log.Errf("Error during Service structure marshaling: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	msg := message.NewMessage(commonName, data)
+
+	err = eaaCtx.MsgBrokerCtx.publish(notifTopic, msg)
+	if err != nil {
+		log.Errf("Error during Message publishing: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
 	log.Debugf("Successfully processed PushNotificationToSubscribers from %s",
 		commonName)
 }
