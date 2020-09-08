@@ -81,6 +81,8 @@ spec:
           mountPath: /home/eaa/certs/eaa
         - name: certs-sec
           mountPath: /home/eaa/certs-sec
+        - name: kafka-certs
+          mountPath: /home/eaa/certs/eaa-kafka
         - name: configs
           mountPath: /home/eaa/configs
       tolerations:
@@ -91,7 +93,11 @@ spec:
       - name: certs-sec
         secret:
           secretName: eaa-tls
-          defaultMode: 384
+          defaultMode: 0600
+      - name: kafka-certs
+        secret:
+          secretName: eaa-kafka
+          defaultMode: 0600
       - name: certs
         hostPath:
           path: /etc/openness/certs/eaa

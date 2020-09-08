@@ -7,11 +7,14 @@ import "github.com/otcshare/edgenode/pkg/util"
 
 // CertsInfo describes paths for certs used in configuration
 type CertsInfo struct {
-	CaRootKeyPath  string `json:"CaRootKeyPath"`
-	CaRootPath     string `json:"CaRootPath"`
-	ServerCertPath string `json:"ServerCertPath"`
-	ServerKeyPath  string `json:"ServerKeyPath"`
-	CommonName     string `json:"CommonName"`
+	CaRootKeyPath     string `json:"CaRootKeyPath"`
+	CaRootPath        string `json:"CaRootPath"`
+	ServerCertPath    string `json:"ServerCertPath"`
+	ServerKeyPath     string `json:"ServerKeyPath"`
+	CommonName        string `json:"CommonName"`
+	KafkaCAPath       string `json:"KafkaCAPath"`
+	KafkaUserCertPath string `json:"KafkaUserCertPath"`
+	KafkaUserKeyPath  string `json:"KafkaUserKeyPath"`
 }
 
 // Config describes EAA JSON config file

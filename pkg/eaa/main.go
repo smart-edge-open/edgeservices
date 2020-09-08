@@ -69,6 +69,29 @@ func CreateAndSetCACertPool(caFile string) (*x509.CertPool, error) {
 	return certPool, nil
 }
 
+func newKafkaTLSConfig(clientCertFile, clientKeyFile, caCertFile string) (*tls.Config, error) {
+	tlsConfig := tls.Config{}
+
+	// Load client cert
+	clientCert, err := tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to load Client Cert/Key pair")
+	}
+	tlsConfig.Certificates = []tls.Certificate{clientCert}
+
+	// Load CA cert
+	caCertPool := x509.NewCertPool()
+	caCert, err := ioutil.ReadFile(caCertFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to load CA Cert1")
+	}
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	tlsConfig.RootCAs = caCertPool
+
+	return &tlsConfig, nil
+}
+
 // InitEaaContext initializes the Eaa Context
 func InitEaaContext(cfgPath string, eaaCtx *Context) error {
 	eaaCtx.serviceInfo = services{m: make(map[string]Service)}
@@ -215,9 +238,16 @@ func Run(parentCtx context.Context, cfgPath string) error {
 		return err
 	}
 
+	kafkaTLSConfig, err := newKafkaTLSConfig(eaaCtx.cfg.Certs.KafkaUserCertPath,
+		eaaCtx.cfg.Certs.KafkaUserKeyPath, eaaCtx.cfg.Certs.KafkaCAPath)
+	if err != nil {
+		log.Errf("Failed to create a Kafka Message Broker: %#v", err)
+		return err
+	}
+
 	// Each EAA instance should be in a different Consumer Group to get all Service Updates
 	instanceID := uuid.New()
-	msgBrokerCtx, err := NewKafkaMsgBroker(&eaaCtx, "EAA_"+instanceID.String())
+	msgBrokerCtx, err := NewKafkaMsgBroker(&eaaCtx, "EAA_"+instanceID.String(), kafkaTLSConfig)
 	if err != nil {
 		log.Errf("Failed to create a Kafka Message Broker: %#v", err)
 		return err

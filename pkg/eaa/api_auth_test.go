@@ -256,7 +256,8 @@ func initCerts() {
 		tempConfCaRootPath,
 		tempConfServerCertPath,
 		tempConfServerKeyPath,
-		EaaCommonName}
+		EaaCommonName,
+		"", "", ""}
 
 	_, err := eaa.InitRootCA(ci)
 	Expect(err).ShouldNot(HaveOccurred())

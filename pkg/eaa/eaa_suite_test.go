@@ -298,7 +298,7 @@ func runEaa(stopIndication chan bool) error {
 
 		switch cfg.MsgBrokerBackend.Type {
 		case KafkaBackend:
-			eaaCtx.MsgBrokerCtx, err = eaa.NewKafkaMsgBroker(&eaaCtx, "eaa_test_consumer")
+			eaaCtx.MsgBrokerCtx, err = eaa.NewKafkaMsgBroker(&eaaCtx, "eaa_test_consumer", nil)
 			if err != nil {
 				log.Errf("Failed to create a Kafka Message Broker: %#v", err)
 				goto fail

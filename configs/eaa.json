@@ -8,7 +8,10 @@
         "CaRootPath": "certs/eaa/rootCA.pem",
         "ServerCertPath": "certs/eaa/server.pem",
         "ServerKeyPath": "certs/eaa/server.key",
-        "CommonName": "eaa.openness"
+        "CommonName": "eaa.openness",
+        "KafkaCAPath": "certs/eaa-kafka/ca.crt",
+        "KafkaUserCertPath": "certs/eaa-kafka/user.crt",
+        "KafkaUserKeyPath": "certs/eaa-kafka/user.key"
     },
     "KafkaBroker": ""
 }

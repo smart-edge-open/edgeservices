@@ -5,6 +5,7 @@ package eaa
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -36,11 +37,16 @@ type KafkaMsgBroker struct {
 	defaultPublisher *kafka.Publisher
 	pubs             publishers
 	subs             subscribers
+	tlsConfig        *tls.Config
 }
 
 // NewKafkaMsgBroker creates and returns a Kafka-backed msgBroker
-func NewKafkaMsgBroker(eaaCtx *Context, consumerGroup string) (*KafkaMsgBroker, error) {
+func NewKafkaMsgBroker(eaaCtx *Context, consumerGroup string,
+	tlsConfig *tls.Config) (*KafkaMsgBroker, error) {
+
 	broker := KafkaMsgBroker{eaaCtx: eaaCtx, consumerGroup: consumerGroup}
+
+	broker.tlsConfig = tlsConfig
 
 	defaultPublisher, err := broker.createDefaultPublisher()
 	if err != nil {
@@ -101,10 +107,15 @@ func keyGenerator(topic string, msg *message.Message) (string, error) {
 
 // Creates a Publisher with default configuration
 func (b *KafkaMsgBroker) createDefaultPublisher() (*kafka.Publisher, error) {
+	config := kafka.DefaultSaramaSyncPublisherConfig()
+	config.Net.TLS.Enable = true
+	config.Net.TLS.Config = b.tlsConfig
+
 	publisher, err := kafka.NewPublisher(
 		kafka.PublisherConfig{
-			Brokers:   []string{b.eaaCtx.cfg.KafkaBroker},
-			Marshaler: kafka.NewWithPartitioningMarshaler(keyGenerator),
+			Brokers:               []string{b.eaaCtx.cfg.KafkaBroker},
+			Marshaler:             kafka.NewWithPartitioningMarshaler(keyGenerator),
+			OverwriteSaramaConfig: config,
 		},
 		watermill.NewStdLogger(false, false),
 	)
@@ -197,6 +208,8 @@ func (b *KafkaMsgBroker) createSubscriber(config *sarama.Config) (*kafka.Subscri
 func (b *KafkaMsgBroker) createNotificationSubscriber(topic string) (*kafka.Subscriber, error) {
 	saramaSubscriberConfig := kafka.DefaultSaramaSubscriberConfig()
 	saramaSubscriberConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+	saramaSubscriberConfig.Net.TLS.Enable = true
+	saramaSubscriberConfig.Net.TLS.Config = b.tlsConfig
 
 	subscriber, err := b.createSubscriber(saramaSubscriberConfig)
 	if err != nil {
@@ -218,6 +231,8 @@ func (b *KafkaMsgBroker) createServicesSubscriber() (*kafka.Subscriber, error) {
 	saramaSubscriberConfig := kafka.DefaultSaramaSubscriberConfig()
 	// equivalent of auto.offset.reset: earliest
 	saramaSubscriberConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	saramaSubscriberConfig.Net.TLS.Enable = true
+	saramaSubscriberConfig.Net.TLS.Config = b.tlsConfig
 
 	subscriber, err := b.createSubscriber(saramaSubscriberConfig)
 	if err != nil {
@@ -239,6 +254,8 @@ func (b *KafkaMsgBroker) createClientSubscriber(topic string) (*kafka.Subscriber
 	saramaSubscriberConfig := kafka.DefaultSaramaSubscriberConfig()
 	// equivalent of auto.offset.reset: earliest
 	saramaSubscriberConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	saramaSubscriberConfig.Net.TLS.Enable = true
+	saramaSubscriberConfig.Net.TLS.Config = b.tlsConfig
 
 	subscriber, err := b.createSubscriber(saramaSubscriberConfig)
 	if err != nil {
