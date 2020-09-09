@@ -20,7 +20,7 @@ var socket = websocket.Upgrader{
 // createWsConn creates a websocket connection for a consumer
 // to receive data from subscribed producers
 func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 
 	// Get the consumer app ID from the Common Name in the certificate
 	commonName := r.TLS.PeerCertificates[0].Subject.CommonName
@@ -31,10 +31,13 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 			errors.New("401: Incorrect app ID")
 	}
 
+	eaaCtx.consumerConnections.Lock()
+	defer eaaCtx.consumerConnections.Unlock()
+
 	// Check if connection was created for urn ID, if so send close
 	// message, close the connection and delete the entry in the
 	// connections structure
-	foundConn, connFound := eaaCtx.consumerConnections[commonName]
+	foundConn, connFound := eaaCtx.consumerConnections.m[commonName]
 	if connFound {
 		prevConn := foundConn.connection
 		msgType := websocket.CloseMessage
@@ -49,20 +52,20 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 		if err != nil {
 			log.Info("Failed to close previous websocket connection")
 		}
-		delete(eaaCtx.consumerConnections, commonName)
+		delete(eaaCtx.consumerConnections.m, commonName)
 	}
 
 	// Create nil connection obj in consumerConnections map. That means the
 	// procedure of web socket connection has started.
-	eaaCtx.consumerConnections[commonName] = ConsumerConnection{
+	eaaCtx.consumerConnections.m[commonName] = ConsumerConnection{
 		connection: nil}
 	conn, err := socket.Upgrade(w, r, nil)
 	if err != nil {
-		delete(eaaCtx.consumerConnections, commonName)
+		delete(eaaCtx.consumerConnections.m, commonName)
 		return 0, err
 	}
 
-	eaaCtx.consumerConnections[commonName] = ConsumerConnection{
+	eaaCtx.consumerConnections.m[commonName] = ConsumerConnection{
 		connection: conn}
 
 	return 0, nil
@@ -71,14 +74,17 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 // getConsumerSubscriptions returns a list of subscriptions belonging
 // to the consumer
 func getConsumerSubscriptions(commonName string,
-	eaaCtx *eaaContext) (*SubscriptionList, error) {
+	eaaCtx *Context) (*SubscriptionList, error) {
 
-	if eaaCtx.subscriptionInfo == nil {
+	eaaCtx.subscriptionInfo.RLock()
+	defer eaaCtx.subscriptionInfo.RUnlock()
+
+	if eaaCtx.subscriptionInfo.m == nil {
 		return nil, errors.New("EAA context not initialized")
 	}
 	subs := SubscriptionList{}
 
-	for nameNotif, conSub := range eaaCtx.subscriptionInfo {
+	for nameNotif, conSub := range eaaCtx.subscriptionInfo.m {
 		// if consumer is in namespace subscription, add it to the list
 		if index := getNamespaceSubscriptionIndex(nameNotif,
 			commonName, eaaCtx); index != -1 {

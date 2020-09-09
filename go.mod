@@ -6,10 +6,10 @@ module github.com/otcshare/edgenode
 go 1.15
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
+	github.com/Shopify/sarama v1.26.0
 	github.com/ThreeDotsLabs/watermill v1.1.1
 	github.com/ThreeDotsLabs/watermill-kafka/v2 v2.2.0
 	github.com/containernetworking/cni v0.8.0
@@ -20,6 +20,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/golang/protobuf v1.4.2
+	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/grpc-gateway v1.14.7

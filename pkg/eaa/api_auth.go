@@ -19,7 +19,7 @@ func RequestCredentials(w http.ResponseWriter, r *http.Request) {
 		credentials AuthCredentials
 	)
 
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 
 	const fName = "/Auth RequestCredentials "
 

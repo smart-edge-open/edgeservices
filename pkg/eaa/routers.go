@@ -23,7 +23,7 @@ type Route struct {
 type Routes []Route
 
 // NewEaaRouter initializes EAA router
-func NewEaaRouter(eaaCtx *eaaContext) *mux.Router {
+func NewEaaRouter(eaaCtx *Context) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range eaaRoutes {
 		router.
@@ -45,7 +45,7 @@ func NewEaaRouter(eaaCtx *eaaContext) *mux.Router {
 }
 
 // NewAuthRouter initializes EAA Auth router
-func NewAuthRouter(eaaCtx *eaaContext) *mux.Router {
+func NewAuthRouter(eaaCtx *Context) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range authRoutes {
 		router.
