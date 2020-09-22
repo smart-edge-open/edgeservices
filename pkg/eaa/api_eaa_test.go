@@ -386,6 +386,18 @@ func getServiceList(c *http.Client, list *eaa.ServiceList) {
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
+func getAndCompareServiceList(c *http.Client, receivedList *eaa.ServiceList,
+	expectedList *eaa.ServiceList) {
+	// Get the service list with interval of 0,5 second and timeout after 5 second
+	Eventually(func() eaa.ServiceList {
+		getServiceList(c, receivedList)
+		sortServiceSlices(expectedList.Services, receivedList.Services)
+		return *receivedList
+	},
+		5*time.Second,
+		500*time.Millisecond).Should(Equal(*expectedList))
+}
+
 // getSubscriptionList sends a GET request to the EAA and retrieves
 // a list of current consumer subscriptions
 func getSubscriptionList(c *http.Client, list *eaa.SubscriptionList) {
@@ -402,6 +414,18 @@ func getSubscriptionList(c *http.Client, list *eaa.SubscriptionList) {
 	err = json.NewDecoder(respGet.Body).
 		Decode(list)
 	Expect(err).ShouldNot(HaveOccurred())
+}
+
+func getAndCompareSubscriptionList(c *http.Client, receivedList *eaa.SubscriptionList,
+	expectedList *eaa.SubscriptionList) {
+	// Get the subs list with interval of 0,5 second and timeout after 5 second
+	Eventually(func() eaa.SubscriptionList {
+		getSubscriptionList(c, receivedList)
+		sortSubscriptionSlices(expectedList.Subscriptions, receivedList.Subscriptions)
+		return *receivedList
+	},
+		5*time.Second,
+		500*time.Millisecond).Should(Equal(*expectedList))
 }
 
 // getMsgFromConn retrieves a message from a connection and parses
@@ -626,19 +650,13 @@ var _ = Describe("ApiEaa", func() {
 						`:"Description for Event #1 by Producer #1"}]}]}`)
 
 				registerProducer(prodClient, sampleService, "")
-
-				getServiceList(accessClient, &receivedServList)
-
 				By("Expected service list decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedServList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortServiceSlices(expectedServList.Services,
-					receivedServList.Services)
-
 				By("Comparing GET response data")
-				Expect(receivedServList).To(Equal(expectedServList))
+				getAndCompareServiceList(accessClient, &receivedServList, &expectedServList)
 			})
 
 			Specify("Register: bad commonName", func() {
@@ -673,18 +691,13 @@ var _ = Describe("ApiEaa", func() {
 
 				registerProducerErr(prodClient, sampleService)
 
-				getServiceList(accessClient, &receivedServList)
-
 				By("Expected service list decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedServList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortServiceSlices(expectedServList.Services,
-					receivedServList.Services)
-
 				By("Comparing GET response data")
-				Expect(receivedServList).To(Equal(expectedServList))
+				getAndCompareServiceList(accessClient, &receivedServList, &expectedServList)
 			})
 
 			Specify("Register: Producer registers twice", func() {
@@ -712,18 +725,13 @@ var _ = Describe("ApiEaa", func() {
 				registerProducer(prodClient, sampleService, "1 ")
 				registerProducer(prodClient, sampleService, "1 (second time) ")
 
-				getServiceList(accessClient, &receivedServList)
-
 				By("Expected service list decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedServList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortServiceSlices(expectedServList.Services,
-					receivedServList.Services)
-
 				By("Comparing GET response data")
-				Expect(receivedServList).To(Equal(expectedServList))
+				getAndCompareServiceList(accessClient, &receivedServList, &expectedServList)
 			})
 
 			Specify("Register: Producer registers twice with different notification", func() {
@@ -763,18 +771,13 @@ var _ = Describe("ApiEaa", func() {
 				registerProducer(prodClient, sampleService, "1 ")
 				registerProducer(prodClient, sampleService2, "1 (different notification) ")
 
-				getServiceList(accessClient, &receivedServList)
-
 				By("Expected service list decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedServList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortServiceSlices(expectedServList.Services,
-					receivedServList.Services)
-
 				By("Comparing GET response data")
-				Expect(receivedServList).To(Equal(expectedServList))
+				getAndCompareServiceList(accessClient, &receivedServList, &expectedServList)
 			})
 
 			Specify("Register: Producer registers with more than one notification", func() {
@@ -811,18 +814,13 @@ var _ = Describe("ApiEaa", func() {
 
 				registerProducer(prodClient, sampleService, "")
 
-				getServiceList(accessClient, &receivedServList)
-
 				By("Expected service list decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedServList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortServiceSlices(expectedServList.Services,
-					receivedServList.Services)
-
 				By("Comparing GET response data")
-				Expect(receivedServList).To(Equal(expectedServList))
+				getAndCompareServiceList(accessClient, &receivedServList, &expectedServList)
 			})
 
 			Specify("Register: Producer registers two notifications that vary just by version number", func() {
@@ -859,18 +857,13 @@ var _ = Describe("ApiEaa", func() {
 
 				registerProducer(prodClient, sampleService, "")
 
-				getServiceList(accessClient, &receivedServList)
-
 				By("Expected service list decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedServList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortServiceSlices(expectedServList.Services,
-					receivedServList.Services)
-
 				By("Comparing GET response data")
-				Expect(receivedServList).To(Equal(expectedServList))
+				getAndCompareServiceList(accessClient, &receivedServList, &expectedServList)
 			})
 
 			Specify("Register: Producer registers two identical notifications",
@@ -4691,34 +4684,24 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
-
-				getSubscriptionList(consClient, &receivedSubList2)
 
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: An Unsubscribed Event", func() {
@@ -4750,18 +4733,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications2,
 					"namespace-1/producer-1", "")
@@ -4796,18 +4774,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-fake", "")
@@ -4843,18 +4816,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumerWithBadRequest(consClient,
 					"namespace-1/producer-1")
@@ -4897,34 +4865,24 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
-
-				getSubscriptionList(consClient, &receivedSubList2)
 
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 2 Events with Identical Names in 1 Request", func() {
@@ -4959,34 +4917,24 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
-
-				getSubscriptionList(consClient, &receivedSubList2)
 
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 2 Duplicate Events in 1 Request", func() {
@@ -5025,34 +4973,24 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications2,
 					"namespace-1/producer-1", "")
-
-				getSubscriptionList(consClient, &receivedSubList2)
 
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 2 Events in 2 Requests", func() {
@@ -5101,18 +5039,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications2,
 					"namespace-1/producer-1", "1 ")
@@ -5120,18 +5053,13 @@ var _ = Describe("ApiEaa", func() {
 				unsubscribeConsumer(consClient, sampleNotifications3,
 					"namespace-1/producer-1", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList2)
-
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 2 Events with Identical Names in 2 Requests", func() {
@@ -5180,18 +5108,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications2,
 					"namespace-1/producer-1", "1 ")
@@ -5199,18 +5122,13 @@ var _ = Describe("ApiEaa", func() {
 				unsubscribeConsumer(consClient, sampleNotifications3,
 					"namespace-1/producer-1", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList2)
-
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 2 Duplicate Events in 2 Requests", func() {
@@ -5238,18 +5156,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -5257,18 +5170,13 @@ var _ = Describe("ApiEaa", func() {
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList2)
-
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 2 Events by 2 Producers in 1 Namespace", func() {
@@ -5315,18 +5223,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications2,
 					"namespace-1/producer-2", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -5334,18 +5237,13 @@ var _ = Describe("ApiEaa", func() {
 				unsubscribeConsumer(consClient, sampleNotifications2,
 					"namespace-1/producer-2", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList2)
-
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 2 Events by 2 Producers in 2 Namespaces", func() {
@@ -5392,18 +5290,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications2,
 					"namespace-2/producer-2", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -5411,18 +5304,13 @@ var _ = Describe("ApiEaa", func() {
 				unsubscribeConsumer(consClient, sampleNotifications2,
 					"namespace-2/producer-2", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList2)
-
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 2 Events by 1 Producer in 2 Namespaces", func() {
@@ -5469,18 +5357,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications2,
 					"namespace-2/producer-1", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -5488,18 +5371,13 @@ var _ = Describe("ApiEaa", func() {
 				unsubscribeConsumer(consClient, sampleNotifications2,
 					"namespace-2/producer-1", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList2)
-
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 2 Events by 2 Producers in 2 Request", func() {
@@ -5546,18 +5424,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications2,
 					"namespace-1/producer-2", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -5565,18 +5438,13 @@ var _ = Describe("ApiEaa", func() {
 				unsubscribeConsumer(consClient, sampleNotifications2,
 					"namespace-1/producer-2", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList2)
-
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 2 Events by 2 Producers with Identical Names in 2 Namespaces", func() {
@@ -5623,18 +5491,13 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications2,
 					"namespace-2/producer-1", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "1 ")
@@ -5642,18 +5505,13 @@ var _ = Describe("ApiEaa", func() {
 				unsubscribeConsumer(consClient, sampleNotifications2,
 					"namespace-2/producer-1", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList2)
-
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 1 Event by 2 Producers", func() {
@@ -5702,34 +5560,24 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-2", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
-
-				getSubscriptionList(consClient, &receivedSubList2)
 
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 
 			Specify("Unsubscribe: 1 Event by 2 Producers in 2 Namespaces", func() {
@@ -5778,34 +5626,24 @@ var _ = Describe("ApiEaa", func() {
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-2/producer-2", "2 ")
 
-				getSubscriptionList(consClient, &receivedSubList)
-
 				By("Expected subscription list 1 decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList.Subscriptions,
-					expectedSubList.Subscriptions)
-
 				By("Comparing response 1 data")
-				Expect(receivedSubList).To(Equal(expectedSubList))
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
 
 				unsubscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
-
-				getSubscriptionList(consClient, &receivedSubList2)
 
 				By("Expected subscription list 2 decoding")
 				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList2)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				sortSubscriptionSlices(receivedSubList2.Subscriptions,
-					expectedSubList2.Subscriptions)
-
 				By("Comparing response 2 data")
-				Expect(receivedSubList2).To(Equal(expectedSubList2))
+				getAndCompareSubscriptionList(consClient, &receivedSubList2, &expectedSubList2)
 			})
 		})
 	})
