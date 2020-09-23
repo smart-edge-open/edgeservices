@@ -13,9 +13,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -27,6 +24,10 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	"github.com/otcshare/edgenode/pkg/auth"
 	pb "github.com/otcshare/edgenode/pkg/auth/pb"
@@ -97,7 +98,6 @@ l8ovF7Xb551xGJcwjlkFemczvZgdGfS9QM+G0u8SdwlBZqY=
 
 func TestEnroll(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Enroll Suite")
 }
 
 type fakeAuthServer struct {
