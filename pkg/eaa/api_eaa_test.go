@@ -3147,17 +3147,36 @@ var _ = Describe("ApiEaa", func() {
 						`"id" : null,` +
 						`"namespace":"namespace-2"},` +
 						`"notifications":[` +
-						`{"name":"event_2",` +
-						`"version":"1.0.2",` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
 						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-2", "1 ")
+
+				By("Expected subscription list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedSubList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing response data")
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
+
+				expectedOutput2 := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.0.2",` +
+						`"description": null}]}]}`)
+
 				subscribeConsumer(consClient, sampleNotifications2,
 					"namespace-2", "2 ")
 
 				By("Expected subscription list decoding")
-				err := json.NewDecoder(expectedOutput).
+				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
