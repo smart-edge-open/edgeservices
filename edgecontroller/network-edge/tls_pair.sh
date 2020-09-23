@@ -13,6 +13,11 @@ if [ -f "$2/key.pem" ] && [ -f "$2/cert.pem" ]; then
     exit 0
 fi
 
+# Use openssl11 in Centos 7
+if command -v openssl11 >/dev/null 2>&1; then
+    alias openssl=openssl11
+fi
+
 if ! openssl version | awk '$2 ~ /(^0\.)|(^1\.(0\.|1\.0))/ { exit 1 }'; then
 	echo "Not supported openssl:"
 	openssl version
@@ -22,12 +27,12 @@ openssl ecparam -genkey -name secp384r1 | openssl pkcs8 -topk8 -nocrypt -out "$2
 
 if [ -z "$3" ]; then
     echo "Generating certificate..."
-    openssl req -key "$2/key.pem" -new -x509 -days 1095 -out "$2/cert.pem" -subj "/CN=$1"
+    openssl req -key "$2/key.pem" -new -x509 -days 365 -out "$2/cert.pem" -subj "/CN=$1"
 else
     echo "Generating certificate signing request..."
     openssl req -new -key "$2/key.pem" -out "$2/request.csr" -subj "/CN=$1"
     echo "Signing certificate with $3..."
-    openssl x509 -req -in "$2/request.csr" -CA "$3/cert.pem" -CAkey "$3/key.pem" -days 1095 -out "$2/cert.pem" -CAcreateserial
+    openssl x509 -req -in "$2/request.csr" -CA "$3/cert.pem" -CAkey "$3/key.pem" -days 365 -out "$2/cert.pem" -CAcreateserial
     cd "$2"
     ln -s root.pem "$(openssl x509 -hash -noout -in root.pem).0"
 fi
