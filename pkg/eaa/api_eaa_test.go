@@ -371,6 +371,7 @@ func produceEventWithBadCommonName(c *http.Client, notif eaa.NotificationFromPro
 // getServiceList sends a GET request to the EAA and retrieves
 // a list of currently registered services
 func getServiceList(c *http.Client, list *eaa.ServiceList) {
+	*list = eaa.ServiceList{}
 	By("Sending service list GET request")
 	respGet, err := c.Get(
 		"https://" + cfg.TLSEndpoint + "/services")
@@ -401,6 +402,7 @@ func getAndCompareServiceList(c *http.Client, receivedList *eaa.ServiceList,
 // getSubscriptionList sends a GET request to the EAA and retrieves
 // a list of current consumer subscriptions
 func getSubscriptionList(c *http.Client, list *eaa.SubscriptionList) {
+	*list = eaa.SubscriptionList{}
 	By("Sending subscription list GET request")
 	respGet, err := c.Get(
 		"https://" + cfg.TLSEndpoint + "/subscriptions")
@@ -680,14 +682,9 @@ var _ = Describe("ApiEaa", func() {
 					},
 				}
 
+				expectedServList = eaa.ServiceList{}
 				expectedOutput := strings.NewReader(
-					`{"services":[{"urn":{"id"` +
-						`:"producer-1","namespace":"namespace-1"},` +
-						`"description":"The Sanity Producer",` +
-						`"endpoint_uri":"https://1.2.3.4",` +
-						`"notifications":[{"name":"Event #1",` +
-						`"version":"1.0.0","description"` +
-						`:"Description for Event #1 by Producer #1"}]}]}`)
+					`{"services": null}`)
 
 				registerProducerErr(prodClient, sampleService)
 
@@ -911,8 +908,9 @@ var _ = Describe("ApiEaa", func() {
 
 			Specify("Register: bad request", func() {
 
+				expectedServList = eaa.ServiceList{}
 				expectedOutput := strings.NewReader(
-					`{"services":[{}]}`)
+					`{"services": null}`)
 
 				registerProducerWithBadRequest(prodClient)
 
@@ -3149,17 +3147,36 @@ var _ = Describe("ApiEaa", func() {
 						`"id" : null,` +
 						`"namespace":"namespace-2"},` +
 						`"notifications":[` +
-						`{"name":"event_2",` +
-						`"version":"1.0.2",` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
 						`"description": null}]}]}`)
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-2", "1 ")
+
+				By("Expected subscription list decoding")
+				err := json.NewDecoder(expectedOutput).
+					Decode(&expectedSubList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing response data")
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
+
+				expectedOutput2 := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":{` +
+						`"id" : null,` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_2",` +
+						`"version":"1.0.2",` +
+						`"description": null}]}]}`)
+
 				subscribeConsumer(consClient, sampleNotifications2,
 					"namespace-2", "2 ")
 
 				By("Expected subscription list decoding")
-				err := json.NewDecoder(expectedOutput).
+				err = json.NewDecoder(expectedOutput2).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -3508,13 +3525,7 @@ var _ = Describe("ApiEaa", func() {
 
 			Specify("1 Event Subscribe With Bad Request", func() {
 				expectedOutput := strings.NewReader(
-					`{"subscriptions":[` +
-						`{"urn":{"id":"producer-1",` +
-						`"namespace":"namespace-1"},` +
-						`"notifications":[` +
-						`{"name":"event_1",` +
-						`"version":"1.0.0",` +
-						`"description":null}]}]}`)
+					`{"subscriptions": null}`)
 
 				subscribeConsumerBadRequest(consClient,
 					"namespace-1/producer-1")
