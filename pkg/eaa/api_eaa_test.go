@@ -371,6 +371,7 @@ func produceEventWithBadCommonName(c *http.Client, notif eaa.NotificationFromPro
 // getServiceList sends a GET request to the EAA and retrieves
 // a list of currently registered services
 func getServiceList(c *http.Client, list *eaa.ServiceList) {
+	*list = eaa.ServiceList{}
 	By("Sending service list GET request")
 	respGet, err := c.Get(
 		"https://" + cfg.TLSEndpoint + "/services")
@@ -401,6 +402,7 @@ func getAndCompareServiceList(c *http.Client, receivedList *eaa.ServiceList,
 // getSubscriptionList sends a GET request to the EAA and retrieves
 // a list of current consumer subscriptions
 func getSubscriptionList(c *http.Client, list *eaa.SubscriptionList) {
+	*list = eaa.SubscriptionList{}
 	By("Sending subscription list GET request")
 	respGet, err := c.Get(
 		"https://" + cfg.TLSEndpoint + "/subscriptions")
@@ -680,14 +682,9 @@ var _ = Describe("ApiEaa", func() {
 					},
 				}
 
+				expectedServList = eaa.ServiceList{}
 				expectedOutput := strings.NewReader(
-					`{"services":[{"urn":{"id"` +
-						`:"producer-1","namespace":"namespace-1"},` +
-						`"description":"The Sanity Producer",` +
-						`"endpoint_uri":"https://1.2.3.4",` +
-						`"notifications":[{"name":"Event #1",` +
-						`"version":"1.0.0","description"` +
-						`:"Description for Event #1 by Producer #1"}]}]}`)
+					`{"services": null}`)
 
 				registerProducerErr(prodClient, sampleService)
 
@@ -911,8 +908,9 @@ var _ = Describe("ApiEaa", func() {
 
 			Specify("Register: bad request", func() {
 
+				expectedServList = eaa.ServiceList{}
 				expectedOutput := strings.NewReader(
-					`{"services":[{}]}`)
+					`{"services": null}`)
 
 				registerProducerWithBadRequest(prodClient)
 
@@ -3508,13 +3506,7 @@ var _ = Describe("ApiEaa", func() {
 
 			Specify("1 Event Subscribe With Bad Request", func() {
 				expectedOutput := strings.NewReader(
-					`{"subscriptions":[` +
-						`{"urn":{"id":"producer-1",` +
-						`"namespace":"namespace-1"},` +
-						`"notifications":[` +
-						`{"name":"event_1",` +
-						`"version":"1.0.0",` +
-						`"description":null}]}]}`)
+					`{"subscriptions": null}`)
 
 				subscribeConsumerBadRequest(consClient,
 					"namespace-1/producer-1")
