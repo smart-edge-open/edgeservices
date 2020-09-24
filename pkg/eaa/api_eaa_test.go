@@ -599,12 +599,13 @@ var _ = Describe("ApiEaa", func() {
 
 	Describe("Producer registration", func() {
 		var (
-			prodClient       *http.Client
-			prodCert         tls.Certificate
-			prodCertPool     *x509.CertPool
-			accessClient     *http.Client
-			receivedServList eaa.ServiceList
-			expectedServList eaa.ServiceList
+			prodClient        *http.Client
+			prodCert          tls.Certificate
+			prodCertPool      *x509.CertPool
+			accessClient      *http.Client
+			receivedServList  eaa.ServiceList
+			expectedServList  eaa.ServiceList
+			expectedServList2 eaa.ServiceList
 		)
 
 		BeforeEach(func() {
@@ -761,13 +762,20 @@ var _ = Describe("ApiEaa", func() {
 						`:"producer-1","namespace":"namespace-1"},` +
 						`"description":"example description",` +
 						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #1",` +
+						`"version":"1.0.0","description"` +
+						`:"example description"}]}]}`)
+
+				expectedOutput2 := strings.NewReader(
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"example description",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
 						`"notifications":[{"name":"Event #2",` +
 						`"version":"1.0.0","description"` +
 						`:"example description"}]}]}`)
 
 				registerProducer(prodClient, sampleService, "1 ")
-				registerProducer(prodClient, sampleService2, "1 (different notification) ")
-
 				By("Expected service list decoding")
 				err := json.NewDecoder(expectedOutput).
 					Decode(&expectedServList)
@@ -775,6 +783,16 @@ var _ = Describe("ApiEaa", func() {
 
 				By("Comparing GET response data")
 				getAndCompareServiceList(accessClient, &receivedServList, &expectedServList)
+
+				registerProducer(prodClient, sampleService2, "1 (different notification) ")
+
+				By("Expected service list decoding")
+				err = json.NewDecoder(expectedOutput2).
+					Decode(&expectedServList2)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing GET response data")
+				getAndCompareServiceList(accessClient, &receivedServList, &expectedServList2)
 			})
 
 			Specify("Register: Producer registers with more than one notification", func() {
