@@ -36,3 +36,5 @@ else
     cd "$2"
     ln -s root.pem "$(openssl x509 -hash -noout -in root.pem).0"
 fi
+
+chmod 644 "$2/key.pem"
