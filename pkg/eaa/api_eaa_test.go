@@ -3493,11 +3493,12 @@ var _ = Describe("ApiEaa", func() {
 
 	Describe("Producer notification subscription", func() {
 		var (
-			consClient      *http.Client
-			consCert        tls.Certificate
-			consCertPool    *x509.CertPool
-			receivedSubList eaa.SubscriptionList
-			expectedSubList eaa.SubscriptionList
+			consClient       *http.Client
+			consCert         tls.Certificate
+			consCertPool     *x509.CertPool
+			receivedSubList  eaa.SubscriptionList
+			expectedSubList  eaa.SubscriptionList
+			expectedSubList2 eaa.SubscriptionList
 		)
 
 		BeforeEach(func() {
@@ -3680,7 +3681,17 @@ var _ = Describe("ApiEaa", func() {
 					},
 				}
 
-				expectedOutput := strings.NewReader(
+				expectedOutput1 := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-2",` +
+						`"namespace":"namespace-2"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
+						`"description":null}]}]}`)
+
+				expectedOutput2 := strings.NewReader(
 					`{"subscriptions":[` +
 						`{"urn":` +
 						`{"id":"producer-2",` +
@@ -3692,16 +3703,25 @@ var _ = Describe("ApiEaa", func() {
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-2/producer-2", "")
-				subscribeConsumer(consClient, sampleNotifications2,
-					"namespace-2/producer-2", "")
 
 				By("Expected subscription list decoding")
-				err := json.NewDecoder(expectedOutput).
+				err := json.NewDecoder(expectedOutput1).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				By("Comparing response data")
 				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
+
+				subscribeConsumer(consClient, sampleNotifications2,
+					"namespace-2/producer-2", "")
+
+				By("Expected subscription list decoding")
+				err = json.NewDecoder(expectedOutput2).
+					Decode(&expectedSubList2)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing response data")
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList2)
 			})
 
 			Specify("2 Same Name Different Version Events in 2 Subscribe Request", func() {
@@ -3798,6 +3818,16 @@ var _ = Describe("ApiEaa", func() {
 						`"notifications":[` +
 						`{"name":"event_1",` +
 						`"version":"1.0.1",` +
+						`"description":null}]}]}`)
+
+				expectedOutput2 := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
 						`"description":null}]},` +
 						`{"urn":` +
 						`{"id":"producer-2",` +
@@ -3809,8 +3839,6 @@ var _ = Describe("ApiEaa", func() {
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
-				subscribeConsumer(consClient, sampleNotifications2,
-					"namespace-1/producer-2", "")
 
 				By("Expected subscription list decoding")
 				err := json.NewDecoder(expectedOutput).
@@ -3819,6 +3847,17 @@ var _ = Describe("ApiEaa", func() {
 
 				By("Comparing response data")
 				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
+
+				subscribeConsumer(consClient, sampleNotifications2,
+					"namespace-1/producer-2", "")
+
+				By("Expected subscription list decoding")
+				err = json.NewDecoder(expectedOutput2).
+					Decode(&expectedSubList2)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing response data")
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList2)
 			})
 
 			Specify("2 Events by 2 Producers in 2 Namespace", func() {
@@ -3835,8 +3874,17 @@ var _ = Describe("ApiEaa", func() {
 						Version: "1.0.2",
 					},
 				}
+				expectedOutput1 := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"the-producer",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
+						`"description":null}]}]}`)
 
-				expectedOutput := strings.NewReader(
+				expectedOutput2 := strings.NewReader(
 					`{"subscriptions":[` +
 						`{"urn":` +
 						`{"id":"the-producer",` +
@@ -3855,16 +3903,25 @@ var _ = Describe("ApiEaa", func() {
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/the-producer", "")
-				subscribeConsumer(consClient, sampleNotifications2,
-					"namespace-2/the-producer", "")
 
 				By("Expected subscription list decoding")
-				err := json.NewDecoder(expectedOutput).
+				err := json.NewDecoder(expectedOutput1).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				By("Comparing response data")
 				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
+
+				subscribeConsumer(consClient, sampleNotifications2,
+					"namespace-2/the-producer", "")
+
+				By("Expected subscription list decoding")
+				err = json.NewDecoder(expectedOutput2).
+					Decode(&expectedSubList2)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing response data")
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList2)
 			})
 
 			Specify("2 Events by Same Named Producers in 2 Namespaces", func() {
@@ -3881,8 +3938,17 @@ var _ = Describe("ApiEaa", func() {
 						Version: "1.0.2",
 					},
 				}
+				expectedOutput1 := strings.NewReader(
+					`{"subscriptions":[` +
+						`{"urn":` +
+						`{"id":"producer-1",` +
+						`"namespace":"namespace-1"},` +
+						`"notifications":[` +
+						`{"name":"event_1",` +
+						`"version":"1.0.1",` +
+						`"description":null}]}]}`)
 
-				expectedOutput := strings.NewReader(
+				expectedOutput2 := strings.NewReader(
 					`{"subscriptions":[` +
 						`{"urn":` +
 						`{"id":"producer-1",` +
@@ -3901,16 +3967,25 @@ var _ = Describe("ApiEaa", func() {
 
 				subscribeConsumer(consClient, sampleNotifications,
 					"namespace-1/producer-1", "")
-				subscribeConsumer(consClient, sampleNotifications2,
-					"namespace-2/producer-2", "")
 
 				By("Expected subscription list decoding")
-				err := json.NewDecoder(expectedOutput).
+				err := json.NewDecoder(expectedOutput1).
 					Decode(&expectedSubList)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				By("Comparing response data")
 				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList)
+
+				subscribeConsumer(consClient, sampleNotifications2,
+					"namespace-2/producer-2", "")
+
+				By("Expected subscription list decoding")
+				err = json.NewDecoder(expectedOutput2).
+					Decode(&expectedSubList2)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("Comparing response data")
+				getAndCompareSubscriptionList(consClient, &receivedSubList, &expectedSubList2)
 			})
 		})
 
