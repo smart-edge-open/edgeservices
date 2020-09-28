@@ -6,7 +6,6 @@ package service
 import (
 	"context"
 	"flag"
-	"github.com/pkg/errors"
 	"os"
 	"os/signal"
 	"reflect"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+
+	"github.com/pkg/errors"
 
 	logger "github.com/otcshare/common/log"
 	"github.com/otcshare/edgenode/pkg/config"
@@ -44,16 +45,11 @@ var Cfg MainConfig
 
 // Log is varable that represents logger object
 var Log = logger.DefaultLogger.WithField("main", nil)
+var cfgPath string
 
 func init() {
-	var cfgPath string
 	flag.StringVar(&cfgPath, "config", "configs/appliance.json",
 		"config file path")
-	flag.Parse()
-	if err := InitConfig(cfgPath); err != nil {
-		Log.Errf("InitConfig failed %v\n", err)
-		os.Exit(1)
-	}
 }
 
 // InitConfig load configuration from cfg file
@@ -113,6 +109,11 @@ func RunServices(services []StartFunction) bool {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
+	flag.Parse()
+	if err := InitConfig(cfgPath); err != nil {
+		Log.Errf("InitConfig failed %v\n", err)
+		os.Exit(1)
+	}
 	// Handle SIGINT and SIGTERM by calling cancel()
 	// which is propagated to services
 	osSignals := make(chan os.Signal, 1)
