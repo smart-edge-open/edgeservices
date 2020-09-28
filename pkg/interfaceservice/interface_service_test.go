@@ -1199,6 +1199,7 @@ var _ = Describe("InterfaceService", func() {
 			})
 
 			AfterEach(func() {
+				os.Stdout.Write(buffer.Contents())
 				log.SetOutput(GinkgoWriter)
 			})
 
@@ -1226,6 +1227,7 @@ var _ = Describe("InterfaceService", func() {
 				fakeServerPatch, isErr := monkey.PatchInstanceMethodByName(
 					reflect.TypeOf(grpcServer), "Serve",
 					func(s *grpc.Server, lis net.Listener) error {
+						lis.Close()
 						return errors.New("Fake gRPC Error")
 					})
 				Expect(isErr).NotTo(HaveOccurred())
@@ -1272,6 +1274,7 @@ var _ = Describe("InterfaceService", func() {
 			})
 
 			AfterEach(func() {
+				os.Stdout.Write(buffer.Contents())
 				log.SetOutput(GinkgoWriter)
 			})
 
@@ -1306,8 +1309,9 @@ var _ = Describe("InterfaceService", func() {
 
 				var wg sync.WaitGroup
 				wg.Add(1)
+				var err error
 				go func() {
-					ifs.Run(srvCtx, configFile)
+					err = ifs.Run(srvCtx, configFile)
 					wg.Done()
 				}()
 
@@ -1323,6 +1327,7 @@ var _ = Describe("InterfaceService", func() {
 
 				srvCancel()
 				wg.Wait()
+				Expect(err).Should(Succeed())
 				w.Close()
 			})
 
@@ -1362,8 +1367,9 @@ var _ = Describe("InterfaceService", func() {
 
 				var wg sync.WaitGroup
 				wg.Add(1)
+				var err error
 				go func() {
-					ifs.Run(srvCtx, configFile)
+					err = ifs.Run(srvCtx, configFile)
 					wg.Done()
 				}()
 
@@ -1379,6 +1385,7 @@ var _ = Describe("InterfaceService", func() {
 
 				srvCancel()
 				wg.Wait()
+				Expect(err).Should(Succeed())
 				w.Close()
 			})
 
@@ -1417,8 +1424,9 @@ var _ = Describe("InterfaceService", func() {
 
 				var wg sync.WaitGroup
 				wg.Add(1)
+				var err error
 				go func() {
-					ifs.Run(srvCtx, configFile)
+					err = ifs.Run(srvCtx, configFile)
 					wg.Done()
 				}()
 
@@ -1434,6 +1442,7 @@ var _ = Describe("InterfaceService", func() {
 
 				srvCancel()
 				wg.Wait()
+				Expect(err).Should(Succeed())
 				w.Close()
 			})
 		})
@@ -1453,6 +1462,7 @@ var _ = Describe("InterfaceService", func() {
 			})
 
 			AfterEach(func() {
+				os.Stdout.Write(buffer.Contents())
 				log.SetOutput(GinkgoWriter)
 				os.Remove(configFile)
 			})
