@@ -350,7 +350,7 @@ func runEaa(stopIndication chan bool) error {
 	return nil
 }
 
-func runClassicEaa(stopIndication chan bool) error {
+func runClassicEaa(stopIndication chan bool, path string) error {
 
 	By("Starting classic EAA")
 
@@ -359,12 +359,12 @@ func runClassicEaa(stopIndication chan bool) error {
 	eaaRunFail := make(chan bool)
 	go func() {
 		var eaaCtx eaa.Context
-		err := eaa.InitEaaContext(tempdir+"/configs/eaa.json", &eaaCtx)
+		err := eaa.InitEaaContext(path, &eaaCtx)
 		if err != nil {
 			log.Errf("InitEaaContext() exited with error: %#v", err)
 			goto fail
 		}
-		err = eaa.Run(srvCtx, cfgPath)
+		err = eaa.Run(srvCtx, path)
 		if err != nil {
 			log.Errf("Run() exited with error: %#v", err)
 			goto fail

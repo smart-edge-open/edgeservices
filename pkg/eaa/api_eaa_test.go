@@ -5878,7 +5878,15 @@ var _ = Describe("Eaa Classic Run Validation", func() {
 		startStopCh := make(chan bool)
 		Context("Eaa Run", func() {
 			Specify("With invalid EAA context", func() {
-				err := runClassicEaa(startStopCh)
+				err := runClassicEaa(startStopCh, ".")
+				Expect(err).ShouldNot(HaveOccurred())
+				srvCancel()
+				<-startStopCh
+			})
+
+			Specify("With valid EAA context", func() {
+				generateConfigs()
+				err := runClassicEaa(startStopCh, tempdir+"/configs/eaa.json")
 				Expect(err).ShouldNot(HaveOccurred())
 				srvCancel()
 				<-startStopCh
