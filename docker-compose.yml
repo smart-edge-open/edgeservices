@@ -4,65 +4,6 @@
 # TODO: Expose ports only to a local network address
 version: '3.2'
 services:
-  appliance:
-    build:
-      context: ./dist/appliance
-      args:
-        username: appliance
-    image: "appliance:${VER}"
-    privileged: true
-    pid: host
-    security_opt:
-     - no-new-privileges:false
-    ports:
-     - "42101:42101"
-     - "42102:42102"
-     - "192.168.122.1:42103:42103"
-    volumes:
-     - "/etc/pki/tls/certs:/host_certs"
-     - "/proc/1/ns:/var/host_ns:ro"
-     - "/var/lib/appliance/nts:/var/lib/appliance/nts"
-     - "/run:/run"
-     - "/opt/cni/bin:/opt/cni/bin"
-     - "/var/run/docker/netns:/var/run/docker/netns"
-     - "/sys/class/net:/var/host_net_devices"
-     - "/sys/devices:/devices"
-     - "/var/lib/appliance/certs:/home/appliance/certs"
-     - "/var/lib/appliance/configs:/home/appliance/configs"
-     - "/var/lib/appliance/applications:/var/lib/appliance/applications"
-     - "/usr/local/var/run/openvswitch:/usr/local/var/run/openvswitch"
-     - "/var/run/openvswitch:/var/run/openvswitch"
-    environment:
-     - SYSLOG_ADDR=syslog.openness
-     - HOST_HOSTNAME=${HOSTNAME}
-     - OVN_NB_DB=${OVN_NB_DB}
-    network_mode: bridge
-
-  nts:
-    container_name: nts
-    build:
-      context: ./internal/nts
-      args:
-        username: nts
-    image: "nts:${VER}"
-    read_only: true
-    privileged: true
-    security_opt:
-     - no-new-privileges:false
-    volumes:
-     - "/dev/hugepages:/hugepages"
-     - "/var/lib/appliance/nts:/var/lib/appliance/nts"
-     - "/var/run/docker/netns:/var/run/docker/netns"
-     - "/var/run:/var/run"
-     - "/proc/1/ns:/var/host_ns"
-     - "/sys/class/net:/var/host_net_devices"
-    environment:
-     - NTS_SOCKET0_MEM=${NTS_MEM_MB_S0}
-     - NTS_SOCKET1_MEM=${NTS_MEM_MB_S1}
-     - OVS_BRIDGE_NAME=${OVS_BRIDGE_NAME}
-     - OVS_ENABLED=${OVSE}
-    network_mode: host
-
   eaa:
     build:
       context: ./dist/eaa
@@ -96,29 +37,12 @@ services:
      - NET_ADMIN
     volumes:
      - "/var/lib/appliance/edgednssvr:/var/lib/edgedns"
-     - "/run:/run"
     command:
      - "-port=53"
      - "-fwdr=8.8.8.8"
-     - "-syslog=192.168.122.1:514"
     environment:
      - http_proxy
      - https_proxy
-    network_mode: bridge
-
-  syslog-ng:
-    image:  balabit/syslog-ng:3.19.1
-    read_only: true
-    volumes:
-      - "/var/lib/appliance/configs/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro"
-      - "/var/lib/appliance/certs:/etc/syslog-ng/certs:ro"
-      - "/var/log/appliance:/var/log"
-
-    command: "--no-caps"
-    extra_hosts:
-      - "syslog.controller.openness:${REMOTE_SYSLOG_IP}"
-    ports:
-      - "192.168.122.1:514:514/udp"
     network_mode: bridge
 
   interfaceservice:

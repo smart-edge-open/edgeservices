@@ -22,7 +22,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -57,17 +56,30 @@ func TestEaa(t *testing.T) {
 	RunSpecs(t, "Eaa Suite")
 }
 
+// MsgBrokerBackend configures which Message Broker backend will be used
+type MsgBrokerBackend struct {
+	Type string `json:"Type"`
+	URL  string `json:"URL,omitempty"`
+}
+
+// Available Message Broker backends
+const (
+	KafkaBackend      = "kafka"
+	GochannelsBackend = "gochannels"
+)
+
 type EAATestSuiteConfig struct {
-	Dir                 string `json:"Dir"`
-	TLSEndpoint         string `json:"TlsEndpoint"`
-	OpenEndpoint        string `json:"OpenEndpoint"`
-	ValidationEndpoint  string `json:"ValidationEndpoint"`
-	ApplianceTimeoutSec int    `json:"Timeout"`
+	Dir                 string           `json:"Dir"`
+	TLSEndpoint         string           `json:"TlsEndpoint"`
+	OpenEndpoint        string           `json:"OpenEndpoint"`
+	ValidationEndpoint  string           `json:"ValidationEndpoint"`
+	ApplianceTimeoutSec int              `json:"Timeout"`
+	MsgBrokerBackend    MsgBrokerBackend `json:"MsgBrokerBackend"`
 }
 
 // test suite config with default values
 var cfg = EAATestSuiteConfig{"../../", "localhost:44300", "localhost:48080",
-	"localhost:42555", 2}
+	"localhost:42555", 2, MsgBrokerBackend{GochannelsBackend, ""}}
 
 func readConfig(path string) {
 	if path != "" {
@@ -237,6 +249,13 @@ func generateConfigs() {
 		}
 	}
 
+	var kafkaBrokerURL string
+	if cfg.MsgBrokerBackend.Type == KafkaBackend {
+		kafkaBrokerURL = cfg.MsgBrokerBackend.URL
+	} else {
+		kafkaBrokerURL = ""
+	}
+
 	// custom config for EAA
 	eaaCfg := []byte(`{
 		"TlsEndpoint": "` + cfg.TLSEndpoint + `",
@@ -248,7 +267,8 @@ func generateConfigs() {
 			"ServerCertPath": "` + tempConfServerCertPath + `",
 			"ServerKeyPath": "` + tempConfServerKeyPath + `",
 			"CommonName": "` + EaaCommonName + `"
-		}
+		},
+		"KafkaBroker": "` + kafkaBrokerURL + `"
 	}`)
 
 	err = ioutil.WriteFile(tempdir+"/configs/eaa.json", eaaCfg, 0644)
@@ -269,12 +289,38 @@ func runEaa(stopIndication chan bool) error {
 	_ = srvCancel
 	eaaRunFail := make(chan bool)
 	go func() {
-		err := eaa.Run(srvCtx, tempdir+"/configs/eaa.json")
+		var eaaCtx eaa.Context
+		err := eaa.InitEaaContext(tempdir+"/configs/eaa.json", &eaaCtx)
 		if err != nil {
-			log.Errf("Run() exited with error: %#v", err)
-			applianceIsRunning = false
-			eaaRunFail <- true
+			log.Errf("InitEaaContext() exited with error: %#v", err)
+			goto fail
 		}
+
+		switch cfg.MsgBrokerBackend.Type {
+		case KafkaBackend:
+			eaaCtx.MsgBrokerCtx, err = eaa.NewKafkaMsgBroker(&eaaCtx, "eaa_test_consumer", nil)
+			if err != nil {
+				log.Errf("Failed to create a Kafka Message Broker: %#v", err)
+				goto fail
+			}
+		case GochannelsBackend:
+			eaaCtx.MsgBrokerCtx = eaa.NewGoChannelMsgBroker(&eaaCtx)
+		default:
+			log.Errf("Unnown Message Broker Type: %v", cfg.MsgBrokerBackend.Type)
+			goto fail
+		}
+
+		err = eaa.RunServer(srvCtx, &eaaCtx)
+		if err != nil {
+			log.Errf("RunServer() exited with error: %#v", err)
+			goto fail
+		}
+		stopIndication <- true
+		return
+
+	fail:
+		applianceIsRunning = false
+		eaaRunFail <- true
 		stopIndication <- true
 	}()
 
@@ -299,8 +345,37 @@ func runEaa(stopIndication chan bool) error {
 		return errors.New("starting appliance - timeout")
 	case <-eaaRunFail:
 		return errors.New("starting appliance - run fail")
-
 	}
+
+	return nil
+}
+
+func runClassicEaa(stopIndication chan bool, path string) error {
+
+	By("Starting classic EAA")
+
+	srvCtx, srvCancel = context.WithCancel(context.Background())
+	_ = srvCancel
+	eaaRunFail := make(chan bool)
+	go func() {
+		var eaaCtx eaa.Context
+		err := eaa.InitEaaContext(path, &eaaCtx)
+		if err != nil {
+			log.Errf("InitEaaContext() exited with error: %#v", err)
+			goto fail
+		}
+		err = eaa.Run(srvCtx, path)
+		if err != nil {
+			log.Errf("Run() exited with error: %#v", err)
+			goto fail
+		}
+		stopIndication <- true
+		return
+
+	fail:
+		stopIndication <- true
+		eaaRunFail <- true
+	}()
 	return nil
 }
 
@@ -436,12 +511,6 @@ var _ = BeforeSuite(func() {
 
 	err = fakeAppidProvider()
 	Expect(err).ToNot(HaveOccurred(), "Unable to start fake AppID provider")
-
-	By("Building appliance")
-	cmd := exec.Command("make", "BUILD_DIR="+tempdir, "SKIP_DOCKER_IMAGES=1", "appliance-nts")
-	cmd.Dir = cfg.Dir
-	err = cmd.Run()
-	Expect(err).ToNot(HaveOccurred(), "Error when building appliance!")
 })
 
 var _ = AfterSuite(func() {

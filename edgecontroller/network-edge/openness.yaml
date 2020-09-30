@@ -1,0 +1,233 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2019-2020 Intel Corporation
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openness-config
+  namespace: openness
+data:
+  http_proxy: ""
+  https_proxy: ""
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaa
+  namespace: openness
+spec:
+  clusterIP: None
+  selector:
+    name: eaa
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 443
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaa
+  namespace: openness
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: eaa
+  template:
+    metadata:
+      labels:
+        name: eaa
+    spec:
+      initContainers:
+      - name: alpine
+        image: alpine:latest
+        command: ["/bin/sh"]
+        args: ["-c", "cp /root/certs-sec/* /root/certs/"]
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "0.1"
+          limits:
+            cpu: "0.1"
+            memory: "128Mi"
+        volumeMounts:
+        - name: certs-sec
+          mountPath: /root/certs-sec
+        - name: certs
+          mountPath: /root/certs
+      containers:
+      - name: eaa
+        image: eaa:1.0
+        imagePullPolicy: Never
+        securityContext:
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: "0.1"
+          limits:
+            cpu: "1"
+            memory: "128Mi"
+        volumeMounts:
+        - name: certs
+          mountPath: /home/eaa/certs/eaa
+        - name: certs-sec
+          mountPath: /home/eaa/certs-sec
+        - name: kafka-certs
+          mountPath: /home/eaa/certs/eaa-kafka
+        - name: configs
+          mountPath: /home/eaa/configs
+      tolerations:
+      - effect: NoSchedule
+        key: cmk
+        operator: Exists
+      volumes:
+      - name: certs-sec
+        secret:
+          secretName: eaa-tls
+          defaultMode: 0600
+      - name: kafka-certs
+        secret:
+          secretName: eaa-kafka
+          defaultMode: 0600
+      - name: certs
+        hostPath:
+          path: /etc/openness/certs/eaa
+      - name: configs
+        hostPath:
+          path: /etc/openness/configs
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: "vcac-zone"
+                  operator: NotIn
+                  values:
+                    - "yes"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edgedns
+  namespace: openness
+spec:
+  clusterIP: None
+  selector:
+    name: edgedns
+  ports:
+    - name: dns
+      protocol: UDP
+      port: 53
+      targetPort: 53
+    - name: cli
+      protocol: TCP
+      port: 4204
+      targetPort: 4204
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: edgedns
+  namespace: openness
+spec:
+  selector:
+    matchLabels:
+      name: edgedns
+  template:
+    metadata:
+      labels:
+        name: edgedns
+    spec:
+      containers:
+      - name: edgedns
+        image: edgednssvr:1.0
+        imagePullPolicy: Never
+        securityContext:
+          readOnlyRootFilesystem: true
+          capabilities:
+            add: ["NET_ADMIN"]
+        args:
+        - -address=:4204
+        - -port=53
+        - -fwdr=$(DNS_FWDR)
+        resources:
+          requests:
+            cpu: "0.1"
+          limits:
+            cpu: "1"
+            memory: "128Mi"
+        volumeMounts:
+        - name: edgednssvr
+          mountPath: /var/lib/edgedns
+        - name: certs
+          mountPath: /home/edgednssvr/certs
+          readOnly: true
+        env:
+          - name: http_proxy
+            valueFrom:
+              configMapKeyRef:
+                name: openness-config
+                key: http_proxy
+          - name: https_proxy
+            valueFrom:
+              configMapKeyRef:
+                name: openness-config
+                key: https_proxy
+          - name: DNS_FWDR
+            value: 8.8.8.8
+      initContainers:
+      - name: openssl
+        image: emberstack/openssl:latest
+        command: ["/root/certgen/entrypoint_tls.sh", "edgedns.openness", "/root/certs", "/root/CA"]
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "0.1"
+          limits:
+            cpu: "0.1"
+            memory: "128Mi"
+        volumeMounts:
+        - name: ca
+          mountPath: /root/CA
+        - name: certs
+          mountPath: /root/certs
+        - name: certgen
+          mountPath: /root/certgen
+      tolerations:
+      - effect: NoSchedule
+        key: cmk
+        operator: Exists
+      volumes:
+      - name: edgednssvr
+        hostPath:
+          path: /etc/openness/edgednssvr
+      - name: ca
+        secret:
+          secretName: root-ca
+      - name: certgen
+        secret:
+          secretName: certgen
+          defaultMode: 0744
+      - name: certs
+        hostPath:
+          path: /etc/openness/certs/edgedns
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: "vcac-zone"
+                  operator: NotIn
+                  values:
+                    - "yes"

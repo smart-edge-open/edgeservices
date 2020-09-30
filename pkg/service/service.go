@@ -14,6 +14,8 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/pkg/errors"
+
 	logger "github.com/open-ness/common/log"
 	"github.com/open-ness/edgenode/pkg/config"
 	"github.com/open-ness/edgenode/pkg/util"
@@ -43,33 +45,36 @@ var Cfg MainConfig
 
 // Log is varable that represents logger object
 var Log = logger.DefaultLogger.WithField("main", nil)
+var cfgPath string
 
 func init() {
-	var cfgPath string
 	flag.StringVar(&cfgPath, "config", "configs/appliance.json",
 		"config file path")
-	flag.Parse()
+}
 
+// InitConfig load configuration from cfg file
+func InitConfig(cfgPath string) error {
 	err := config.LoadJSONConfig(cfgPath, &Cfg)
 	if err != nil {
-		Log.Errf("Failed to load config: %s", err.Error())
-		os.Exit(1)
+		return errors.Wrapf(err,
+			"Failed to load config: %s", cfgPath)
 	}
 
 	if Cfg.UseSyslog {
 		err = logger.ConnectSyslog(Cfg.SyslogAddr)
 		if err != nil {
-			Log.Errf("Failed to connect to syslog: %s", err.Error())
-			os.Exit(1)
+			return errors.Wrapf(err,
+				"Failed to connect to syslog: %s", Cfg.SyslogAddr)
 		}
 	}
 
 	lvl, err := logger.ParseLevel(Cfg.LogLevel)
 	if err != nil {
-		Log.Errf("Failed to parse log level: %s", err.Error())
-		os.Exit(1)
+		return errors.Wrapf(err,
+			"Failed to parse log level: %s", Cfg.LogLevel)
 	}
 	logger.SetLevel(lvl)
+	return nil
 }
 
 // WaitForServices waits for services to finish
@@ -104,6 +109,11 @@ func RunServices(services []StartFunction) bool {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
+	flag.Parse()
+	if err := InitConfig(cfgPath); err != nil {
+		Log.Errf("InitConfig failed %v\n", err)
+		os.Exit(1)
+	}
 	// Handle SIGINT and SIGTERM by calling cancel()
 	// which is propagated to services
 	osSignals := make(chan os.Signal, 1)

@@ -48,8 +48,6 @@ func parseAnswers(m *dns.Msg) ([]string, error) {
 var _ = Describe("Responder", func() {
 
 	var apiClient *client.ControlClient
-	var msg *dns.Msg
-	var err error
 
 	BeforeEach(func() {
 		sock := fmt.Sprintf("dns_%d.sock", config.GinkgoConfig.ParallelNode)
@@ -65,7 +63,7 @@ var _ = Describe("Responder", func() {
 
 		Expect(apiClient.SetA("baz.foo.com", addrsIn)).To(Succeed())
 
-		msg, err = query("baz.foo.com.", dns.TypeA)
+		msg, err := query("baz.foo.com.", dns.TypeA)
 		Expect(err).NotTo(HaveOccurred())
 
 		var addrsOut []string
@@ -83,7 +81,7 @@ var _ = Describe("Responder", func() {
 		Expect(apiClient.SetA("baz.bar.foo.com",
 			[]string{"42.24.42"})).To(Succeed())
 
-		msg, err = query("baz.bar.foo.com.", dns.TypeA)
+		msg, err := query("baz.bar.foo.com.", dns.TypeA)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(msg.Rcode).Should(Equal(dns.RcodeSuccess))
 
@@ -104,7 +102,7 @@ var _ = Describe("Responder", func() {
 
 		var rcnt int
 		for j := 1; j < 6; j++ {
-			msg, err = query("rnd.foo.com.", dns.TypeA)
+			msg, err := query("rnd.foo.com.", dns.TypeA)
 			Expect(err).NotTo(HaveOccurred())
 
 			var addrsOut []string
@@ -124,7 +122,7 @@ var _ = Describe("Responder", func() {
 	})
 
 	It("Returns SERVFAIL for unanswerable queries", func() {
-		msg, err = query("oblivion.dev.null.", dns.TypeA)
+		msg, err := query("oblivion.dev.null.", dns.TypeA)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(msg.Rcode).Should(Equal(dns.RcodeServerFailure))
 	})
@@ -184,4 +182,29 @@ var _ = Describe("Responder", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(msg.Answer).NotTo(BeEmpty())
 	})
+
+	It("Start failed caused by DB filename missing setting", func() {
+		err := dnsServerErrDbFile.Start()
+		Expect(err).To(HaveOccurred())
+
+	})
+
+	It("Add listeners fails with missing address field", func() {
+		err := dnsServerErrAddr4Missing.Start()
+		Expect(err).NotTo(HaveOccurred())
+
+	})
+
+	It("Start succeeds when starting gRPC even if sock name missing", func() {
+		err := dnsServerAddrSockMissing.Start()
+		Expect(err).NotTo(HaveOccurred())
+
+	})
+
+	It("Start failed by dns.Server IPv4 invalid address", func() {
+		err := dnsServerServer4Error.Start()
+		Expect(err).NotTo(HaveOccurred())
+
+	})
+
 })

@@ -4,50 +4,13 @@
 package eaa
 
 import (
-	"context"
 	"encoding/json"
 	"encoding/pem"
 	"net"
 	"net/http"
-	"time"
-
-	pb "github.com/open-ness/edgenode/pkg/eva/internal_pb"
-	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 )
 
 type contextKey string
-
-func validateAppIP(ipAddress string, validationEndpoint string) (bool, error) {
-
-	// Dial to EVA to get Edge Application ID and use it for validation
-	conn, err := grpc.Dial(validationEndpoint, grpc.WithInsecure())
-	if err != nil {
-		return false, errors.Wrapf(err,
-			"Failed to create a connection to %s", validationEndpoint)
-	}
-	defer func() {
-		if err1 := conn.Close(); err1 != nil {
-			log.Errf("Failed to close connection: %v", err1)
-		}
-	}()
-	ctx, cancel := context.WithTimeout(context.Background(),
-		3*time.Second)
-	defer cancel()
-
-	client := pb.NewIPApplicationLookupServiceClient(conn)
-	requestBody := pb.IPApplicationLookupInfo{
-		IpAddress: ipAddress,
-	}
-
-	lookupResult, err := client.GetApplicationByIP(ctx, &requestBody,
-		grpc.WaitForReady(true))
-	if err != nil {
-		return false, errors.Wrap(err, "Cannot get App ID from EVA")
-	}
-
-	return lookupResult.AppID != "", nil
-}
 
 // RequestCredentials handles PKI for an application
 func RequestCredentials(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +19,7 @@ func RequestCredentials(w http.ResponseWriter, r *http.Request) {
 		credentials AuthCredentials
 	)
 
-	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*eaaContext)
+	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 
 	const fName = "/Auth RequestCredentials "
 
@@ -75,21 +38,6 @@ func RequestCredentials(w http.ResponseWriter, r *http.Request) {
 			r.RemoteAddr, host, port, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-
-	if eaaCtx.cfg.ValidationEndpoint != "" {
-		isIPValid, err1 := validateAppIP(host, eaaCtx.cfg.ValidationEndpoint)
-		if err1 != nil {
-			log.Errf(fName+"IP address validation failed: %v", err1)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !isIPValid {
-			log.Info(fName + "IP address invalid")
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
 	}
 
 	cert, err := SignCSR(identity.Csr, eaaCtx)

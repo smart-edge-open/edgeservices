@@ -25,8 +25,8 @@ func CommonNameStringToURN(commonName string) (URN, error) {
 // getNamespaceSubscriptionIndex returns index of the subscriber id
 // in the namespace slice, returns -1 if not found
 func getNamespaceSubscriptionIndex(key UniqueNotif, id string,
-	eaaCtx *eaaContext) int {
-	for index, subID := range eaaCtx.subscriptionInfo[key].
+	eaaCtx *Context) int {
+	for index, subID := range eaaCtx.subscriptionInfo.m[key].
 		namespaceSubscriptions {
 		if subID == id {
 			return index
@@ -38,8 +38,8 @@ func getNamespaceSubscriptionIndex(key UniqueNotif, id string,
 // getServiceSubscriptionIndex returns index of the subscriber id
 // in the specified service slice, returns -1 if not found
 func getServiceSubscriptionIndex(key UniqueNotif, serviceID string,
-	consID string, eaaCtx *eaaContext) int {
-	for index, subID := range eaaCtx.subscriptionInfo[key].
+	consID string, eaaCtx *Context) int {
+	for index, subID := range eaaCtx.subscriptionInfo.m[key].
 		serviceSubscriptions[serviceID] {
 		if subID == consID {
 			return index

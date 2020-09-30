@@ -39,6 +39,12 @@ type NotificationToConsumer struct {
 	URN URN `json:"producer,omitempty"`
 }
 
+// NotificationMessage is a message sent/received by a message broker
+type NotificationMessage struct {
+	Notification *NotificationFromProducer
+	URN          *URN
+}
+
 // ServiceList JSON struct
 type ServiceList struct {
 	Services []Service `json:"services,omitempty"`
@@ -53,6 +59,18 @@ type Service struct {
 	Notifications []NotificationDescriptor `json:"notifications,omitempty"`
 	Info          json.RawMessage          `json:"info,omitempty"`
 }
+
+// ServiceMessage is a message sent/received by a message broker
+type ServiceMessage struct {
+	Svc    *Service `json:"service"`
+	Action string   `json:"action"`
+}
+
+// ServiceMessage 'Action' values
+const (
+	serviceActionRegister   = "register"
+	serviceActionDeregister = "deregister"
+)
 
 // SubscriptionList JSON struct
 type SubscriptionList struct {
@@ -72,6 +90,27 @@ type Subscription struct {
 	Notifications []NotificationDescriptor `json:"notifications,omitempty"`
 }
 
+// SubscriptionMessage is a message sent/received by a message broker
+type SubscriptionMessage struct {
+	ClientCommonName string
+	Subscription     *Subscription
+	Action           string
+	Scope            string
+}
+
+// SubscriptionMessage 'Action' values
+const (
+	subscriptionActionSubscribe   = "subscribe"
+	subscriptionActionUnsubscribe = "unsubscribe"
+)
+
+// SubscriptionMessage 'Scope' values
+const (
+	subscriptionScopeNamespace = "namespace"
+	subscriptionScopeService   = "service"
+	subscriptionScopeAll       = "all"
+)
+
 // URN describes a type used in EAA API
 type URN struct {
 
@@ -82,4 +121,9 @@ type URN struct {
 	// The non-unique portion of the URN that identifies the class excluding
 	// a trailing separator.
 	Namespace string `json:"namespace,omitempty"`
+}
+
+// Provides string representation of URN
+func (u *URN) String() string {
+	return u.Namespace + ":" + u.ID
 }

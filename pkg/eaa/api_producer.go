@@ -29,48 +29,48 @@ func validServiceNotifications(
 		}
 	}
 	return validNotificationList
-
 }
 
-func addService(commonName string, serv Service, eaaCtx *eaaContext) error {
-	if eaaCtx.serviceInfo == nil {
+func isServicePresent(commonName string, eaaCtx *Context) bool {
+	_, serviceFound := eaaCtx.serviceInfo.m[commonName]
+	return serviceFound
+}
+
+func addService(commonName string, serv Service, eaaCtx *Context) error {
+	eaaCtx.serviceInfo.Lock()
+	defer eaaCtx.serviceInfo.Unlock()
+
+	if eaaCtx.serviceInfo.m == nil {
 		return errors.New(
 			"EAA context is not initialized. Call Init() function first")
 	}
 
-	urn, err := CommonNameStringToURN(commonName)
-	if err != nil {
-		return errors.New(
-			"Common name could not be parsed")
-	}
-
-	serv.URN = &urn
-
 	if serv.Notifications != nil {
-
 		serv.Notifications = validServiceNotifications(serv.Notifications)
-
 	}
-	eaaCtx.serviceInfo[commonName] = serv
+
+	eaaCtx.serviceInfo.m[commonName] = serv
+	log.Infof("Successfully added '%v' service", commonName)
 
 	return nil
 }
 
-func removeService(commonName string, eaaCtx *eaaContext) (int, error) {
-	if eaaCtx.serviceInfo == nil {
-		return http.StatusInternalServerError,
-			errors.New(
-				"EAA context is not initialized. Call Init() function first")
+func removeService(commonName string, eaaCtx *Context) error {
+	eaaCtx.serviceInfo.Lock()
+	defer eaaCtx.serviceInfo.Unlock()
+
+	if eaaCtx.serviceInfo.m == nil {
+		return errors.New("EAA context is not initialized. Call Init() function first")
 	}
 
-	_, servicefound := eaaCtx.serviceInfo[commonName]
+	servicefound := isServicePresent(commonName, eaaCtx)
 	if servicefound {
-		delete(eaaCtx.serviceInfo, commonName)
-		return http.StatusNoContent, nil
+		delete(eaaCtx.serviceInfo.m, commonName)
+		log.Infof("Successfully removed '%v' service", commonName)
+		return nil
 	}
 
-	return http.StatusNotFound,
-		errors.New(http.StatusText(http.StatusNotFound))
+	return errors.New(http.StatusText(http.StatusNotFound))
 }
 
 func getUniqueSubsList(nsList []string, servList []string) []string {
@@ -92,18 +92,21 @@ func getUniqueSubsList(nsList []string, servList []string) []string {
 	return fullList
 }
 
-func sendNotificationToAllSubscribers(commonName string,
-	notif NotificationFromProducer, eaaCtx *eaaContext) (int, error) {
+func sendNotificationToAllSubscribers(commonName string, notif *NotificationFromProducer,
+	eaaCtx *Context) error {
+
 	var subscriberList []string
 
-	if eaaCtx.serviceInfo == nil {
-		return http.StatusInternalServerError,
-			errors.New("EAA context is not initialized")
+	eaaCtx.serviceInfo.RLock()
+	defer eaaCtx.serviceInfo.RUnlock()
+
+	if eaaCtx.serviceInfo.m == nil {
+		return errors.New("EAA context is not initialized")
 	}
 
 	prodURN, err := CommonNameStringToURN(commonName)
 	if err != nil {
-		return http.StatusUnauthorized, err
+		return err
 	}
 
 	msgPayload, err := json.Marshal(NotificationToConsumer{
@@ -113,14 +116,12 @@ func sendNotificationToAllSubscribers(commonName string,
 		URN:     prodURN,
 	})
 	if err != nil {
-		return http.StatusUnauthorized,
-			errors.Wrap(err, "Failed to marshal norification JSON")
+		return errors.Wrap(err, "Failed to marshal norification JSON")
 	}
 
-	_, serviceFound := eaaCtx.serviceInfo[commonName]
+	_, serviceFound := eaaCtx.serviceInfo.m[commonName]
 	if !serviceFound {
-		return http.StatusInternalServerError,
-			errors.New("Producer is not registered")
+		return errors.New("Producer is not registered")
 	}
 
 	namespaceKey := UniqueNotif{
@@ -129,10 +130,13 @@ func sendNotificationToAllSubscribers(commonName string,
 		notifVersion: notif.Version,
 	}
 
-	namespaceSubsInfo, ok := eaaCtx.subscriptionInfo[namespaceKey]
+	eaaCtx.subscriptionInfo.RLock()
+	defer eaaCtx.subscriptionInfo.RUnlock()
+
+	namespaceSubsInfo, ok := eaaCtx.subscriptionInfo.m[namespaceKey]
 	if !ok {
 		log.Infof("No subscription to notification %v", namespaceKey)
-		return http.StatusAccepted, nil
+		return nil
 	}
 
 	srvSubsList, ok := namespaceSubsInfo.serviceSubscriptions[prodURN.ID]
@@ -151,24 +155,35 @@ func sendNotificationToAllSubscribers(commonName string,
 				subID, err)
 		}
 	}
-	return http.StatusAccepted, nil
+	return nil
 }
 
 func sendNotificationToSubscriber(subID string, msgPayload []byte,
-	eaaCtx *eaaContext) error {
-	possibleConnection, connectionFound := eaaCtx.consumerConnections[subID]
+	eaaCtx *Context) error {
+
+	eaaCtx.consumerConnections.RLock()
+
+	possibleConnection, connectionFound := eaaCtx.consumerConnections.m[subID]
 	log.Infof("Looking for websocket: %s from %v", subID,
-		eaaCtx.consumerConnections)
+		eaaCtx.consumerConnections.m)
 	if connectionFound {
 		if possibleConnection.connection == nil {
+			// Unlock consumer connections to allow the other thread to update it
+			eaaCtx.consumerConnections.RUnlock()
+
 			if err := waitForConnectionAssigned(subID, eaaCtx); err != nil {
 				return errors.Wrap(err, "websocket isn't properly created")
 			}
+			eaaCtx.consumerConnections.RLock()
 		}
 		messageType := websocket.TextMessage
-		conn := eaaCtx.consumerConnections[subID].connection
-		return conn.WriteMessage(messageType, msgPayload)
+		conn := eaaCtx.consumerConnections.m[subID].connection
+		err := conn.WriteMessage(messageType, msgPayload)
+		eaaCtx.consumerConnections.RUnlock()
+		return err
 	}
+
+	eaaCtx.consumerConnections.RUnlock()
 	return errors.New("no websocket connection created " +
 		"by GET /notifications API")
 }
@@ -177,12 +192,17 @@ func sendNotificationToSubscriber(subID string, msgPayload []byte,
 // is created for subscriber in a separate thread.
 // If connection is created then nil in eaaCtx.consumerConnections map
 // will be overwritten
-func waitForConnectionAssigned(subID string, eaaCtx *eaaContext) error {
+func waitForConnectionAssigned(subID string, eaaCtx *Context) error {
 	deadline := time.Now().Add(1 * time.Second)
 	for {
-		if eaaCtx.consumerConnections[subID].connection != nil {
+		eaaCtx.consumerConnections.RLock()
+		if eaaCtx.consumerConnections.m[subID].connection != nil {
+			eaaCtx.consumerConnections.RUnlock()
 			return nil
 		}
+		// Unlock consumer connections to allow the other thread to update it
+		eaaCtx.consumerConnections.RUnlock()
+
 		if time.Now().After(deadline) {
 			return errors.New("Timeout reached")
 		}

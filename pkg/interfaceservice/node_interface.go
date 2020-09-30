@@ -98,14 +98,14 @@ func (*InterfaceService) Detach(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
-// vsctl executes ovs-vsctl with given args, it returnes combined output
+// vsctl executes ovs-vsctl with given args, it returns combined output
 func vsctl(args ...string) ([]byte, error) {
 	// #nosec G204 - params are hardcoded
 	return exec.Command("ovs-vsctl", args...).
 		CombinedOutput()
 }
 
-// devbind executes dpdk-devbind.py with given args, it returnes combined output
+// devbind executes dpdk-devbind.py with given args, it returns combined output
 func devbind(args ...string) ([]byte, error) {
 	// #nosec G204 - params are hardcoded
 	return exec.Command("./dpdk-devbind.py", args...).
