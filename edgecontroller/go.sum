@@ -99,14 +99,6 @@ github.com/onsi/gomega v0.0.0-20190113212917-5533ce8a0da3/go.mod h1:ex+gbHU/CVuB
 github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7JYyY=
 github.com/onsi/gomega v1.10.1 h1:o0+MgICZLuZ7xjH7Vx6zS/zcu93/BEp1VwkIW1mEXCE=
 github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
-github.com/otcshare/common/log v0.0.0-20190926085025-d7b0a7a47249 h1:XQWc87y+l+yMH7Ctibpz7t9bXWgVsS5YXkJod7K1RJk=
-github.com/otcshare/common/log v0.0.0-20190926085025-d7b0a7a47249/go.mod h1:30kZGx52RercaMNsH35keYVwwh2KCNXBnXTAdm2XPfM=
-github.com/otcshare/common/log v0.0.0-20200410092658-0c4ca4ce7794 h1:RL9Z+lmbGu96fbO95GtFKUCryggc1+tblCa7sXKRNiw=
-github.com/otcshare/common/log v0.0.0-20200410092658-0c4ca4ce7794/go.mod h1:30kZGx52RercaMNsH35keYVwwh2KCNXBnXTAdm2XPfM=
-github.com/otcshare/common/proxy v0.0.0-20200410092658-0c4ca4ce7794 h1:BRvfF9IwLb/3cmVx5Kb4aAlt3ICjKFb1CgGc+Zu+c5E=
-github.com/otcshare/common/proxy v0.0.0-20200410092658-0c4ca4ce7794/go.mod h1:IFSNKTbdSLvDVV/BxgI8Ff2pUt/12a37gVGm/vLFhJ0=
-github.com/otcshare/edgecontroller v0.0.0-20200806031839-080ec6a8ae84 h1:HT5lFcwWJI6O0JJMVryYd3spGKS0qvm6RRs3OGGexjk=
-github.com/otcshare/edgecontroller v0.0.0-20200806031839-080ec6a8ae84/go.mod h1:DQVC+YRfpErZPGgKYXttK8WOaIpeoz3j45VOexgRv6U=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

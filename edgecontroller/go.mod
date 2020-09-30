@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2019 Intel Corporation
 
-module github.com/otcshare/edgenode/edgecontroller
+module github.com/open-ness/edgenode/edgecontroller
 
 go 1.14
 
@@ -14,8 +14,8 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
-	github.com/otcshare/common/log v0.0.0-20200410092658-0c4ca4ce7794
-	github.com/otcshare/common/proxy v0.0.0-20200410092658-0c4ca4ce7794
+	github.com/open-ness/common/log v0.0.0-20200630151257-4ca7188ac3be
+	github.com/open-ness/common/proxy v0.0.0-20200630151257-4ca7188ac3be
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/undefinedlabs/go-mpatch v1.0.6

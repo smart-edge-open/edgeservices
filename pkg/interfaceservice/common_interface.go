@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	pb "github.com/otcshare/edgenode/pkg/interfaceservice/pb"
+	pb "github.com/open-ness/edgenode/pkg/interfaceservice/pb"
 	"github.com/pkg/errors"
 )
 
