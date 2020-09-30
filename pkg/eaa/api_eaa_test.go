@@ -5872,3 +5872,17 @@ var _ = Describe("Eaa Data Validation", func() {
 		})
 	})
 })
+
+var _ = Describe("Eaa Classic Run Validation", func() {
+	Describe("Register producer", func() {
+		startStopCh := make(chan bool)
+		Context("Eaa Run", func() {
+			Specify("With invalid EAA context", func() {
+				err := runClassicEaa(startStopCh)
+				Expect(err).ShouldNot(HaveOccurred())
+				srvCancel()
+				<-startStopCh
+			})
+		})
+	})
+})

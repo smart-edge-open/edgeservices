@@ -350,6 +350,35 @@ func runEaa(stopIndication chan bool) error {
 	return nil
 }
 
+func runClassicEaa(stopIndication chan bool) error {
+
+	By("Starting classic EAA")
+
+	srvCtx, srvCancel = context.WithCancel(context.Background())
+	_ = srvCancel
+	eaaRunFail := make(chan bool)
+	go func() {
+		var eaaCtx eaa.Context
+		err := eaa.InitEaaContext(tempdir+"/configs/eaa.json", &eaaCtx)
+		if err != nil {
+			log.Errf("InitEaaContext() exited with error: %#v", err)
+			goto fail
+		}
+		err = eaa.Run(srvCtx, cfgPath)
+		if err != nil {
+			log.Errf("Run() exited with error: %#v", err)
+			goto fail
+		}
+		stopIndication <- true
+		return
+
+	fail:
+		stopIndication <- true
+		eaaRunFail <- true
+	}()
+	return nil
+}
+
 func stopEaa(stopIndication chan bool) int {
 	By("Stopping appliance")
 	srvCancel()
