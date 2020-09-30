@@ -64,31 +64,6 @@ func (b *GoChannelMsgBroker) addPublisher(t publisherType, topic string, r *http
 	return nil
 }
 
-// Clear isPublisher flag in a goChannel
-func (b *GoChannelMsgBroker) removePublisher(topic string) error {
-	b.pubSubs.Lock()
-	defer b.pubSubs.Unlock()
-
-	if goChann, found := b.pubSubs.m[topic]; found {
-		if !goChann.isPublisher {
-			return fmt.Errorf("Publisher for a topic '%v' does not exists", topic)
-		}
-		goChann.isPublisher = false
-
-		// If GoChannel is neither a Subscriber nor
-		// a Publisher then we can remove it from the map
-		if goChann.ch == nil {
-			delete(b.pubSubs.m, topic)
-		} else {
-			b.pubSubs.m[topic] = goChann
-		}
-	} else {
-		return fmt.Errorf("Publisher for a topic '%v' does not exists", topic)
-	}
-
-	return nil
-}
-
 // Publish a msg using a Publisher to a given topic.
 func (b *GoChannelMsgBroker) publish(topic string, msg *message.Message) error {
 	b.pubSubs.RLock()
@@ -153,37 +128,6 @@ func (b *GoChannelMsgBroker) addSubscriber(t subscriberType, topic string, r *ht
 	}
 
 	return nil
-}
-
-// Close and remove a Subscriber for a given topic.
-func (b *GoChannelMsgBroker) removeSubscriber(topic string) error {
-	b.pubSubs.Lock()
-	defer b.pubSubs.Unlock()
-
-	if goChann, found := b.pubSubs.m[topic]; found {
-		if goChann.ch != nil {
-			err := goChann.ch.Close()
-			if err != nil {
-				return errors.Wrapf(err, "Failed to remove a Subscriber for the topic: %v", topic)
-			}
-
-			goChann.ch = nil
-
-			// If GoChannel is neither a Subscriber nor
-			// a Publisher then we can remove it from the map
-			if !goChann.isPublisher {
-				delete(b.pubSubs.m, topic)
-			} else {
-				b.pubSubs.m[topic] = goChann
-			}
-
-			return nil
-		}
-
-		return fmt.Errorf("No Subscriber for topic: %v", topic)
-	}
-
-	return fmt.Errorf("No Subscriber for topic: %v", topic)
 }
 
 // Close and remove all GoChannels

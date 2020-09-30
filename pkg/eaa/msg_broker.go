@@ -68,10 +68,8 @@ type objectAlreadyExistsError struct {
 // msgBroker specifies the Message Broker interface.
 type msgBroker interface {
 	addPublisher(t publisherType, topic string, r *http.Request) error
-	removePublisher(topic string) error
 	publish(topic string, msg *message.Message) error
 	addSubscriber(t subscriberType, topic string, r *http.Request) error
-	removeSubscriber(topic string) error
 	removeAll() error
 }
 
