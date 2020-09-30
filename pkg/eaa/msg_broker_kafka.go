@@ -154,19 +154,6 @@ func (b *KafkaMsgBroker) addPublisher(t publisherType, topic string, r *http.Req
 	return nil
 }
 
-// Remove a Publisher for a given topic.
-func (b *KafkaMsgBroker) removePublisher(topic string) error {
-	b.pubs.Lock()
-	defer b.pubs.Unlock()
-
-	if _, found := b.pubs.m[topic]; found {
-		delete(b.pubs.m, topic)
-		return nil
-	}
-
-	return fmt.Errorf("Invalid Publisher topic: %v", topic)
-}
-
 // Publish a msg using a Publisher to a given topic.
 func (b *KafkaMsgBroker) publish(topic string, msg *message.Message) error {
 	// kafka.Publisher::Publish() method is thread-safe - we can use Reader lock
@@ -308,23 +295,6 @@ func (b *KafkaMsgBroker) addSubscriber(t subscriberType, topic string, r *http.R
 	log.Infof("Added Subscriber for a topic: %v", topic)
 
 	return nil
-}
-
-// Close and remove a Subscriber for a given topic.
-func (b *KafkaMsgBroker) removeSubscriber(topic string) error {
-	b.subs.Lock()
-	defer b.subs.Unlock()
-
-	if subscriber, found := b.subs.m[topic]; found {
-		err := subscriber.Close()
-		delete(b.subs.m, topic)
-		if err != nil {
-			err = errors.Wrapf(err, "Error when closing Subscriber for a topic: %v", topic)
-		}
-		return err
-	}
-
-	return fmt.Errorf("Invalid Subscriber topic: %v", topic)
 }
 
 // Close and remove all Publishers and Subscribers
