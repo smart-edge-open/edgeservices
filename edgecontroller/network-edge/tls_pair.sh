@@ -13,11 +13,6 @@ if [ -f "$2/key.pem" ] && [ -f "$2/cert.pem" ]; then
     exit 0
 fi
 
-# Use openssl11 in Centos 7
-if command -v openssl11 >/dev/null 2>&1; then
-    alias openssl=openssl11
-fi
-
 if ! openssl version | awk '$2 ~ /(^0\.)|(^1\.(0\.|1\.0))/ { exit 1 }'; then
 	echo "Not supported openssl:"
 	openssl version
