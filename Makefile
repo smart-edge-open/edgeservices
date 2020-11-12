@@ -57,7 +57,7 @@ test-cov:
 	go tool cover -html=coverage.out.fix
 
 eaa:
-	GOOS=linux go build -o ./dist/$@/$@ ./cmd/$@
+	CGO_ENABLED=0 GARCH=amd64 GOOS=linux go build -o ./dist/$@/$@ ./cmd/$@
 ifndef SKIP_DOCKER_IMAGES
 	VER=${VER} docker-compose build $@
 endif
