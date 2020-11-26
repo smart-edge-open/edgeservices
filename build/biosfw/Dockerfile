@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2019 Intel Corporation
 
-
-FROM centos:7.6.1810
+FROM centos:7.8.2003
 
 WORKDIR /root/
 
