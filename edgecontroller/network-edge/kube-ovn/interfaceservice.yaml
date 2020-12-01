@@ -97,10 +97,10 @@ spec:
       volumes:
       - name: configs
         hostPath:
-          path: /etc/openness/configs
+          path: /opt/openness/configs
       - name: certs
         hostPath:
-          path: /etc/openness/certs/interfaceservice
+          path: /opt/openness/certs/interfaceservice
       - name: host-netdevs
         hostPath:
           path: /sys/class/net

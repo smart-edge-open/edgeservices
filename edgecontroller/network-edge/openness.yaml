@@ -100,10 +100,10 @@ spec:
           defaultMode: 0600
       - name: certs
         hostPath:
-          path: /etc/openness/certs/eaa
+          path: /opt/openness/certs/eaa
       - name: configs
         hostPath:
-          path: /etc/openness/configs
+          path: /opt/openness/configs
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -211,7 +211,7 @@ spec:
       volumes:
       - name: edgednssvr
         hostPath:
-          path: /etc/openness/edgednssvr
+          path: /opt/openness/edgednssvr
       - name: ca
         secret:
           secretName: root-ca
@@ -221,7 +221,7 @@ spec:
           defaultMode: 0744
       - name: certs
         hostPath:
-          path: /etc/openness/certs/edgedns
+          path: /opt/openness/certs/edgedns
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
