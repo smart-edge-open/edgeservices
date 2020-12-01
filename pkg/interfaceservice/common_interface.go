@@ -22,7 +22,7 @@ var devbindInterfacesInfo []string
 // updateDPDKDevbindOutput get an info from dpdk-devbind.py script. It
 // stores lines starting with PCI address like: XXXX:XX:XX.X only.
 func updateDPDKDevbindOutput() {
-	devbindOutput, _ := Devbind("--status")
+	devbindOutput, _ := Devbind("./dpdk-devbind.py", "--status")
 	devbindInterfacesInfo = regexp.MustCompile(`[0-9a-fA-F]{4}(:[0-9a-fA-F]{2}){2}.\d .*`).
 		FindAllString(string(devbindOutput), -1)
 	for i := range devbindInterfacesInfo {
@@ -126,7 +126,7 @@ func bindDriver(port pb.Port) error {
 		return err
 	}
 	if drv != "" {
-		_, err := Devbind("-b", drv, port.Pci)
+		_, err := Devbind("./dpdk-devbind.py", "-b", drv, port.Pci)
 		if err == nil {
 			log.Info("Port ", port.Pci, " bound to driver ", drv)
 		}
@@ -158,7 +158,7 @@ func getPortName(pci string) (string, error) {
 
 // getOvsBridgeType returns datapath_type for selected bridge, return value may be netdev or ""
 func getOvsBridgeType(bridge string) (string, error) {
-	output, err := Vsctl("get", "bridge", bridge, "datapath_type")
+	output, err := Vsctl("ovs-vsctl", "get", "bridge", bridge, "datapath_type")
 	if err != nil {
 		return "", errors.Wrapf(err, "Couldn't get bridge %s", bridge)
 	}
@@ -187,14 +187,14 @@ func validatePort(port pb.Port) error {
 
 // reattachDpdkPorts will reattach DPDK ports that were broken during machine restart
 func reattachDpdkPorts() error {
-	if _, err := Vsctl("show"); err != nil {
+	if _, err := Vsctl("ovs-vsctl", "show"); err != nil {
 		log.Errf("Couldn't perform ovs-vsctl show. Exiting...")
 		os.Exit(1)
 	}
 
 	log.Info("Trying to reattach ports if existed previously...")
 
-	bridges, err := Vsctl("list-br")
+	bridges, err := Vsctl("ovs-vsctl", "list-br")
 	if err != nil {
 		log.Info("Error listing bridges: ", err.Error())
 		return err
@@ -206,10 +206,10 @@ func reattachDpdkPorts() error {
 		if brType, _ := getOvsBridgeType(bridge); brType != netdevBridgeOption {
 			continue
 		}
-		allIfs, _ := Vsctl("list-ifaces", bridge)
+		allIfs, _ := Vsctl("ovs-vsctl", "list-ifaces", bridge)
 		ifsList := trimVsctlOutput(allIfs)
 		for _, ifs := range ifsList {
-			ifErr, errIfs := Vsctl("get", "interface", ifs, "error")
+			ifErr, errIfs := Vsctl("ovs-vsctl", "get", "interface", ifs, "error")
 			if errIfs != nil {
 				log.Info("Error getting interface ", ifs, ":", errIfs.Error())
 				continue

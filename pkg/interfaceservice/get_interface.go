@@ -30,7 +30,7 @@ func getKernelNetworkDevices() ([]helpers.NetworkDevice, error) {
 
 // getBr gets a bridge name for given port
 func getBr(port string) string {
-	br, err := Vsctl("port-to-br", port)
+	br, err := Vsctl("ovs-vsctl", "port-to-br", port)
 	if err != nil {
 		log.Info(err.Error())
 		return ""
@@ -58,7 +58,7 @@ func findDpdkPortName(ovsShowOutput string, pciLine string) string {
 }
 func getDpdkPortName(PCI, ovsShowOutput string) (string, error) {
 	if ovsShowOutput == "" {
-		showData, err := Vsctl("show")
+		showData, err := Vsctl("ovs-vsctl", "show")
 		if err != nil {
 			return "", errors.Wrapf(err, "ovs-vsctl show failed %s", err.Error())
 		}
@@ -83,7 +83,7 @@ func getPorts() ([]*pb.Port, []string, error) {
 		return nil, []string{}, errors.Wrap(err, "failed to obtain kernel devices")
 	}
 
-	showData, err := Vsctl("show")
+	showData, err := Vsctl("ovs-vsctl", "show")
 	if err != nil {
 		return nil, []string{}, errors.Wrap(err, "failed to ovs-vsctl show")
 	}
