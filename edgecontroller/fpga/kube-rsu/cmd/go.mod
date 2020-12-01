@@ -3,6 +3,8 @@
 
 module rsu
 
+go 1.15
+
 require (
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/spf13/cobra v0.0.5 // indirect

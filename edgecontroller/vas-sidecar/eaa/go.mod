@@ -2,3 +2,5 @@
 // Copyright (c) 2020 Intel Corporation
 
 module eaa
+
+go 1.15
