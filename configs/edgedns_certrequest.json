@@ -1,0 +1,17 @@
+{
+    "CSR": {
+        "Name": "edgedns",
+        "Subject": {
+            "CommonName": "edgedns.openness"
+        },
+        "DNSSANs": [
+            "edgedns.openness"
+        ],
+        "IPSANs": [],
+        "KeyUsages": [
+            "server auth", "key encipherment", "digital signature"
+        ]
+    },
+    "Signer": "openness.org/certsigner",
+    "WaitTimeout": "5m"
+}

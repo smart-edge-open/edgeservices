@@ -1,0 +1,8 @@
+{
+    "SignerName": "openness.org/certsigner",
+    "ControllerName": "openness",
+    "ResyncPeriod": "1m",
+    "CertTTL": "8760h",
+    "CaCertPath": "certs/cert.pem",
+    "CaKeyPath": "certs/key.pem"
+}

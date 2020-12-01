@@ -1,0 +1,17 @@
+{
+    "CSR": {
+        "Name": "eaa",
+        "Subject": {
+            "CommonName": "eaa.openness"
+        },
+        "DNSSANs": [
+            "eaa.openness"
+        ],
+        "IPSANs": [],
+        "KeyUsages": [
+            "server auth", "key encipherment", "digital signature"
+        ]
+    },
+    "Signer": "openness.org/certsigner",
+    "WaitTimeout": "5m"
+}

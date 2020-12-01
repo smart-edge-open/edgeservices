@@ -4,7 +4,6 @@
 package eaa_test
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -202,39 +201,39 @@ func copyFile(src string, dst string) {
 		" to "+dst)
 }
 
-func copyCerts(srcPath string) {
-	filePerm := os.FileMode(0600)
+// func copyCerts(srcPath string) {
+// 	filePerm := os.FileMode(0600)
 
-	if _, err := os.Stat(tempdir + "/certs/eaa"); os.IsNotExist(err) {
-		err := os.MkdirAll(tempdir+"/certs/eaa", 0755)
-		Expect(err).ToNot(HaveOccurred(), "Error when creating temp directory")
-	}
-	certFiles := []string{"rootCA.key", "rootCA.pem", "server.key", "server.pem"}
-	for _, f := range certFiles {
-		destFile := tempdir + "/certs/eaa/" + f
-		copyFile(srcPath+f, destFile)
-		err := os.Chmod(destFile, filePerm)
-		Expect(err).ToNot(HaveOccurred(), "Error when changing file mode"+destFile)
-	}
-}
+// 	if _, err := os.Stat(tempdir + "/certs/eaa"); os.IsNotExist(err) {
+// 		err := os.MkdirAll(tempdir+"/certs/eaa", 0755)
+// 		Expect(err).ToNot(HaveOccurred(), "Error when creating temp directory")
+// 	}
+// 	certFiles := []string{"rootCA.key", "rootCA.pem", "server.key", "server.pem"}
+// 	for _, f := range certFiles {
+// 		destFile := tempdir + "/certs/eaa/" + f
+// 		copyFile(srcPath+f, destFile)
+// 		err := os.Chmod(destFile, filePerm)
+// 		Expect(err).ToNot(HaveOccurred(), "Error when changing file mode"+destFile)
+// 	}
+// }
 
-func filesEqual(src string, dst string) bool {
-	srcFile, err := ioutil.ReadFile(src)
-	Expect(err).ToNot(HaveOccurred(), "Compare file - error reading file "+src)
+// func filesEqual(src string, dst string) bool {
+// 	srcFile, err := ioutil.ReadFile(src)
+// 	Expect(err).ToNot(HaveOccurred(), "Compare file - error reading file "+src)
 
-	dstFile, err := ioutil.ReadFile(dst)
-	Expect(err).ToNot(HaveOccurred(), "Compare file - error reading file "+dst)
+// 	dstFile, err := ioutil.ReadFile(dst)
+// 	Expect(err).ToNot(HaveOccurred(), "Compare file - error reading file "+dst)
 
-	return bytes.Equal(srcFile, dstFile)
-}
+// 	return bytes.Equal(srcFile, dstFile)
+// }
 
-func compareCerts(srcPath string) {
-	certFiles := []string{"rootCA.key", "rootCA.pem", "server.key", "server.pem"}
-	for _, f := range certFiles {
-		r := filesEqual(srcPath+f, tempdir+"/certs/eaa/"+f)
-		Expect(r).To(BeTrue(), "Compare certs - compared files are different "+f)
-	}
-}
+// func compareCerts(srcPath string) {
+// 	certFiles := []string{"rootCA.key", "rootCA.pem", "server.key", "server.pem"}
+// 	for _, f := range certFiles {
+// 		r := filesEqual(srcPath+f, tempdir+"/certs/eaa/"+f)
+// 		Expect(r).To(BeTrue(), "Compare certs - compared files are different "+f)
+// 	}
+// }
 
 func generateConfigs() {
 	By("Generating configuration files")

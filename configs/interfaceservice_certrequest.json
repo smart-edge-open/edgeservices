@@ -1,0 +1,17 @@
+{
+    "CSR": {
+        "Name": "interfaceservice",
+        "Subject": {
+            "CommonName": "interfaceservice.openness"
+        },
+        "DNSSANs": [
+            "interfaceservice.openness"
+        ],
+        "IPSANs": [],
+        "KeyUsages": [
+            "server auth", "key encipherment", "digital signature"
+        ]
+    },
+    "Signer": "openness.org/certsigner",
+    "WaitTimeout": "5m"
+}

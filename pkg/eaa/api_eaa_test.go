@@ -10,7 +10,6 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
 	"io/ioutil"
@@ -466,44 +465,44 @@ func checkNoMsgFromConn(conn *websocket.Conn, subject string) {
 	Expect(err).Should(HaveOccurred())
 }
 
-func RequestCredentials(prvKey *ecdsa.PrivateKey) eaa.AuthCredentials {
+// func RequestCredentials(prvKey *ecdsa.PrivateKey) eaa.AuthCredentials {
 
-	template := x509.CertificateRequest{
-		Subject: pkix.Name{
-			CommonName:   "test.org.com",
-			Organization: []string{"TestOrg"},
-		},
-		SignatureAlgorithm: x509.ECDSAWithSHA256,
-		EmailAddresses:     []string{"test@test.org"},
-	}
+// 	template := x509.CertificateRequest{
+// 		Subject: pkix.Name{
+// 			CommonName:   "test.org.com",
+// 			Organization: []string{"TestOrg"},
+// 		},
+// 		SignatureAlgorithm: x509.ECDSAWithSHA256,
+// 		EmailAddresses:     []string{"test@test.org"},
+// 	}
 
-	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &template,
-		prvKey)
-	Expect(err).ShouldNot(HaveOccurred())
+// 	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &template,
+// 		prvKey)
+// 	Expect(err).ShouldNot(HaveOccurred())
 
-	m := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST",
-		Bytes: csrBytes})
+// 	m := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST",
+// 		Bytes: csrBytes})
 
-	var identity eaa.AuthIdentity
-	identity.Csr = string(m)
+// 	var identity eaa.AuthIdentity
+// 	identity.Csr = string(m)
 
-	reqBody, err := json.Marshal(identity)
-	Expect(err).ShouldNot(HaveOccurred())
+// 	reqBody, err := json.Marshal(identity)
+// 	Expect(err).ShouldNot(HaveOccurred())
 
-	resp, err := http.Post("http://"+cfg.OpenEndpoint+"/auth", "",
-		bytes.NewBuffer(reqBody))
-	Expect(err).ShouldNot(HaveOccurred())
+// 	resp, err := http.Post("http://"+cfg.OpenEndpoint+"/auth", "",
+// 		bytes.NewBuffer(reqBody))
+// 	Expect(err).ShouldNot(HaveOccurred())
 
-	var creds eaa.AuthCredentials
-	err = json.NewDecoder(resp.Body).Decode(&creds)
-	Expect(err).ShouldNot(HaveOccurred())
+// 	var creds eaa.AuthCredentials
+// 	err = json.NewDecoder(resp.Body).Decode(&creds)
+// 	Expect(err).ShouldNot(HaveOccurred())
 
-	return creds
-}
+// 	return creds
+// }
 
 func GetValidTLSClient(prvKey *ecdsa.PrivateKey) *http.Client {
 
-	creds := RequestCredentials(prvKey)
+	// creds := RequestCredentials(prvKey)
 
 	x509Encoded, err := x509.MarshalECPrivateKey(prvKey)
 	Expect(err).ShouldNot(HaveOccurred())
@@ -511,14 +510,14 @@ func GetValidTLSClient(prvKey *ecdsa.PrivateKey) *http.Client {
 	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY",
 		Bytes: x509Encoded})
 
-	cert, err := tls.X509KeyPair([]byte(creds.Certificate), pemEncoded)
+	cert, err := tls.X509KeyPair([]byte{}, pemEncoded)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	certPool := x509.NewCertPool()
-	for _, c := range creds.CaPool {
-		ok := certPool.AppendCertsFromPEM([]byte(c))
-		Expect(ok).To(BeTrue())
-	}
+	// for _, c := range creds.CaPool {
+	// 	ok := certPool.AppendCertsFromPEM([]byte(c))
+	// 	Expect(ok).To(BeTrue())
+	// }
 
 	client := &http.Client{
 		Transport: &http.Transport{

@@ -60,3 +60,18 @@ services:
      - "/var/lib/appliance/certs:/home/interfaceservice/certs"
      - "/var/run:/var/run"
     network_mode: host
+
+  certsigner:
+    build:
+      context: ./dist/certsigner
+      args:
+        username: certsigner
+    image: "certsigner:${VER}"
+    read_only: true
+
+  certrequester:
+    build:
+      context: ./dist/certrequester
+      args:
+        username: certrequester
+    image: "certrequester:${VER}"
