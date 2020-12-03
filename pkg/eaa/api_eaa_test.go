@@ -11,7 +11,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -26,6 +25,7 @@ import (
 )
 
 const (
+	AccessName   = "test.org.com"
 	Name1Prod1   = "namespace-1:producer-1"
 	Name1Prod2   = "namespace-1:producer-2"
 	Name1ProdBad = "namespace-producer-no-colon"
@@ -465,71 +465,6 @@ func checkNoMsgFromConn(conn *websocket.Conn, subject string) {
 	Expect(err).Should(HaveOccurred())
 }
 
-// func RequestCredentials(prvKey *ecdsa.PrivateKey) eaa.AuthCredentials {
-
-// 	template := x509.CertificateRequest{
-// 		Subject: pkix.Name{
-// 			CommonName:   "test.org.com",
-// 			Organization: []string{"TestOrg"},
-// 		},
-// 		SignatureAlgorithm: x509.ECDSAWithSHA256,
-// 		EmailAddresses:     []string{"test@test.org"},
-// 	}
-
-// 	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &template,
-// 		prvKey)
-// 	Expect(err).ShouldNot(HaveOccurred())
-
-// 	m := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST",
-// 		Bytes: csrBytes})
-
-// 	var identity eaa.AuthIdentity
-// 	identity.Csr = string(m)
-
-// 	reqBody, err := json.Marshal(identity)
-// 	Expect(err).ShouldNot(HaveOccurred())
-
-// 	resp, err := http.Post("http://"+cfg.OpenEndpoint+"/auth", "",
-// 		bytes.NewBuffer(reqBody))
-// 	Expect(err).ShouldNot(HaveOccurred())
-
-// 	var creds eaa.AuthCredentials
-// 	err = json.NewDecoder(resp.Body).Decode(&creds)
-// 	Expect(err).ShouldNot(HaveOccurred())
-
-// 	return creds
-// }
-
-func GetValidTLSClient(prvKey *ecdsa.PrivateKey) *http.Client {
-
-	// creds := RequestCredentials(prvKey)
-
-	x509Encoded, err := x509.MarshalECPrivateKey(prvKey)
-	Expect(err).ShouldNot(HaveOccurred())
-
-	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY",
-		Bytes: x509Encoded})
-
-	cert, err := tls.X509KeyPair([]byte{}, pemEncoded)
-	Expect(err).ShouldNot(HaveOccurred())
-
-	certPool := x509.NewCertPool()
-	// for _, c := range creds.CaPool {
-	// 	ok := certPool.AppendCertsFromPEM([]byte(c))
-	// 	Expect(ok).To(BeTrue())
-	// }
-
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: certPool,
-				Certificates: []tls.Certificate{cert},
-				ServerName:   EaaCommonName,
-			},
-		}}
-
-	return client
-}
-
 var _ = Describe("ApiEaa", func() {
 	startStopCh := make(chan bool)
 	BeforeEach(func() {
@@ -544,14 +479,12 @@ var _ = Describe("ApiEaa", func() {
 	Describe("GET", func() {
 		Context("when client owns signed certificate", func() {
 			Specify("will return no error and valid response", func() {
+				accessCertTempl := GetCertTempl()
+				accessCertTempl.Subject.CommonName = AccessName
+				accessCert, accessCertPool := generateSignedClientCert(
+					&accessCertTempl)
 
-				clientPriv, err := ecdsa.GenerateKey(
-					elliptic.P256(),
-					rand.Reader,
-				)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				client := GetValidTLSClient(clientPriv)
+				client := createHTTPClient(accessCert, accessCertPool)
 
 				tlsResp, err := client.Get("https://" + cfg.TLSEndpoint)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -602,21 +535,19 @@ var _ = Describe("ApiEaa", func() {
 			prodCert          tls.Certificate
 			prodCertPool      *x509.CertPool
 			accessClient      *http.Client
+			accessCert        tls.Certificate
+			accessCertPool    *x509.CertPool
 			receivedServList  eaa.ServiceList
 			expectedServList  eaa.ServiceList
 			expectedServList2 eaa.ServiceList
 		)
 
 		BeforeEach(func() {
-			clientPriv, err := ecdsa.GenerateKey(
-				elliptic.P256(),
-				rand.Reader,
-			)
-			Expect(err).ShouldNot(HaveOccurred())
-			accessClient = GetValidTLSClient(clientPriv)
-		})
+			accessCertTempl := GetCertTempl()
+			accessCertTempl.Subject.CommonName = AccessName
+			accessCert, accessCertPool = generateSignedClientCert(
+				&accessCertTempl)
 
-		BeforeEach(func() {
 			prodCertTempl := GetCertTempl()
 			prodCertTempl.Subject.CommonName = Name1Prod1
 			prodCert, prodCertPool = generateSignedClientCert(
@@ -624,6 +555,7 @@ var _ = Describe("ApiEaa", func() {
 		})
 
 		BeforeEach(func() {
+			accessClient = createHTTPClient(accessCert, accessCertPool)
 			prodClient = createHTTPClient(prodCert, prodCertPool)
 		})
 
@@ -1078,6 +1010,8 @@ var _ = Describe("ApiEaa", func() {
 			prodCert          tls.Certificate
 			prodCertPool      *x509.CertPool
 			accessClient      *http.Client
+			accessCert        tls.Certificate
+			accessCertPool    *x509.CertPool
 			receivedServList  eaa.ServiceList
 			receivedServList2 eaa.ServiceList
 			expectedServList  eaa.ServiceList
@@ -1085,15 +1019,11 @@ var _ = Describe("ApiEaa", func() {
 		)
 
 		BeforeEach(func() {
-			clientPriv, err := ecdsa.GenerateKey(
-				elliptic.P256(),
-				rand.Reader,
-			)
-			Expect(err).ShouldNot(HaveOccurred())
-			accessClient = GetValidTLSClient(clientPriv)
-		})
+			accessCertTempl := GetCertTempl()
+			accessCertTempl.Subject.CommonName = AccessName
+			accessCert, accessCertPool = generateSignedClientCert(
+				&accessCertTempl)
 
-		BeforeEach(func() {
 			prodCertTempl := GetCertTempl()
 			prodCertTempl.Subject.CommonName = Name1Prod1
 			prodCert, prodCertPool = generateSignedClientCert(
@@ -1101,6 +1031,7 @@ var _ = Describe("ApiEaa", func() {
 		})
 
 		BeforeEach(func() {
+			accessClient = createHTTPClient(accessCert, accessCertPool)
 			prodClient = createHTTPClient(prodCert, prodCertPool)
 		})
 
@@ -5473,22 +5404,20 @@ var _ = Describe("Eaa Data Validation", func() {
 
 		Context("Providing a new producer data", func() {
 			var (
-				prodClient   *http.Client
-				prodCert     tls.Certificate
-				prodCertPool *x509.CertPool
-				accessClient *http.Client
+				prodClient     *http.Client
+				prodCert       tls.Certificate
+				prodCertPool   *x509.CertPool
+				accessClient   *http.Client
+				accessCert     tls.Certificate
+				accessCertPool *x509.CertPool
 			)
 
 			BeforeEach(func() {
-				clientPriv, err := ecdsa.GenerateKey(
-					elliptic.P256(),
-					rand.Reader,
-				)
-				Expect(err).ShouldNot(HaveOccurred())
-				accessClient = GetValidTLSClient(clientPriv)
-			})
+				accessCertTempl := GetCertTempl()
+				accessCertTempl.Subject.CommonName = AccessName
+				accessCert, accessCertPool = generateSignedClientCert(
+					&accessCertTempl)
 
-			BeforeEach(func() {
 				prodCertTempl := GetCertTempl()
 				prodCertTempl.Subject.CommonName = Name1Prod1
 				prodCert, prodCertPool = generateSignedClientCert(
@@ -5496,6 +5425,7 @@ var _ = Describe("Eaa Data Validation", func() {
 			})
 
 			BeforeEach(func() {
+				accessClient = createHTTPClient(accessCert, accessCertPool)
 				prodClient = createHTTPClient(prodCert, prodCertPool)
 			})
 			Specify("With no ID Provided", func() {
