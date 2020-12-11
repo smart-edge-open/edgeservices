@@ -11,7 +11,7 @@ export GO111MODULE = on
 	lint test help build
 COPY_DOCKERFILES := $(shell /usr/bin/cp -rfT ./build/ ./dist/)
 VER ?= 1.0
-RTE_SDK ?= /opt/dpdk-18.11.6
+RTE_SDK ?= /opt/openness/dpdk-19.11.1
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
