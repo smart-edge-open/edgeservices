@@ -65,6 +65,9 @@ spec:
         image: certrequester:1.0
         args: ["--cfg", "/home/certrequester/configs/eaa_certrequest.json"]
         imagePullPolicy: Never
+        securityContext:
+          runAsUser: 1005
+          runAsGroup: 1001
         resources:
           requests:
             cpu: "0.1"
@@ -108,7 +111,8 @@ spec:
           secretName: eaa-kafka
           defaultMode: 0600
       - name: certs
-        emptyDir: {}
+        hostPath:
+          path: /opt/openness/certs/eaa
       - name: configs
         hostPath:
           path: /opt/openness/configs
@@ -216,6 +220,9 @@ spec:
         image: certrequester:1.0
         args: ["--cfg", "/home/certrequester/configs/edgedns_certrequest.json"]
         imagePullPolicy: Never
+        securityContext:
+          runAsUser: 1006
+          runAsGroup: 1001
         resources:
           requests:
             cpu: "0.1"
@@ -242,7 +249,8 @@ spec:
         hostPath:
           path: /opt/openness/configs
       - name: certs
-        emptyDir: {}
+        hostPath:
+          path: /opt/openness/certs/edgedns
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
