@@ -86,50 +86,47 @@ var _ = g.Describe("api_procuder internal errors", func() {
 				Payload: []byte("{}"),
 			}
 
-			cn := "aa:bb"
+			prod := "ns:prodID"
 
 			g.BeforeEach(func() {
-				urn, err := CommonNameStringToURN(cn)
+				urn, err := CommonNameStringToURN(prod)
 				Expect(err).NotTo(HaveOccurred())
 
 				key := UniqueNotif{urn.Namespace, "name", "1.0"}
 
 				cs := &ConsumerSubscription{
-					namespaceSubscriptions: []string{"aa", "bb"},
+					namespaceSubscriptions: SubscriberIds{"aa", "bb"},
 					serviceSubscriptions:   make(map[string]SubscriberIds),
 					notification:           NotificationDescriptor{"name", "1.0", "description"},
 				}
 
-				cs.serviceSubscriptions[cn] = []string{"aa", "bb", "cc"}
-				cs.serviceSubscriptions[urn.ID] = []string{"bb", "cc"}
+				cs.serviceSubscriptions[urn.ID] = SubscriberIds{"bb", "cc"}
 
 				eaaContext.subscriptionInfo.m[key] = cs
 
-				eaaContext.serviceInfo.m[cn] = Service{}
+				eaaContext.serviceInfo.m[prod] = Service{}
 			})
 
-			g.Describe("focus", func() {
-				g.When("everything seems to be ok", func() {
-					g.It("messages should be sent", func() {
-						p.Unpatch()
+			g.When("everything is ok", func() {
+				g.It("messages should be sent", func() {
+					p.Unpatch()
 
-						var e error
+					var e error
 
-						var calls int
-						p, e = PatchInstanceMethodByName(reflect.TypeOf(websocket.Conn{}), "WriteMessage",
-							func(_ *websocket.Conn, _ int, _ []byte) error {
-								calls++
+					var calls int
+					p, e = PatchInstanceMethodByName(reflect.TypeOf(websocket.Conn{}), "WriteMessage",
+						func(_ *websocket.Conn, _ int, _ []byte) error {
+							calls++
 
-								return nil
-							})
+							return nil
+						})
 
-						Expect(e).NotTo(HaveOccurred())
+					Expect(e).NotTo(HaveOccurred())
 
-						e = sendNotificationToAllSubscribers(cn, n, eaaContext)
+					e = sendNotificationToAllSubscribers(prod, n, eaaContext)
 
-						Expect(e).NotTo(HaveOccurred())
-						Expect(calls).To(Equal(3))
-					})
+					Expect(e).NotTo(HaveOccurred())
+					Expect(calls).To(Equal(3))
 				})
 			})
 
@@ -137,7 +134,7 @@ var _ = g.Describe("api_procuder internal errors", func() {
 				g.It("should fail", func() {
 					eaaContext.serviceInfo.m = nil
 
-					e := sendNotificationToAllSubscribers(cn, n, eaaContext)
+					e := sendNotificationToAllSubscribers(prod, n, eaaContext)
 
 					Expect(e).To(HaveOccurred())
 				})
@@ -153,15 +150,15 @@ var _ = g.Describe("api_procuder internal errors", func() {
 
 			g.When("jsonmarshaling fails", func() {
 				g.It("should fail", func() {
-					p, e := PatchMethod(json.Marshal, func(v interface{}) ([]byte, error) {
+					patch, e := PatchMethod(json.Marshal, func(v interface{}) ([]byte, error) {
 						return nil, errors.New("unit test error")
 					})
 
-					defer p.Unpatch()
+					defer patch.Unpatch()
 
 					Expect(e).NotTo(HaveOccurred())
 
-					e = sendNotificationToAllSubscribers(cn, n, eaaContext)
+					e = sendNotificationToAllSubscribers(prod, n, eaaContext)
 
 					Expect(e).To(HaveOccurred())
 				})
@@ -172,7 +169,7 @@ var _ = g.Describe("api_procuder internal errors", func() {
 					// remove the service/producer
 					eaaContext.serviceInfo.m = make(map[string]Service)
 
-					e := sendNotificationToAllSubscribers(cn, n, eaaContext)
+					e := sendNotificationToAllSubscribers(prod, n, eaaContext)
 
 					Expect(e).To(HaveOccurred())
 				})
@@ -183,7 +180,7 @@ var _ = g.Describe("api_procuder internal errors", func() {
 					// clear subscriptions
 					eaaContext.subscriptionInfo.m = make(map[UniqueNotif]*ConsumerSubscription)
 
-					e := sendNotificationToAllSubscribers(cn, n, eaaContext)
+					e := sendNotificationToAllSubscribers(prod, n, eaaContext)
 
 					Expect(e).NotTo(HaveOccurred())
 				})
@@ -200,35 +197,35 @@ var _ = g.Describe("api_procuder internal errors", func() {
 			})
 
 			g.When("and websocket is created in time", func() {
-				g.It("should wait for consumer connection websocket and return no error and send message through the websocket", func() {
+				g.It("should wait for consumer connection, return no error and send message through the websocket",
+					func() {
+						p.Unpatch()
 
-					p.Unpatch()
+						var e error
 
-					var e error
+						var calls int
+						p, e = PatchInstanceMethodByName(reflect.TypeOf(websocket.Conn{}), "WriteMessage",
+							func(_ *websocket.Conn, _ int, _ []byte) error {
+								calls++
 
-					var calls int
-					p, e = PatchInstanceMethodByName(reflect.TypeOf(websocket.Conn{}), "WriteMessage",
-						func(_ *websocket.Conn, _ int, _ []byte) error {
-							calls++
+								return nil
+							})
 
-							return nil
-						})
+						Expect(e).NotTo(HaveOccurred())
 
-					Expect(e).NotTo(HaveOccurred())
+						go func() {
+							time.Sleep(500 * time.Millisecond)
 
-					go func() {
-						time.Sleep(500 * time.Millisecond)
+							eaaContext.consumerConnections.RLock()
+							eaaContext.consumerConnections.m[subscriptionID] = ConsumerConnection{&websocket.Conn{}}
+							eaaContext.consumerConnections.RUnlock()
+						}()
 
-						eaaContext.consumerConnections.RLock()
-						eaaContext.consumerConnections.m[subscriptionID] = ConsumerConnection{&websocket.Conn{}}
-						eaaContext.consumerConnections.RUnlock()
-					}()
+						e = sendNotificationToSubscriber(subscriptionID, []byte{1, 2, 3}, eaaContext)
 
-					e = sendNotificationToSubscriber(subscriptionID, []byte{1, 2, 3}, eaaContext)
-
-					Expect(e).NotTo(HaveOccurred())
-					Expect(calls).To(Equal(1))
-				})
+						Expect(e).NotTo(HaveOccurred())
+						Expect(calls).To(Equal(1))
+					})
 			})
 
 			g.When("and websocket is not created in time", func() {
