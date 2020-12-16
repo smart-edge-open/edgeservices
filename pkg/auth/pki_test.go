@@ -13,9 +13,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -24,6 +21,10 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	"github.com/otcshare/edgenode/pkg/auth"
 	. "github.com/undefinedlabs/go-mpatch"
@@ -268,14 +269,14 @@ var _ = Describe("Cert management", func() {
 	Describe("LoadCert", func() {
 		It("Should load a certificate from file", func() {
 			err := ioutil.WriteFile(certPath,
-				encodedCert, os.FileMode(0644))
+				encodedCert, os.FileMode(0600))
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verifying file permissions")
 			_, err = auth.LoadCert(certPath)
 			Expect(err).To(HaveOccurred())
 
-			err = os.Chmod(certPath, os.FileMode(0600))
+			err = os.Chmod(certPath, os.FileMode(0644))
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Loading cert")
@@ -337,7 +338,7 @@ var _ = Describe("Cert management", func() {
 			os.Remove(certPath)
 			data = append(encodedCert, encodedCert...)
 			err = ioutil.WriteFile(certPath,
-				data, os.FileMode(0644))
+				data, os.FileMode(0600))
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verifying file permissions")
@@ -345,7 +346,7 @@ var _ = Describe("Cert management", func() {
 			_, err = auth.LoadCerts(certPath)
 			Expect(err).To(HaveOccurred())
 
-			err = os.Chmod(certPath, os.FileMode(0600))
+			err = os.Chmod(certPath, os.FileMode(0644))
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Loading certs")
@@ -371,7 +372,7 @@ var _ = Describe("Cert management", func() {
 			By("Setting file permissions")
 			stat, err := os.Stat(certPath)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(stat.Mode().Perm()).To(Equal(os.FileMode(0600)))
+			Expect(stat.Mode().Perm()).To(Equal(os.FileMode(0644)))
 
 			data, err := ioutil.ReadFile(certPath)
 			Expect(err).ToNot(HaveOccurred())

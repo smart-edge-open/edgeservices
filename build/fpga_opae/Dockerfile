@@ -50,3 +50,6 @@ RUN sudo -E bash -c 'cd OPAE/installation_packages && yum localinstall -y \
 
 #copy module checking script
 COPY check_if_modules_loaded.sh .
+RUN export isRT=$(uname -r | grep rt -c) && if [ $isRT = "1" ] ; then sudo yum erase -y "kernel-rt-devel-uname-r == $(uname -r)"; else sudo yum erase -y "kernel-devel-uname-r == $(uname -r)"; fi
+RUN sudo rpm -e --nodeps kernel-headers
+RUN sudo rpm -e --nodeps kernel-devel

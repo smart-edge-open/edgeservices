@@ -94,6 +94,9 @@ spec:
         image: certrequester:1.0
         args: ["--cfg", "/home/certrequester/configs/interfaceservice_certrequest.json"]
         imagePullPolicy: Never
+        securityContext:
+          runAsUser: 1007
+          runAsGroup: 1001
         resources:
           requests:
             cpu: "0.1"
@@ -117,7 +120,8 @@ spec:
         secret:
           secretName: ca-certrequester
       - name: certs
-        emptyDir: {}
+        hostPath:
+          path: /opt/openness/certs/interfaceservice
       - name: host-netdevs
         hostPath:
           path: /sys/class/net

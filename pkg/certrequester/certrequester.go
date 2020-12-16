@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 
 	logger "github.com/otcshare/common/log"
@@ -26,6 +27,7 @@ import (
 const (
 	certPath = "./certs/cert.pem"
 	keyPath  = "./certs/key.pem"
+	megabyte = 1024 * 1024
 )
 
 var (
@@ -125,12 +127,22 @@ func removeCSR(clientset clientset.Interface, name string) error {
 
 func loadConfig(path string) (config, error) {
 	var cfg config
+
+	sz, err := getFileSize(path)
+	if err != nil {
+		return cfg, errors.Wrap(err, "Load config failed")
+	}
+	// Config file can't be larger than 1MB
+	if sz > megabyte {
+		return cfg, errors.New("Config file size can not be greater than 1MB")
+	}
+
 	cfgData, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
-		return cfg, err
+		return cfg, errors.Wrap(err, "Load config failed")
 	}
 	if err = json.Unmarshal(cfgData, &cfg); err != nil {
-		return cfg, err
+		return cfg, errors.Wrap(err, "Load config failed")
 	}
 	logger.Debugf("Config: %#v", cfg)
 	return cfg, err
@@ -143,4 +155,13 @@ func isKeyPairValid(certPath, keyPath string) bool {
 		return false
 	}
 	return true
+}
+
+func getFileSize(path string) (int64, error) {
+	fInfo, err := os.Stat(filepath.Clean(path))
+	if err != nil {
+		return 0, err
+	}
+
+	return fInfo.Size(), nil
 }

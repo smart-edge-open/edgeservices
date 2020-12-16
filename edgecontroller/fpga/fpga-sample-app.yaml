@@ -16,7 +16,7 @@ spec:
     name: bbdev-sample-app
     image: bbdev-sample-app:1.0
     imagePullPolicy: Never
-    command: [ "sudo", "/bin/bash", "-c", "--" ]
+    command: [ "/bin/bash", "-c", "--" ]
     args: [ "while true; do sleep 300000; done;" ]
     volumeMounts:
     - mountPath: /hugepages

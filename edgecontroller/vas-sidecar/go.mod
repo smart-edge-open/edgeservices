@@ -5,6 +5,9 @@ module vas-sidecar
 
 go 1.15
 
-require eaa v0.0.0
+require (
+        eaa v0.0.0
+        github.com/pkg/errors v0.9.1
+)
 
 replace eaa v0.0.0 => ./eaa

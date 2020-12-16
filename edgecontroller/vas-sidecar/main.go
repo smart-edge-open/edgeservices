@@ -5,19 +5,16 @@ package main
 
 import (
 	"bytes"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/json"
-	"encoding/pem"
-	"errors"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"eaa"
 )
@@ -46,8 +43,10 @@ type VASGetPipelines struct {
 const (
 	EAAEndpoint   = "eaa.openness"
 	EAAHttpsPort  = "443"
-	EAAAuthPort   = "80"
 	EAACommonName = "eaa.openness"
+	CertPath      = "./certs/cert.pem"
+	RootCAPath    = "./certs/root.pem"
+	KeyPath       = "./certs/key.pem"
 )
 
 var platform string
@@ -56,90 +55,40 @@ var namespace string
 var servingPort string
 var stayAlive bool
 
-func getCredentials(prvKey *ecdsa.PrivateKey) (eaa.AuthCredentials, error) {
+// createEncryptedClient creates tls client with certs prorvided in
+// CertPath, KeyPath
+func createEncryptedClient() (*http.Client, error) {
 
-	var prodCreds eaa.AuthCredentials
-
-	certTemplate := x509.CertificateRequest{
-		Subject: pkix.Name{
-			CommonName:   namespace + ":analytics-" + framework,
-			Organization: []string{"Intel Corporation"},
-		},
-		SignatureAlgorithm: x509.ECDSAWithSHA256,
-		EmailAddresses:     []string{"hello@openness.org"},
-	}
-
-	prodCsrBytes, err := x509.CreateCertificateRequest(rand.Reader,
-		&certTemplate, prvKey)
+	log.Println("Loading certificate and key")
+	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
 	if err != nil {
-		return prodCreds, err
-	}
-	csrMem := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST",
-		Bytes: prodCsrBytes})
-
-	prodID := eaa.AuthIdentity{
-		Csr: string(csrMem),
+		return nil, errors.Wrap(err, "Failed to load client certificate")
 	}
 
-	reqBody, err := json.Marshal(prodID)
+	certPool := x509.NewCertPool()
+	caCert, err := ioutil.ReadFile(RootCAPath)
 	if err != nil {
-		return prodCreds, err
+		return nil, errors.Wrap(err, "Failed to load CA Cert")
 	}
-	resp, err := http.Post("http://"+EAAEndpoint+":"+EAAAuthPort+"/auth",
-		"", bytes.NewBuffer(reqBody))
-	if err != nil {
-		return prodCreds, err
-	}
-
-	err = json.NewDecoder(resp.Body).Decode(&prodCreds)
-	if err != nil {
-		return prodCreds, err
-	}
-
-	return prodCreds, nil
-}
-
-func authenticate(prvKey *ecdsa.PrivateKey) (*http.Client, error) {
-
-	prodCreds, err := getCredentials(prvKey)
-	if err != nil {
-		return nil, err
-	}
-
-	x509Encoded, err := x509.MarshalECPrivateKey(prvKey)
-	if err != nil {
-		return nil, err
-	}
-
-	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY",
-		Bytes: x509Encoded})
-	prodCert, err := tls.X509KeyPair([]byte(prodCreds.Certificate),
-		pemEncoded)
-	if err != nil {
-		return nil, err
-	}
-
-	prodCertPool := x509.NewCertPool()
-	for _, cert := range prodCreds.CaPool {
-		ok := prodCertPool.AppendCertsFromPEM([]byte(cert))
-		if !ok {
-			return nil, errors.New("Error: failed to append cert")
-		}
+	ok := certPool.AppendCertsFromPEM(caCert)
+	if !ok {
+		return nil, errors.New("Failed to append cert")
 	}
 
 	// HTTPS client
-	prodClient := &http.Client{
+	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs:      prodCertPool,
-				Certificates: []tls.Certificate{prodCert},
+				RootCAs:      certPool,
+				Certificates: []tls.Certificate{cert},
 				ServerName:   EAACommonName,
 			},
 		},
 		Timeout: 0,
 	}
+	log.Printf("%#v", client)
 
-	return prodClient, nil
+	return client, nil
 }
 
 func activateService(client *http.Client, payload []byte) error {
@@ -289,14 +238,8 @@ func main() {
 		EndpointURI: info.EndpointURI,
 	}
 
-	// perform CSR to authenticate and retrieve certificate
-	prodPriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	client, err := authenticate(prodPriv)
+	// Authentication
+	client, err := createEncryptedClient()
 	if err != nil {
 		log.Fatal(err)
 		return
