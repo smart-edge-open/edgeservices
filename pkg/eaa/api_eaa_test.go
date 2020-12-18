@@ -1509,16 +1509,18 @@ var _ = Describe("ApiEaa", func() {
 
 	Describe("Namespace notification dispatch", func() {
 		var (
-			prodClient    *http.Client
-			prodCert      tls.Certificate
-			prodCertPool  *x509.CertPool
-			consClient    *http.Client
-			consCert      tls.Certificate
-			consCertPool  *x509.CertPool
-			consSocket    *websocket.Dialer
-			consHeader    http.Header
-			receivedNotif eaa.NotificationToConsumer
-			expectedNotif eaa.NotificationToConsumer
+			prodClient       *http.Client
+			prodCert         tls.Certificate
+			prodCertPool     *x509.CertPool
+			consClient       *http.Client
+			consCert         tls.Certificate
+			consCertPool     *x509.CertPool
+			consSocket       *websocket.Dialer
+			consHeader       http.Header
+			receivedNotif    eaa.NotificationToConsumer
+			expectedNotif    eaa.NotificationToConsumer
+			receivedServList eaa.ServiceList
+			expectedServList eaa.ServiceList
 		)
 
 		BeforeEach(func() {
@@ -1539,6 +1541,11 @@ var _ = Describe("ApiEaa", func() {
 			prodClient = createHTTPClient(prodCert, prodCertPool)
 			consClient = createHTTPClient(consCert, consCertPool)
 			consSocket = createWebSocDialer(consCert, consCertPool)
+		})
+
+		AfterEach(func() {
+			receivedServList = eaa.ServiceList{}
+			expectedServList = eaa.ServiceList{}
 		})
 
 		Context("consumer closed connection", func() {
@@ -2218,6 +2225,15 @@ var _ = Describe("ApiEaa", func() {
 					},
 				}
 
+				expectedServOutput := strings.NewReader(
+					`{"services":[{"urn":{"id"` +
+						`:"producer-1","namespace":"namespace-1"},` +
+						`"description":"The Sanity Producer",` +
+						`"endpoint_uri":"https://1.2.3.4",` +
+						`"notifications":[{"name":"Event #100",` +
+						`"version":"7.1.0","description"` +
+						`:"Description for Event #1 by Producer #1"}]}]}`)
+
 				sampleNotifications := []eaa.NotificationDescriptor{
 					{
 						Name:    "Event #100",
@@ -2246,10 +2262,17 @@ var _ = Describe("ApiEaa", func() {
 
 				registerProducer(prodClient, sampleService, "")
 
+				By("Expected service list decoding")
+				err := json.NewDecoder(expectedServOutput).
+					Decode(&expectedServList)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				getAndCompareServiceList(prodClient, &receivedServList, &expectedServList)
+
 				produceEvent(prodClient, sampleEvent, "")
 
 				By("Expected notification struct decoding")
-				err := json.NewDecoder(expectedOutput).
+				err = json.NewDecoder(expectedOutput).
 					Decode(&expectedNotif)
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -5808,15 +5831,15 @@ var _ = Describe("Eaa Classic Run Validation", func() {
 		Context("Eaa Run", func() {
 			Specify("With invalid EAA context", func() {
 				err := runClassicEaa(startStopCh, ".")
-				Expect(err).ShouldNot(HaveOccurred())
+				Expect(err).Should(HaveOccurred())
 				srvCancel()
 				<-startStopCh
 			})
 
-			Specify("With valid EAA context", func() {
+			Specify("With missing Kafka certificates", func() {
 				generateConfigs()
 				err := runClassicEaa(startStopCh, tempdir+"/configs/eaa.json")
-				Expect(err).ShouldNot(HaveOccurred())
+				Expect(err).Should(HaveOccurred())
 				srvCancel()
 				<-startStopCh
 			})

@@ -14,6 +14,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"flag"
 	"io"
 	"io/ioutil"
@@ -68,15 +69,16 @@ const (
 )
 
 type EAATestSuiteConfig struct {
-	Dir                string           `json:"Dir"`
-	TLSEndpoint        string           `json:"TlsEndpoint"`
-	ValidationEndpoint string           `json:"ValidationEndpoint"`
-	MsgBrokerBackend   MsgBrokerBackend `json:"MsgBrokerBackend"`
+	Dir                 string           `json:"Dir"`
+	TLSEndpoint         string           `json:"TlsEndpoint"`
+	ValidationEndpoint  string           `json:"ValidationEndpoint"`
+	ApplianceTimeoutSec int              `json:"Timeout"`
+	MsgBrokerBackend    MsgBrokerBackend `json:"MsgBrokerBackend"`
 }
 
 // test suite config with default values
 var cfg = EAATestSuiteConfig{"../../", "localhost:48080",
-	"localhost:42555", MsgBrokerBackend{GochannelsBackend, ""}}
+	"localhost:42555", 2, MsgBrokerBackend{GochannelsBackend, ""}}
 
 func readConfig(path string) {
 	if path != "" {
@@ -294,6 +296,7 @@ func runEaa(stopIndication chan bool) error {
 
 	srvCtx, srvCancel = context.WithCancel(context.Background())
 	_ = srvCancel
+	eaaRunSuccess := make(chan bool)
 	go func() {
 		var eaaCtx eaa.Context
 		err := eaa.InitEaaContext(tempdir+"/configs/eaa.json", &eaaCtx)
@@ -324,10 +327,12 @@ func runEaa(stopIndication chan bool) error {
 		return
 
 	fail:
+		eaaRunSuccess <- false
 		stopIndication <- true
 	}()
 
-	return nil
+	// Wait until appliance is ready before running any tests specs
+	return waitForEAA(eaaRunSuccess)
 }
 
 func runClassicEaa(stopIndication chan bool, path string) error {
@@ -336,7 +341,7 @@ func runClassicEaa(stopIndication chan bool, path string) error {
 
 	srvCtx, srvCancel = context.WithCancel(context.Background())
 	_ = srvCancel
-	eaaRunFail := make(chan bool)
+	eaaRunSuccess := make(chan bool)
 	go func() {
 		var eaaCtx eaa.Context
 		err := eaa.InitEaaContext(path, &eaaCtx)
@@ -344,26 +349,58 @@ func runClassicEaa(stopIndication chan bool, path string) error {
 			log.Errf("InitEaaContext() exited with error: %#v", err)
 			goto fail
 		}
-		err = eaa.Run(srvCtx, path)
-		if err != nil {
-			log.Errf("Run() exited with error: %#v", err)
+		eaaErr = eaa.Run(srvCtx, path)
+		if eaaErr != nil {
+			log.Errf("Run() exited with error: %#v", eaaErr)
 			goto fail
 		}
 		stopIndication <- true
 		return
 
 	fail:
+		eaaRunSuccess <- false
 		stopIndication <- true
-		eaaRunFail <- true
 	}()
-	return nil
+
+	// Wait until appliance is ready before running any tests specs
+	return waitForEAA(eaaRunSuccess)
+}
+
+func waitForEAA(eaaRunSuccess chan bool) error {
+	go func() {
+		accessCertTempl := GetCertTempl()
+		accessCertTempl.Subject.CommonName = AccessName
+		accessCert, accessCertPool := generateSignedClientCert(
+			&accessCertTempl)
+
+		client := createHTTPClient(accessCert, accessCertPool)
+		for {
+			_, err := client.Get("https://" + cfg.TLSEndpoint)
+			if err == nil {
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		eaaRunSuccess <- true
+	}()
+
+	select {
+	case ok := <-eaaRunSuccess:
+		if ok {
+			By("Appliance ready")
+			return nil
+		}
+		return errors.New("starting appliance - run fail")
+	case <-time.After(time.Duration(cfg.ApplianceTimeoutSec) * time.Second):
+		return errors.New("starting appliance - timeout")
+	}
 }
 
 func stopEaa(stopIndication chan bool) {
 	By("Stopping appliance")
 	srvCancel()
 	<-stopIndication
-	Expect(eaaErr).Should(Succeed())
+	Expect(eaaErr).ShouldNot(HaveOccurred())
 }
 
 func GenerateTLSCert(cTempl, cParent *x509.Certificate, pub,
