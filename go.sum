@@ -564,6 +564,8 @@ github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7J
 github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
 github.com/onsi/gomega v1.10.2 h1:aY/nuoWlKJud2J6U0E3NWsjlg+0GtwXxgEqthRdzlcs=
 github.com/onsi/gomega v1.10.2/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
+github.com/open-ness/common/log v0.0.0-20200930152236-ef647c7379b5 h1:NQXNBCY4oRaz9m4nvFFuBHRGEGeqI9k5p9wRifG3rgw=
+github.com/open-ness/common/log v0.0.0-20200930152236-ef647c7379b5/go.mod h1:DGYDPPchFXftXI8LFpamFsq2NempPUsR37YaVtD+A1A=
 github.com/opencontainers/go-digest v0.0.0-20180430190053-c9281466c8b2/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
 github.com/opencontainers/go-digest v1.0.0-rc1 h1:WzifXhOVOEOuFYOJAW6aQqW0TooG2iki3E3Ii+WN7gQ=
 github.com/opencontainers/go-digest v1.0.0-rc1/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
@@ -578,10 +580,6 @@ github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2/go.m
 github.com/opencontainers/selinux v1.3.1-0.20190929122143-5215b1806f52/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
 github.com/opencontainers/selinux v1.5.1/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/opencontainers/selinux v1.5.2/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
-github.com/otcshare/common v0.0.0-20200918073610-af29aa2e340a h1:0sPTwBQDdWtYREjcjc9uzUPqlzVkLLv9wgwIoxoHAAY=
-github.com/otcshare/common/log v0.0.0-20200410092658-0c4ca4ce7794/go.mod h1:30kZGx52RercaMNsH35keYVwwh2KCNXBnXTAdm2XPfM=
-github.com/otcshare/common/log v0.0.0-20200918073610-af29aa2e340a h1:UuQAmXSMyvnnOVJ63dxI4Ag2ViIji3se/C1F1bJHJM8=
-github.com/otcshare/common/log v0.0.0-20200918073610-af29aa2e340a/go.mod h1:gqtBTtXoPp6Na+t2+SbJvbKMiNErfXMa4gi4QNg5Gwg=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pelletier/go-toml v1.1.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=

@@ -13,8 +13,8 @@ import (
 	"os"
 	"path/filepath"
 
-	logger "github.com/otcshare/common/log"
-	"github.com/otcshare/edgenode/pkg/util"
+	logger "github.com/open-ness/common/log"
+	"github.com/open-ness/edgenode/pkg/util"
 	"github.com/pkg/errors"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

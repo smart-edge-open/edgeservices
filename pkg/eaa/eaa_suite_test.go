@@ -31,10 +31,10 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/gorilla/websocket"
-	"github.com/otcshare/edgenode/pkg/eaa"
-	evapb "github.com/otcshare/edgenode/pkg/eva/internal_pb"
+	"github.com/open-ness/edgenode/pkg/eaa"
+	evapb "github.com/open-ness/edgenode/pkg/eva/internal_pb"
 
-	"github.com/otcshare/common/log"
+	"github.com/open-ness/common/log"
 )
 
 // EaaCommonName Common Name that EAA uses for TLS connection
