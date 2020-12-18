@@ -48,12 +48,12 @@ clean:
 	rm -rf ./dist
 
 test:
-	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor,interfaceservicecli,edgednscli
+	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r  -gcflags=-l --randomizeSuites --failOnPending --skipPackage=vendor,interfaceservicecli,edgednscli
 
 test-cov:
 	rm -rf coverage.out*
 	http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= ginkgo -v -r --randomizeSuites --failOnPending --skipPackage=vendor,interfaceservicecli,edgednscli \
-	-cover -coverprofile=coverage.out -outputdir=.
+	 -gcflags=-l -cover -coverprofile=coverage.out -outputdir=.
 	sed '1!{/^mode/d;}' coverage.out > coverage.out.fix
 	go tool cover -html=coverage.out.fix
 
