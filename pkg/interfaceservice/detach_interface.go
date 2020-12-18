@@ -18,7 +18,7 @@ func detachPortFromOvs(port pb.Port) error {
 		return err
 	}
 
-	output, err := Vsctl("del-port", strings.TrimSpace(name))
+	output, err := Vsctl("ovs-vsctl", "del-port", strings.TrimSpace(name))
 	if err == nil {
 		log.Info("Removed OVS port: ", name)
 	} else {

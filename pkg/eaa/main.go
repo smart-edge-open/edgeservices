@@ -43,7 +43,6 @@ type Context struct {
 
 // Certs stores certs and keys for root ca and eaa
 type Certs struct {
-	rca *CertKeyPair
 	eaa *CertKeyPair
 }
 
@@ -107,11 +106,6 @@ func InitEaaContext(cfgPath string, eaaCtx *Context) error {
 		return err
 	}
 
-	if eaaCtx.certsEaaCa.rca, err = InitRootCA(eaaCtx.cfg.Certs); err != nil {
-		log.Errf("CA cert creation error: %#v", err)
-		return err
-	}
-
 	if eaaCtx.certsEaaCa.eaa, err = InitEaaCert(eaaCtx.cfg.Certs); err != nil {
 		log.Errf("EAA cert creation error: %#v", err)
 		return err
@@ -141,10 +135,6 @@ func RunServer(parentCtx context.Context, eaaCtx *Context) error {
 		},
 		Handler: router,
 	}
-
-	authRouter := NewAuthRouter(eaaCtx)
-	serverAuth := &http.Server{Addr: eaaCtx.cfg.OpenEndpoint,
-		Handler: authRouter}
 
 	stopServerCh := make(chan bool, 2)
 	var lis net.Listener
@@ -181,24 +171,11 @@ func RunServer(parentCtx context.Context, eaaCtx *Context) error {
 		if servErr := server.Close(); servErr != nil {
 			log.Errf("Could not close EAA server: %#v", servErr)
 		}
-		if servErr := serverAuth.Close(); servErr != nil {
-			log.Errf("Could not close Auth server: %#v", servErr)
-		}
 		log.Info("EAA server stopped")
-		log.Info("Auth server stopped")
 		stopServerCh <- true
 	}(stopServerCh)
 
 	defer log.Info("Stopped EAA serving")
-
-	go func(stopServerCh chan bool) {
-		log.Infof("Serving Auth on: %s", eaaCtx.cfg.OpenEndpoint)
-		if authErr := serverAuth.ListenAndServe(); authErr != nil {
-			log.Info("Auth server error: " + authErr.Error())
-		}
-		log.Errf("Stopped Auth serving")
-		stopServerCh <- true
-	}(stopServerCh)
 
 	log.Infof("Serving EAA on: %s", eaaCtx.cfg.TLSEndpoint)
 	util.Heartbeat(parentCtx, eaaCtx.cfg.HeartbeatInterval, func() {
@@ -212,7 +189,6 @@ func RunServer(parentCtx context.Context, eaaCtx *Context) error {
 	} else {
 		err = nil
 	}
-	<-stopServerCh
 	<-stopServerCh
 
 cleanup:

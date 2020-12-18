@@ -1,0 +1,92 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: csr-signer
+  namespace: openness
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: csr-signer
+rules:
+  - apiGroups: [certificates.k8s.io]
+    resources: [certificatesigningrequests]
+    verbs: [get, list, watch, create]
+  - apiGroups: [certificates.k8s.io]
+    resources: [certificatesigningrequests/status]
+    verbs: [update]
+  - apiGroups: [certificates.k8s.io]
+    resources: [signers]
+    resourceNames: [openness.org/certsigner]
+    verbs: [sign]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csr-signer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: csr-signer
+subjects:
+  - kind: ServiceAccount
+    name: csr-signer
+    namespace: openness
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eaa
+  namespace: openness
+
+---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: csr-requester
+  rules:
+    - apiGroups: [certificates.k8s.io]
+      resources: [certificatesigningrequests]
+      verbs: [get, list, watch, create, delete]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: eaa-csr-requester
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: csr-requester
+subjects:
+  - kind: ServiceAccount
+    name: eaa
+    namespace: openness
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edgedns
+  namespace: openness
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: edgedns-csr-requester
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: csr-requester
+subjects:
+  - kind: ServiceAccount
+    name: edgedns
+    namespace: openness

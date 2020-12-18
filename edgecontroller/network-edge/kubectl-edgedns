@@ -5,7 +5,7 @@
 
 set -uo pipefail
 
-CERTS_DIRECTORY="/etc/openness/certs/client/edgedns"
+CERTS_DIRECTORY="/opt/openness/certs/client/edgedns"
 
 error() {
     >&2 echo -e "[ERROR] ${*}"

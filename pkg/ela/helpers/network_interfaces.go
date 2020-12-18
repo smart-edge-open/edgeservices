@@ -39,18 +39,22 @@ type NetworkDevice struct {
 func GetNetworkPCIs() ([]NetworkDevice, error) {
 
 	// #nosec G204 - called with lspci
-	cmd := exec.Command("command", "-v", "lspci")
-	if err := cmd.Run(); err != nil {
-		return nil, errors.New("command `lspci` is not available")
+	cmd := exec.Command("bash", "-c", "command -v lspci")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	err := cmd.Run()
+	if err != nil {
+		return nil, errors.Errorf("lspci command could not be called: %s",
+			err.Error())
 	}
 
 	// #nosec G204 - command is const
 	cmd = exec.Command("bash", "-c",
 		`lspci -Dmm | grep -i "Ethernet\|Network"`)
-	var out bytes.Buffer
 	cmd.Stdout = &out
 
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return nil, errors.Errorf("Failed to exec lspci command: %s",
 			err.Error())

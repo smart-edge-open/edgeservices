@@ -8,6 +8,7 @@
         "ConnectionTimeout": "2s"
     },
     "Services": {
+        "github.com/open-ness/edgenode/pkg/certsigner": "configs/certsigner.json",
         "github.com/open-ness/edgenode/pkg/eaa": "configs/eaa.json",
         "github.com/open-ness/edgenode/pkg/ela": "configs/ela.json",
         "github.com/open-ness/edgenode/pkg/eda": "configs/eda.json",

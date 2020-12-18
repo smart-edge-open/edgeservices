@@ -14,7 +14,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-const filePerm = os.FileMode(0600)
+const (
+	certFilePerm = os.FileMode(0644)
+	keyFilePerm  = os.FileMode(0600)
+)
 
 // readFileWithPerm reads a file after verifying permissions
 func readFileWithPerm(path string, perm os.FileMode) ([]byte, error) {
@@ -49,9 +52,9 @@ func readFileWithPerm(path string, perm os.FileMode) ([]byte, error) {
 	return ioutil.ReadAll(f)
 }
 
-// LoadKey verifies file permissions(0600) and loads a PEM encoded PKCS#8 key
+// LoadKey verifies file permissions(0644) and loads a PEM encoded PKCS#8 key
 func LoadKey(path string) (crypto.PrivateKey, error) {
-	data, err := readFileWithPerm(path, filePerm)
+	data, err := readFileWithPerm(path, keyFilePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -60,14 +63,17 @@ func LoadKey(path string) (crypto.PrivateKey, error) {
 	if block == nil {
 		return nil, errors.New("Failed to decode key")
 	}
-	if block.Type != "PRIVATE KEY" {
-		return nil, errors.Errorf("%s is not a key", path)
+	if block.Type == "PRIVATE KEY" {
+		return x509.ParsePKCS8PrivateKey(block.Bytes)
+	}
+	if block.Type == "EC PRIVATE KEY" {
+		return x509.ParseECPrivateKey(block.Bytes)
 	}
 
-	return x509.ParsePKCS8PrivateKey(block.Bytes)
+	return nil, errors.Errorf("%s is not a key (block type: \"%s\")", path, block.Type)
 }
 
-// SaveKey saves PEM encoded PKCS#8 key to a file with permissions set to 0600
+// SaveKey saves PEM encoded PKCS#8 key to a file with permissions set to 0644
 func SaveKey(key crypto.PrivateKey, path string) error {
 	der, err := x509.MarshalPKCS8PrivateKey(key)
 	if err != nil {
@@ -87,7 +93,7 @@ func SaveKey(key crypto.PrivateKey, path string) error {
 	if err != nil {
 		return errors.Wrapf(err, "Failed to open %s", path)
 	}
-	if err = f.Chmod(filePerm); err != nil {
+	if err = f.Chmod(keyFilePerm); err != nil {
 		if err1 := f.Close(); err1 != nil {
 			err = errors.Wrapf(err, "Failed to close file: %#v", err1)
 		}
@@ -102,7 +108,7 @@ func SaveKey(key crypto.PrivateKey, path string) error {
 	return f.Close()
 }
 
-// LoadCert verifies file permissions(0600) and loads a certificate
+// LoadCert verifies file permissions(0644) and loads a certificate
 func LoadCert(path string) (*x509.Certificate, error) {
 	certs, err := LoadCerts(path)
 	if err != nil {
@@ -111,12 +117,12 @@ func LoadCert(path string) (*x509.Certificate, error) {
 	return certs[0], nil
 }
 
-// LoadCerts verifies file permissions(0600) and loads all certificates
+// LoadCerts verifies file permissions(0644) and loads all certificates
 // If no certificates are found returns an error
 func LoadCerts(path string) ([]*x509.Certificate, error) {
 	var certs []*x509.Certificate
 
-	data, err := readFileWithPerm(path, filePerm)
+	data, err := readFileWithPerm(path, certFilePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -145,13 +151,13 @@ func LoadCerts(path string) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-// SaveCert saves PEM encoded certificate to a file with permissions set to 0600
+// SaveCert saves PEM encoded certificate to a file with permissions set to 0644
 func SaveCert(path string, certs ...*x509.Certificate) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to open %s", path)
 	}
-	if err = f.Chmod(filePerm); err != nil {
+	if err = f.Chmod(certFilePerm); err != nil {
 		if err1 := f.Close(); err1 != nil {
 			err = errors.Wrapf(err, "Failed to close file: %#v", err1)
 		}

@@ -22,10 +22,6 @@ spec:
   selector:
     name: eaa
   ports:
-    - name: http
-      protocol: TCP
-      port: 80
-      targetPort: 80
     - name: https
       protocol: TCP
       port: 443
@@ -47,11 +43,12 @@ spec:
       labels:
         name: eaa
     spec:
+      serviceAccountName: eaa
       initContainers:
       - name: alpine
         image: alpine:latest
         command: ["/bin/sh"]
-        args: ["-c", "cp /root/certs-sec/* /root/certs/"]
+        args: ["-c", "cp /root/ca-certrequester/cert.pem /root/certs/root.pem"]
         imagePullPolicy: IfNotPresent
         resources:
           requests:
@@ -60,10 +57,28 @@ spec:
             cpu: "0.1"
             memory: "128Mi"
         volumeMounts:
-        - name: certs-sec
-          mountPath: /root/certs-sec
+        - name: ca-certrequester
+          mountPath: /root/ca-certrequester
         - name: certs
           mountPath: /root/certs
+      - name: certrequester
+        image: certrequester:1.0
+        args: ["--cfg", "/home/certrequester/configs/eaa_certrequest.json"]
+        imagePullPolicy: Never
+        securityContext:
+          runAsUser: 1005
+          runAsGroup: 1001
+        resources:
+          requests:
+            cpu: "0.1"
+          limits:
+            cpu: "0.1"
+            memory: "128Mi"
+        volumeMounts:
+        - name: configs
+          mountPath: /home/certrequester/configs
+        - name: certs
+          mountPath: /home/certrequester/certs
       containers:
       - name: eaa
         image: eaa:1.0
@@ -79,8 +94,6 @@ spec:
         volumeMounts:
         - name: certs
           mountPath: /home/eaa/certs/eaa
-        - name: certs-sec
-          mountPath: /home/eaa/certs-sec
         - name: kafka-certs
           mountPath: /home/eaa/certs/eaa-kafka
         - name: configs
@@ -90,20 +103,19 @@ spec:
         key: cmk
         operator: Exists
       volumes:
-      - name: certs-sec
+      - name: ca-certrequester
         secret:
-          secretName: eaa-tls
-          defaultMode: 0600
+          secretName: ca-certrequester
       - name: kafka-certs
         secret:
           secretName: eaa-kafka
           defaultMode: 0600
       - name: certs
         hostPath:
-          path: /etc/openness/certs/eaa
+          path: /opt/openness/certs/eaa
       - name: configs
         hostPath:
-          path: /etc/openness/configs
+          path: /opt/openness/configs
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -149,6 +161,7 @@ spec:
       labels:
         name: edgedns
     spec:
+      serviceAccountName: edgedns
       containers:
       - name: edgedns
         image: edgednssvr:1.0
@@ -187,9 +200,10 @@ spec:
           - name: DNS_FWDR
             value: 8.8.8.8
       initContainers:
-      - name: openssl
-        image: emberstack/openssl:latest
-        command: ["/root/certgen/entrypoint_tls.sh", "edgedns.openness", "/root/certs", "/root/CA"]
+      - name: alpine
+        image: alpine:latest
+        command: ["/bin/sh"]
+        args: ["-c", "cp /root/ca-certrequester/cert.pem /root/certs/root.pem"]
         imagePullPolicy: IfNotPresent
         resources:
           requests:
@@ -198,12 +212,28 @@ spec:
             cpu: "0.1"
             memory: "128Mi"
         volumeMounts:
-        - name: ca
-          mountPath: /root/CA
+        - name: ca-certrequester
+          mountPath: /root/ca-certrequester
         - name: certs
           mountPath: /root/certs
-        - name: certgen
-          mountPath: /root/certgen
+      - name: certrequester
+        image: certrequester:1.0
+        args: ["--cfg", "/home/certrequester/configs/edgedns_certrequest.json"]
+        imagePullPolicy: Never
+        securityContext:
+          runAsUser: 1006
+          runAsGroup: 1001
+        resources:
+          requests:
+            cpu: "0.1"
+          limits:
+            cpu: "0.1"
+            memory: "128Mi"
+        volumeMounts:
+        - name: configs
+          mountPath: /home/certrequester/configs
+        - name: certs
+          mountPath: /home/certrequester/certs
       tolerations:
       - effect: NoSchedule
         key: cmk
@@ -211,17 +241,71 @@ spec:
       volumes:
       - name: edgednssvr
         hostPath:
-          path: /etc/openness/edgednssvr
-      - name: ca
+          path: /opt/openness/edgednssvr
+      - name: ca-certrequester
         secret:
-          secretName: root-ca
-      - name: certgen
-        secret:
-          secretName: certgen
-          defaultMode: 0744
+          secretName: ca-certrequester
+      - name: configs
+        hostPath:
+          path: /opt/openness/configs
       - name: certs
         hostPath:
-          path: /etc/openness/certs/edgedns
+          path: /opt/openness/certs/edgedns
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: "vcac-zone"
+                  operator: NotIn
+                  values:
+                    - "yes"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: certsigner
+  namespace: openness
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: certsigner
+  template:
+    metadata:
+      labels:
+        name: certsigner
+    spec:
+      serviceAccountName: csr-signer
+      containers:
+      - name: certsigner
+        image: certsigner:1.0
+        imagePullPolicy: Never
+        securityContext:
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: "0.1"
+          limits:
+            cpu: "1"
+            memory: "128Mi"
+        volumeMounts:
+          - name: root-ca
+            mountPath: /home/certsigner/certs
+          - name: configs
+            mountPath: /home/certsigner/configs
+      volumes:
+      - name: root-ca
+        secret:
+          secretName: root-ca
+      - name: configs
+        hostPath:
+          path: /opt/openness/configs
+      tolerations:
+      - effect: NoSchedule
+        key: cmk
+        operator: Exists
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

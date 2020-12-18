@@ -22,6 +22,8 @@ type Route struct {
 // Routes represents a routing table
 type Routes []Route
 
+type contextKey string
+
 // NewEaaRouter initializes EAA router
 func NewEaaRouter(eaaCtx *Context) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
@@ -42,37 +44,6 @@ func NewEaaRouter(eaaCtx *Context) *mux.Router {
 		})
 	})
 	return router
-}
-
-// NewAuthRouter initializes EAA Auth router
-func NewAuthRouter(eaaCtx *Context) *mux.Router {
-	router := mux.NewRouter().StrictSlash(true)
-	for _, route := range authRoutes {
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(route.HandlerFunc)
-	}
-	router.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(
-				r.Context(),
-				contextKey("appliance-ctx"),
-				eaaCtx)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	})
-	return router
-}
-
-var authRoutes = Routes{
-	Route{
-		"RequestCredentials",
-		strings.ToUpper("Post"),
-		"/auth",
-		RequestCredentials,
-	},
 }
 
 var eaaRoutes = Routes{

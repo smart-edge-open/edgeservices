@@ -20,6 +20,49 @@ import (
 	"github.com/pkg/errors"
 )
 
+// KafkaInterface allows dependency injection for unit testing
+type KafkaInterface interface {
+	DefaultSaramaSubscriberConfig() *sarama.Config
+	DefaultSaramaSyncPublisherConfig() *sarama.Config
+	NewWithPartitioningMarshaler(generatePartitionKey kafka.GeneratePartitionKey) kafka.MarshalerUnmarshaler
+	NewPublisher(config kafka.PublisherConfig, logger watermill.LoggerAdapter) (*kafka.Publisher, error)
+	NewSubscriber(config kafka.SubscriberConfig, logger watermill.LoggerAdapter) (*kafka.Subscriber, error)
+}
+
+type kafkaImplementation struct{}
+
+func (k *kafkaImplementation) DefaultSaramaSubscriberConfig() *sarama.Config {
+	return kafka.DefaultSaramaSubscriberConfig()
+}
+func (k *kafkaImplementation) DefaultSaramaSyncPublisherConfig() *sarama.Config {
+	return kafka.DefaultSaramaSyncPublisherConfig()
+}
+
+func (k *kafkaImplementation) NewPublisher(config kafka.PublisherConfig,
+	logger watermill.LoggerAdapter) (*kafka.Publisher, error) {
+
+	return kafka.NewPublisher(config, logger)
+}
+
+func (k *kafkaImplementation) NewWithPartitioningMarshaler(
+	generatePartitionKey kafka.GeneratePartitionKey) kafka.MarshalerUnmarshaler {
+	return kafka.NewWithPartitioningMarshaler(generatePartitionKey)
+}
+
+func (k *kafkaImplementation) NewSubscriber(config kafka.SubscriberConfig,
+	logger watermill.LoggerAdapter) (*kafka.Subscriber, error) {
+	return kafka.NewSubscriber(config, logger)
+}
+
+var (
+	// KafkaBroker allows easey dependency injection for unit tests
+	KafkaBroker KafkaInterface
+)
+
+func init() {
+	KafkaBroker = &kafkaImplementation{}
+}
+
 type publishers struct {
 	sync.RWMutex
 	m map[string]*kafka.Publisher
@@ -107,14 +150,14 @@ func keyGenerator(topic string, msg *message.Message) (string, error) {
 
 // Creates a Publisher with default configuration
 func (b *KafkaMsgBroker) createDefaultPublisher() (*kafka.Publisher, error) {
-	config := kafka.DefaultSaramaSyncPublisherConfig()
+	config := KafkaBroker.DefaultSaramaSyncPublisherConfig()
 	config.Net.TLS.Enable = true
 	config.Net.TLS.Config = b.tlsConfig
 
-	publisher, err := kafka.NewPublisher(
+	publisher, err := KafkaBroker.NewPublisher(
 		kafka.PublisherConfig{
 			Brokers:               []string{b.eaaCtx.cfg.KafkaBroker},
-			Marshaler:             kafka.NewWithPartitioningMarshaler(keyGenerator),
+			Marshaler:             KafkaBroker.NewWithPartitioningMarshaler(keyGenerator),
 			OverwriteSaramaConfig: config,
 		},
 		watermill.NewStdLogger(false, false),
@@ -176,7 +219,7 @@ func (b *KafkaMsgBroker) publish(topic string, msg *message.Message) error {
 
 // Create a Kafka Subscriber with a Sarama config
 func (b *KafkaMsgBroker) createSubscriber(config *sarama.Config) (*kafka.Subscriber, error) {
-	subscriber, err := kafka.NewSubscriber(
+	subscriber, err := KafkaBroker.NewSubscriber(
 		kafka.SubscriberConfig{
 			Brokers:               []string{b.eaaCtx.cfg.KafkaBroker},
 			Unmarshaler:           kafka.DefaultMarshaler{},
@@ -193,7 +236,7 @@ func (b *KafkaMsgBroker) createSubscriber(config *sarama.Config) (*kafka.Subscri
 
 // Create Notification Publisher
 func (b *KafkaMsgBroker) createNotificationSubscriber(topic string) (*kafka.Subscriber, error) {
-	saramaSubscriberConfig := kafka.DefaultSaramaSubscriberConfig()
+	saramaSubscriberConfig := KafkaBroker.DefaultSaramaSubscriberConfig()
 	saramaSubscriberConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
 	saramaSubscriberConfig.Net.TLS.Enable = true
 	saramaSubscriberConfig.Net.TLS.Config = b.tlsConfig
@@ -215,7 +258,7 @@ func (b *KafkaMsgBroker) createNotificationSubscriber(topic string) (*kafka.Subs
 
 // Create Services Publisher
 func (b *KafkaMsgBroker) createServicesSubscriber() (*kafka.Subscriber, error) {
-	saramaSubscriberConfig := kafka.DefaultSaramaSubscriberConfig()
+	saramaSubscriberConfig := KafkaBroker.DefaultSaramaSubscriberConfig()
 	// equivalent of auto.offset.reset: earliest
 	saramaSubscriberConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
 	saramaSubscriberConfig.Net.TLS.Enable = true
@@ -238,7 +281,7 @@ func (b *KafkaMsgBroker) createServicesSubscriber() (*kafka.Subscriber, error) {
 
 // Create Client Publisher
 func (b *KafkaMsgBroker) createClientSubscriber(topic string) (*kafka.Subscriber, error) {
-	saramaSubscriberConfig := kafka.DefaultSaramaSubscriberConfig()
+	saramaSubscriberConfig := KafkaBroker.DefaultSaramaSubscriberConfig()
 	// equivalent of auto.offset.reset: earliest
 	saramaSubscriberConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
 	saramaSubscriberConfig.Net.TLS.Enable = true

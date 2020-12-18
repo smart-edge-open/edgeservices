@@ -34,6 +34,7 @@ spec:
       labels:
         name: interfaceservice
     spec:
+      serviceAccountName: interfaceservice
       containers:
       - name: interfaceservice
         image: interfaceservice:1.0
@@ -73,9 +74,10 @@ spec:
           mountPath: /lib/modules
           readOnly: true
       initContainers:
-      - name: openssl
-        image: emberstack/openssl:latest
-        command: ["/root/certgen/entrypoint_tls.sh", "interfaceservice.openness", "/root/certs", "/root/CA"]
+      - name: alpine
+        image: alpine:latest
+        command: ["/bin/sh"]
+        args: ["-c", "cp /root/ca-certrequester/cert.pem /root/certs/root.pem"]
         imagePullPolicy: IfNotPresent
         resources:
           requests:
@@ -84,12 +86,28 @@ spec:
             cpu: "0.1"
             memory: "128Mi"
         volumeMounts:
-        - name: ca
-          mountPath: /root/CA
+        - name: ca-certrequester
+          mountPath: /root/ca-certrequester
         - name: certs
           mountPath: /root/certs
-        - name: certgen
-          mountPath: /root/certgen
+      - name: certrequester
+        image: certrequester:1.0
+        args: ["--cfg", "/home/certrequester/configs/interfaceservice_certrequest.json"]
+        imagePullPolicy: Never
+        securityContext:
+          runAsUser: 1007
+          runAsGroup: 1001
+        resources:
+          requests:
+            cpu: "0.1"
+          limits:
+            cpu: "0.1"
+            memory: "128Mi"
+        volumeMounts:
+        - name: configs
+          mountPath: /home/certrequester/configs
+        - name: certs
+          mountPath: /home/certrequester/certs
       tolerations:
       - effect: NoSchedule
         key: cmk
@@ -97,10 +115,13 @@ spec:
       volumes:
       - name: configs
         hostPath:
-          path: /etc/openness/configs
+          path: /opt/openness/configs
+      - name: ca-certrequester
+        secret:
+          secretName: ca-certrequester
       - name: certs
         hostPath:
-          path: /etc/openness/certs/interfaceservice
+          path: /opt/openness/certs/interfaceservice
       - name: host-netdevs
         hostPath:
           path: /sys/class/net
@@ -122,7 +143,3 @@ spec:
       - name: ca
         secret:
           secretName: root-ca
-      - name: certgen
-        secret:
-          secretName: certgen
-          defaultMode: 0744

@@ -14,6 +14,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"flag"
 	"io"
 	"io/ioutil"
@@ -22,18 +23,14 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
-
-	"github.com/pkg/errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 
 	"github.com/gorilla/websocket"
-	"github.com/open-ness/edgenode/internal/authtest"
 	"github.com/open-ness/edgenode/pkg/eaa"
 	evapb "github.com/open-ness/edgenode/pkg/eva/internal_pb"
 
@@ -41,7 +38,10 @@ import (
 )
 
 // EaaCommonName Common Name that EAA uses for TLS connection
-const EaaCommonName string = "eaa.openness"
+const (
+	EaaCommonName = "eaa.openness"
+	TestCertsDir  = "testdata/certs/"
+)
 
 // To pass configuration file path use ginkgo pass-through argument
 // ginkgo -r -v -- -cfg=myconfig.json
@@ -71,14 +71,13 @@ const (
 type EAATestSuiteConfig struct {
 	Dir                 string           `json:"Dir"`
 	TLSEndpoint         string           `json:"TlsEndpoint"`
-	OpenEndpoint        string           `json:"OpenEndpoint"`
 	ValidationEndpoint  string           `json:"ValidationEndpoint"`
 	ApplianceTimeoutSec int              `json:"Timeout"`
 	MsgBrokerBackend    MsgBrokerBackend `json:"MsgBrokerBackend"`
 }
 
 // test suite config with default values
-var cfg = EAATestSuiteConfig{"../../", "localhost:44300", "localhost:48080",
+var cfg = EAATestSuiteConfig{"../../", "localhost:48080",
 	"localhost:42555", 2, MsgBrokerBackend{GochannelsBackend, ""}}
 
 func readConfig(path string) {
@@ -200,21 +199,32 @@ func copyFile(src string, dst string) {
 	_, err = io.Copy(dstFile, srcFile)
 	Expect(err).ToNot(HaveOccurred(), "Copy file - error when copying "+src+
 		" to "+dst)
+
+}
+
+func copyFileWithMode(src string, dst string, fm os.FileMode) {
+	copyFile(src, dst)
+
+	err := os.Chmod(dst, fm)
+	Expect(err).ToNot(HaveOccurred(), "Error when changing file mode"+dst)
 }
 
 func copyCerts(srcPath string) {
-	filePerm := os.FileMode(0600)
-
 	if _, err := os.Stat(tempdir + "/certs/eaa"); os.IsNotExist(err) {
 		err := os.MkdirAll(tempdir+"/certs/eaa", 0755)
 		Expect(err).ToNot(HaveOccurred(), "Error when creating temp directory")
 	}
-	certFiles := []string{"rootCA.key", "rootCA.pem", "server.key", "server.pem"}
+
+	certFilePerm := os.FileMode(0644)
+	certFiles := []string{"rootCA.pem", "server.pem"}
 	for _, f := range certFiles {
-		destFile := tempdir + "/certs/eaa/" + f
-		copyFile(srcPath+f, destFile)
-		err := os.Chmod(destFile, filePerm)
-		Expect(err).ToNot(HaveOccurred(), "Error when changing file mode"+destFile)
+		copyFileWithMode(srcPath+f, tempdir+"/certs/eaa/"+f, certFilePerm)
+	}
+
+	keyFilePerm := os.FileMode(0600)
+	keyFiles := []string{"rootCA.key", "server.key"}
+	for _, f := range keyFiles {
+		copyFileWithMode(srcPath+f, tempdir+"/certs/eaa/"+f, keyFilePerm)
 	}
 }
 
@@ -259,7 +269,6 @@ func generateConfigs() {
 	// custom config for EAA
 	eaaCfg := []byte(`{
 		"TlsEndpoint": "` + cfg.TLSEndpoint + `",
-		"OpenEndpoint": "` + cfg.OpenEndpoint + `",
 		"ValidationEndpoint": "` + cfg.ValidationEndpoint + `",
 		"Certs": {
 			"CaRootKeyPath": "` + tempConfCaRootKeyPath + `",
@@ -276,9 +285,9 @@ func generateConfigs() {
 }
 
 var (
-	srvCtx             context.Context
-	srvCancel          context.CancelFunc
-	applianceIsRunning bool
+	srvCtx    context.Context
+	srvCancel context.CancelFunc
+	eaaErr    error
 )
 
 func runEaa(stopIndication chan bool) error {
@@ -287,7 +296,7 @@ func runEaa(stopIndication chan bool) error {
 
 	srvCtx, srvCancel = context.WithCancel(context.Background())
 	_ = srvCancel
-	eaaRunFail := make(chan bool)
+	eaaRunSuccess := make(chan bool)
 	go func() {
 		var eaaCtx eaa.Context
 		err := eaa.InitEaaContext(tempdir+"/configs/eaa.json", &eaaCtx)
@@ -310,44 +319,20 @@ func runEaa(stopIndication chan bool) error {
 			goto fail
 		}
 
-		err = eaa.RunServer(srvCtx, &eaaCtx)
-		if err != nil {
-			log.Errf("RunServer() exited with error: %#v", err)
-			goto fail
+		eaaErr = eaa.RunServer(srvCtx, &eaaCtx)
+		if eaaErr != nil {
+			log.Errf("RunServer() exited with error: %#v", eaaErr)
 		}
 		stopIndication <- true
 		return
 
 	fail:
-		applianceIsRunning = false
-		eaaRunFail <- true
+		eaaRunSuccess <- false
 		stopIndication <- true
 	}()
 
 	// Wait until appliance is ready before running any tests specs
-	c1 := make(chan bool, 1)
-	go func() {
-		for {
-			conn, err := net.Dial("tcp", cfg.OpenEndpoint)
-			if err == nil {
-				conn.Close()
-				break
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
-		c1 <- true
-	}()
-
-	select {
-	case <-c1:
-		By("Appliance ready")
-	case <-time.After(time.Duration(cfg.ApplianceTimeoutSec) * time.Second):
-		return errors.New("starting appliance - timeout")
-	case <-eaaRunFail:
-		return errors.New("starting appliance - run fail")
-	}
-
-	return nil
+	return waitForEAA(eaaRunSuccess)
 }
 
 func runClassicEaa(stopIndication chan bool, path string) error {
@@ -356,7 +341,7 @@ func runClassicEaa(stopIndication chan bool, path string) error {
 
 	srvCtx, srvCancel = context.WithCancel(context.Background())
 	_ = srvCancel
-	eaaRunFail := make(chan bool)
+	eaaRunSuccess := make(chan bool)
 	go func() {
 		var eaaCtx eaa.Context
 		err := eaa.InitEaaContext(path, &eaaCtx)
@@ -364,30 +349,58 @@ func runClassicEaa(stopIndication chan bool, path string) error {
 			log.Errf("InitEaaContext() exited with error: %#v", err)
 			goto fail
 		}
-		err = eaa.Run(srvCtx, path)
-		if err != nil {
-			log.Errf("Run() exited with error: %#v", err)
+		eaaErr = eaa.Run(srvCtx, path)
+		if eaaErr != nil {
+			log.Errf("Run() exited with error: %#v", eaaErr)
 			goto fail
 		}
 		stopIndication <- true
 		return
 
 	fail:
+		eaaRunSuccess <- false
 		stopIndication <- true
-		eaaRunFail <- true
 	}()
-	return nil
+
+	// Wait until appliance is ready before running any tests specs
+	return waitForEAA(eaaRunSuccess)
 }
 
-func stopEaa(stopIndication chan bool) int {
+func waitForEAA(eaaRunSuccess chan bool) error {
+	go func() {
+		accessCertTempl := GetCertTempl()
+		accessCertTempl.Subject.CommonName = AccessName
+		accessCert, accessCertPool := generateSignedClientCert(
+			&accessCertTempl)
+
+		client := createHTTPClient(accessCert, accessCertPool)
+		for {
+			_, err := client.Get("https://" + cfg.TLSEndpoint)
+			if err == nil {
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		eaaRunSuccess <- true
+	}()
+
+	select {
+	case ok := <-eaaRunSuccess:
+		if ok {
+			By("Appliance ready")
+			return nil
+		}
+		return errors.New("starting appliance - run fail")
+	case <-time.After(time.Duration(cfg.ApplianceTimeoutSec) * time.Second):
+		return errors.New("starting appliance - timeout")
+	}
+}
+
+func stopEaa(stopIndication chan bool) {
 	By("Stopping appliance")
 	srvCancel()
 	<-stopIndication
-	if applianceIsRunning == true {
-		return 0
-	}
-
-	return 1
+	Expect(eaaErr).ShouldNot(HaveOccurred())
 }
 
 func GenerateTLSCert(cTempl, cParent *x509.Certificate, pub,
@@ -499,8 +512,8 @@ var _ = BeforeSuite(func() {
 		Fail("Unable to create temporary build directory")
 	}
 
-	Expect(authtest.EnrollStub(filepath.Join(tempdir, "certs"))).ToNot(
-		HaveOccurred())
+	copyCerts(TestCertsDir)
+	compareCerts(TestCertsDir)
 
 	tempConfCaRootKeyPath = tempdir + "/" + "certs/eaa/rootCA.key"
 	tempConfCaRootPath = tempdir + "/" + "certs/eaa/rootCA.pem"

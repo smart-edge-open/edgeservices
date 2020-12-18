@@ -45,14 +45,19 @@ var RSUJob = &batchv1.Job{
 					{
 						Name:    "fpga-opae", // to be edited by command
 						Image:   "fpga-opae-pacn3000:1.0",
-						Command: []string{"sudo", "/bin/bash", "-c", "--"},
+						Command: []string{"sudo", "-E", "/bin/bash", "-c", "--"},
 						Args:    []string{""}, // to be added by command
 						SecurityContext: &corev1.SecurityContext{
 							Privileged: &privileged,
 						},
 						ImagePullPolicy: corev1.PullPolicy(corev1.PullNever),
-						Env:             []corev1.EnvVar{},
-						VolumeMounts:    []corev1.VolumeMount{}, // to be added by command
+						Env: []corev1.EnvVar{
+							{
+								Name:  "PYTHONIOENCODING",
+								Value: "utf-8",
+							},
+						},
+						VolumeMounts: []corev1.VolumeMount{}, // to be added by command
 					},
 				},
 				RestartPolicy:    corev1.RestartPolicyNever,

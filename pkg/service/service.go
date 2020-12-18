@@ -129,7 +129,17 @@ func RunServices(services []StartFunction) bool {
 	Log.Infof("Starting services")
 	for _, runner := range services {
 		funcName := runtime.FuncForPC(reflect.ValueOf(runner).Pointer()).Name()
-		srvName := funcName[:strings.LastIndex(funcName, ".")]
+
+		// An example of funcName:
+		// github.com/open-ness/edgenode/pkg/certsigner.(*CertificateSigner).Run-fm
+		// we need to find the position of the first dot after last slash
+		lastSlashPos := strings.LastIndex(funcName, "/")
+		// If there's no slash in the function name then reset the position to 0
+		if lastSlashPos == -1 {
+			lastSlashPos = 0
+		}
+		firstDotAfterLastSlashPos := strings.Index(funcName[lastSlashPos:], ".") + lastSlashPos
+		srvName := funcName[:firstDotAfterLastSlashPos]
 
 		Log.Infof("Starting: %v", srvName)
 		wg.Add(1)

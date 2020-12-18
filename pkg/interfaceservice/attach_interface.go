@@ -27,12 +27,12 @@ func attachPortToOvs(port pb.Port) error {
 
 	var output []byte
 	if port.Driver == pb.Port_KERNEL {
-		output, err = Vsctl("--may-exist", "add-port", port.Bridge, name)
+		output, err = Vsctl("ovs-vsctl", "--may-exist", "add-port", port.Bridge, name)
 		if err == nil {
 			log.Info("Added OVS kernel port ", port.Pci, " - name: ", name, " bridge: ", port.Bridge)
 		}
 	} else {
-		output, err = Vsctl("--may-exist", "add-port", port.Bridge, name, "--", "set", "Interface", name,
+		output, err = Vsctl("ovs-vsctl", "--may-exist", "add-port", port.Bridge, name, "--", "set", "Interface", name,
 			"type=dpdk", "options:dpdk-devargs="+port.Pci)
 		if err == nil {
 			log.Info("Added OVS DPDK port ", port.Pci, " - name: ", name, " bridge: ", port.Bridge)

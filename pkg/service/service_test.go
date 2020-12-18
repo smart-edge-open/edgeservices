@@ -55,6 +55,24 @@ func successfulRun(parentCtx context.Context, cfg string) error {
 	return nil
 }
 
+func setConfigPath(f StartFunction) {
+	Cfg.Services = make(map[string]string)
+	funcName := runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+
+	// An example of funcName:
+	// github.com/open-ness/edgenode/pkg/certsigner.(*CertificateSigner).Run-fm
+	// we need to find the position of the first dot after last slash
+	lastSlashPos := strings.LastIndex(funcName, "/")
+	// If there's no slash in the function name then reset the position to 0
+	if lastSlashPos == -1 {
+		lastSlashPos = 0
+	}
+	firstDotAfterLastSlashPos := strings.Index(funcName[lastSlashPos:], ".") + lastSlashPos
+	srvName := funcName[:firstDotAfterLastSlashPos]
+
+	Cfg.Services[srvName] = "config.json"
+}
+
 var _ = Describe("runServices", func() {
 	var (
 		controlAgent fakeAgent
@@ -62,12 +80,10 @@ var _ = Describe("runServices", func() {
 	)
 
 	BeforeEach(func() {
+		Cfg.LogLevel = "debug"
+
 		controlAgent = fakeAgent{}
-		Cfg.Services = make(map[string]string)
-		funcName := runtime.FuncForPC(
-			reflect.ValueOf(controlRun).Pointer()).Name()
-		srvName := funcName[:strings.LastIndex(funcName, ".")]
-		Cfg.Services[srvName] = "config.json"
+		setConfigPath(controlRun)
 	})
 
 	Describe("Starts an Agent that will fail", func() {

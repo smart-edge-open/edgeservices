@@ -5,7 +5,7 @@
 
 set -uo pipefail
 
-CERTS_DIRECTORY="/etc/openness/certs/client/interfaceservice/"
+CERTS_DIRECTORY="/opt/openness/certs/client/interfaceservice/"
 
 error() {
     >&2 echo -e "[ERROR] ${*}"
