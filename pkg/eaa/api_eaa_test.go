@@ -11,14 +11,17 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/undefinedlabs/go-mpatch"
 
 	"github.com/gorilla/websocket"
 	"github.com/otcshare/edgenode/pkg/eaa"
@@ -1546,6 +1549,30 @@ var _ = Describe("ApiEaa", func() {
 		AfterEach(func() {
 			receivedServList = eaa.ServiceList{}
 			expectedServList = eaa.ServiceList{}
+		})
+
+		Describe("internal errors", func() {
+			When("there is socket upgrade error", func() {
+				It("createWsConn should fail with an error", func() {
+					p, e := PatchInstanceMethodByName(reflect.TypeOf(websocket.Upgrader{}), "Upgrade",
+						func(ws *websocket.Upgrader, w http.ResponseWriter,
+							r *http.Request, responseHeader http.Header) (*websocket.Conn, error) {
+							return nil, errors.New("test error")
+						})
+
+					defer p.Unpatch()
+
+					Expect(e).NotTo(HaveOccurred())
+
+					address := "wss://" + cfg.TLSEndpoint + "/notifications"
+
+					conn, resp, err := consSocket.Dial(address, consHeader)
+
+					Expect(conn).To(BeNil())
+					Expect(resp.StatusCode).To(BeEquivalentTo(http.StatusInternalServerError))
+					Expect(err).To(HaveOccurred())
+				})
+			})
 		})
 
 		Context("consumer closed connection", func() {
