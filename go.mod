@@ -11,13 +11,12 @@ require (
 	github.com/Shopify/sarama v1.26.0
 	github.com/ThreeDotsLabs/watermill v1.1.1
 	github.com/ThreeDotsLabs/watermill-kafka/v2 v2.2.0
-	github.com/containernetworking/cni v0.8.0
-	github.com/containernetworking/plugins v0.8.7
-	github.com/digitalocean/go-openvswitch v0.0.0-20191122155805-8ce3b4218729
+	github.com/containernetworking/cni v0.8.0 // indirect
+	github.com/containernetworking/plugins v0.8.7 // indirect
+	github.com/digitalocean/go-openvswitch v0.0.0-20191122155805-8ce3b4218729 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
-	github.com/docker/docker v1.13.1
-	github.com/docker/go-connections v0.4.0
-	github.com/docker/go-units v0.3.3 // indirect
+	github.com/docker/docker v1.13.1 // indirect
+	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
@@ -38,6 +37,7 @@ require (
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
 	google.golang.org/genproto v0.0.0-20200831141814-d751682dd103
 	google.golang.org/grpc v1.31.0
+	google.golang.org/grpc/examples v0.0.0-20201216234656-d79063fdde28 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	k8s.io/api v0.19.3
 	k8s.io/apimachinery v0.19.3

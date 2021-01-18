@@ -32,3 +32,7 @@ edgecontroller/.vscode/*
 
 # # Runtime artifacts
 edgecontroller/artifacts/
+
+# Test artifacts
+*.coverprofile
+pkg/certrequester/workdir/
