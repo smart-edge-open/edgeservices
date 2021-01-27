@@ -9,7 +9,7 @@ ENV http_proxy=$http_proxy
 ENV https_proxy=$https_proxy
 
 RUN yum install -y gcc gcc-c++ cmake make autoconf automake libxml2 libxml2-devel json-c-devel boost ncurses ncurses-devel ncurses-libs boost-devel libuuid libuuid-devel python2-jsonschema doxygen hwloc-devel libpng12 rsync bc python-devel python-libs python-sphinx unzip which wget python36 epel-release sudo
-RUN easy_install pip && pip install intelhex
+RUN easy_install pip==20.3.3 && pip install intelhex
 
 # RT repo
 RUN wget http://linuxsoft.cern.ch/cern/centos/7/rt/CentOS-RT.repo -O /etc/yum.repos.d/CentOS-RT.repo
