@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2019 Intel Corporation
+
+run:
+  tests: true
+  skip-files:
+    - "^\\+S\\.pb\\.go"
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - structcheck
+    - varcheck
+    - ineffassign
+    - typecheck
+    - deadcode
+    - golint
+    - gosec
+    - interfacer
+    - unconvert
+    - gocyclo
+    - gofmt
+    - misspell
+  enable-all: false
+
+linters-settings:
+  gocyclo:
+    min-complexity: 12
+  govet:
+    check-shadowing: true
+  misspell:
+    locale: US
+
+# golangci.com configuration
+# https://github.com/golangci/golangci/wiki/Configuration
+service:
+  golangci-lint-version: 1.16.x # use the fixed version to not introduce new linters unexpectedly

@@ -15,7 +15,6 @@ require (
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/otcshare/common/log v0.0.0-20200410092658-0c4ca4ce7794
-	github.com/otcshare/common/proxy v0.0.0-20200410092658-0c4ca4ce7794
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/undefinedlabs/go-mpatch v1.0.6
