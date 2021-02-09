@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pb "github.com/otcshare/edgenode/edgecontroller/pb/interfaceservice"
+	pb "github.com/open-ness/edgenode/edgecontroller/pb/interfaceservice"
 	monkey "github.com/undefinedlabs/go-mpatch"
 )
 

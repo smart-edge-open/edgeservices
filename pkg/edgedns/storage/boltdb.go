@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 	bolt "go.etcd.io/bbolt"
 
-	logger "github.com/otcshare/common/log"
+	logger "github.com/open-ness/common/log"
 )
 
 var log = logger.DefaultLogger.WithField("storage", nil)

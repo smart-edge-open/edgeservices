@@ -13,7 +13,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	mockEAA "github.com/otcshare/edgenode/pkg/mock"
+	mockEAA "github.com/open-ness/edgenode/pkg/mock"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-kafka/v2/pkg/kafka"
