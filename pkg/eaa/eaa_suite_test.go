@@ -34,7 +34,7 @@ import (
 	"github.com/otcshare/edgenode/pkg/eaa"
 	evapb "github.com/otcshare/edgenode/pkg/eva/internal_pb"
 
-	"github.com/otcshare/common/log"
+	"github.com/otcshare/edgenode/common/log"
 )
 
 // EaaCommonName Common Name that EAA uses for TLS connection

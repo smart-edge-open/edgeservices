@@ -15,7 +15,7 @@ import (
 	edgedns "github.com/otcshare/edgenode/pkg/edgedns"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/edgenode/common/log"
 	"github.com/otcshare/edgenode/pkg/edgedns/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

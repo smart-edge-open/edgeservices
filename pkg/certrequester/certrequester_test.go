@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/edgenode/common/log"
 	"github.com/otcshare/edgenode/pkg/certrequester"
 	"github.com/otcshare/edgenode/pkg/util"
 	certificatesv1 "k8s.io/api/certificates/v1"

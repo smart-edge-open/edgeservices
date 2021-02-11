@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/miekg/dns"
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/edgenode/common/log"
 )
 
 var log = logger.DefaultLogger.WithField("edgedns", nil)

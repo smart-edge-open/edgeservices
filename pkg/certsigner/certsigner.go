@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"time"
 
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/edgenode/common/log"
 	configutil "github.com/otcshare/edgenode/pkg/config"
 	"github.com/otcshare/edgenode/pkg/util"
 

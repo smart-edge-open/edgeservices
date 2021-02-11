@@ -29,7 +29,7 @@ require (
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
-	github.com/otcshare/common/log v0.0.0-20200918073610-af29aa2e340a
+	github.com/otcshare/edgenode/common/log v0.0.0-20210209144613-b68c6d9988f6
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/undefinedlabs/go-mpatch v1.0.6

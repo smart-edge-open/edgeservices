@@ -13,7 +13,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	log "github.com/otcshare/common/log"
+	log "github.com/otcshare/edgenode/common/log"
 	"github.com/otcshare/edgenode/internal/authtest"
 	"github.com/otcshare/edgenode/pkg/interfaceservice"
 	"google.golang.org/grpc/credentials"

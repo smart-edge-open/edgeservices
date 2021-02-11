@@ -8,7 +8,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/otcshare/common/log"
+	"github.com/otcshare/edgenode/common/log"
 	"github.com/otcshare/edgenode/pkg/certrequester"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

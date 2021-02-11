@@ -9,7 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"net"
 
-	logger "github.com/otcshare/common/log"
+	logger "github.com/otcshare/edgenode/common/log"
 	"github.com/otcshare/edgenode/pkg/config"
 	"github.com/otcshare/edgenode/pkg/util"
 	"github.com/pkg/errors"
