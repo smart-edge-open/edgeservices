@@ -110,7 +110,7 @@ if [ "$#" -ge 1 ]; then
             error "Error when retreiving node IP address"
             exit 1
         fi
-        /usr/local/bin/interfaceservicecli -endpoint="${ip}:42101" -servicename=interfaceservice.openness -certsdir=${CERTS_DIRECTORY} -cmd=get
+        sudo /usr/local/bin/interfaceservicecli -endpoint="${ip}:42101" -servicename=interfaceservice.openness -certsdir=${CERTS_DIRECTORY} -cmd=get
     elif [[ "${action}" == "attach" || "${action}" == "detach" ]]; then
         if [[ "${action}" == "attach" && "$#" -lt 3 ]]; then
             error "Action ${action} requires at least two arguments: kubectl interfaceservice ${action} <node_hostname> <pci_addr> [<driver>] [<ovs_bridge>]\n"
@@ -151,7 +151,7 @@ if [ "$#" -ge 1 ]; then
             exit 1
         fi
 
-        /usr/local/bin/interfaceservicecli -endpoint="${ip}:42101" -servicename=interfaceservice.openness -certsdir=${CERTS_DIRECTORY} -cmd="${action}" -pci="${pci_addr}" -brg="${ovs_bridge}" -drv="${driver}"
+        sudo /usr/local/bin/interfaceservicecli -endpoint="${ip}:42101" -servicename=interfaceservice.openness -certsdir=${CERTS_DIRECTORY} -cmd="${action}" -pci="${pci_addr}" -brg="${ovs_bridge}" -drv="${driver}"
     else
         error "Unrecognized action: ${action}\n"
         usage 1
