@@ -37,7 +37,7 @@ require (
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
 	google.golang.org/genproto v0.0.0-20200831141814-d751682dd103
 	google.golang.org/grpc v1.31.0
-	google.golang.org/grpc/examples v0.0.0-20201216234656-d79063fdde28 // indirect
+	google.golang.org/grpc/examples v0.0.0-20210209174707-61962d0e8e4e // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	k8s.io/api v0.19.3
 	k8s.io/apimachinery v0.19.3
