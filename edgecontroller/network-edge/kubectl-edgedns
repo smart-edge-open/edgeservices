@@ -104,7 +104,7 @@ if [ "$#" -ge 1 ]; then
             exit 1
         fi
 
-        sudo edgednscli -address="${ip}:4204" -cert=${CERTS_DIRECTORY}/cert.pem -key=${CERTS_DIRECTORY}/key.pem -ca=${CERTS_DIRECTORY}/root.pem -name=edgedns.openness -${action}=$JSON_filepath
+        sudo env "PATH=$PATH" edgednscli -address="${ip}:4204" -cert=${CERTS_DIRECTORY}/cert.pem -key=${CERTS_DIRECTORY}/key.pem -ca=${CERTS_DIRECTORY}/root.pem -name=edgedns.openness -${action}=$JSON_filepath
     else
         error "Unrecognized action: ${action}\n"
         usage 1
