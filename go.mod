@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2019-2020 Intel Corporation
 
-module github.com/otcshare/edgenode
+module github.com/otcshare/edgeservices
 
 go 1.15
 
@@ -29,7 +29,7 @@ require (
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
-	github.com/otcshare/edgenode/common/log v0.0.0-20210209144613-b68c6d9988f6
+	github.com/otcshare/edgeservices/common/log v0.0.0-20210209144613-b68c6d9988f6
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/undefinedlabs/go-mpatch v1.0.6

@@ -9,9 +9,9 @@ import (
 	"crypto/x509/pkix"
 	"net"
 
-	logger "github.com/otcshare/edgenode/common/log"
-	"github.com/otcshare/edgenode/pkg/config"
-	"github.com/otcshare/edgenode/pkg/util"
+	logger "github.com/otcshare/edgeservices/common/log"
+	"github.com/otcshare/edgeservices/pkg/config"
+	"github.com/otcshare/edgeservices/pkg/util"
 	"github.com/pkg/errors"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

@@ -13,9 +13,9 @@ import (
 	"fmt"
 	"time"
 
-	logger "github.com/otcshare/edgenode/common/log"
-	configutil "github.com/otcshare/edgenode/pkg/config"
-	"github.com/otcshare/edgenode/pkg/util"
+	logger "github.com/otcshare/edgeservices/common/log"
+	configutil "github.com/otcshare/edgeservices/pkg/config"
+	"github.com/otcshare/edgeservices/pkg/util"
 
 	"github.com/pkg/errors"
 	capi "k8s.io/api/certificates/v1"

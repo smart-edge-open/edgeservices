@@ -4,7 +4,7 @@
 package interfaceservice
 
 import (
-	pb "github.com/otcshare/edgenode/pkg/interfaceservice/pb"
+	pb "github.com/otcshare/edgeservices/pkg/interfaceservice/pb"
 	"github.com/pkg/errors"
 )
 

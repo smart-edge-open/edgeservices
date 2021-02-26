@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/otcshare/edgenode/common/log"
-	"github.com/otcshare/edgenode/pkg/certrequester"
-	"github.com/otcshare/edgenode/pkg/util"
+	logger "github.com/otcshare/edgeservices/common/log"
+	"github.com/otcshare/edgeservices/pkg/certrequester"
+	"github.com/otcshare/edgeservices/pkg/util"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"

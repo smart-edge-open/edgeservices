@@ -9,7 +9,7 @@ import (
 
 	"time"
 
-	"github.com/otcshare/edgenode/pkg/auth"
+	"github.com/otcshare/edgeservices/pkg/auth"
 	"github.com/pkg/errors"
 )
 

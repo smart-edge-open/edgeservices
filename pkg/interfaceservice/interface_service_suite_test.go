@@ -13,9 +13,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	log "github.com/otcshare/edgenode/common/log"
-	"github.com/otcshare/edgenode/internal/authtest"
-	"github.com/otcshare/edgenode/pkg/interfaceservice"
+	log "github.com/otcshare/edgeservices/common/log"
+	"github.com/otcshare/edgeservices/internal/authtest"
+	"github.com/otcshare/edgeservices/pkg/interfaceservice"
 	"google.golang.org/grpc/credentials"
 )
 

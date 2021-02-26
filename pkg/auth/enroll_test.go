@@ -29,8 +29,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
-	"github.com/otcshare/edgenode/pkg/auth"
-	pb "github.com/otcshare/edgenode/pkg/auth/pb"
+	"github.com/otcshare/edgeservices/pkg/auth"
+	pb "github.com/otcshare/edgeservices/pkg/auth/pb"
 	. "github.com/undefinedlabs/go-mpatch"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

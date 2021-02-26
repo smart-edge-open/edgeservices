@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/undefinedlabs/go-mpatch"
 
-	"github.com/otcshare/edgenode/pkg/auth"
+	"github.com/otcshare/edgeservices/pkg/auth"
 )
 
 var _ = g.Describe("pki initialiser internal errors", func() {

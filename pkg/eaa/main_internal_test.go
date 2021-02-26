@@ -18,8 +18,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	g "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/otcshare/edgenode/pkg/config"
-	mockEAA "github.com/otcshare/edgenode/pkg/mock"
+	"github.com/otcshare/edgeservices/pkg/config"
+	mockEAA "github.com/otcshare/edgeservices/pkg/mock"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/undefinedlabs/go-mpatch"
