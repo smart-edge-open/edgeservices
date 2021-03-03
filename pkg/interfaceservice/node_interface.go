@@ -51,6 +51,8 @@ func (*InterfaceService) Get(ctx context.Context,
 		log.Info(s)
 	}
 
+	log.Info("InterfaceService Get: sending a response with success")
+
 	return &pb.Ports{Ports: ports}, err
 }
 
@@ -73,6 +75,8 @@ func (*InterfaceService) Attach(ctx context.Context,
 		}
 	}
 
+	log.Info("InterfaceService Attach: sending a response with success")
+
 	return &empty.Empty{}, nil
 }
 
@@ -85,15 +89,20 @@ func (*InterfaceService) Detach(ctx context.Context,
 
 	for _, port := range ports.Ports {
 		if err := validatePort(*port); err != nil {
+			log.Errf("Port validation failed: %s", err.Error())
 			return &empty.Empty{}, err
 		}
 		if err := detachPortFromOvs(*port); err != nil {
+			log.Errf("Detach port from Ovs failed: %s", err.Error())
 			return &empty.Empty{}, err
 		}
 		if err := bindDriver(*port); err != nil {
+			log.Errf("Bind driver failed: %s", err.Error())
 			return &empty.Empty{}, err
 		}
 	}
+
+	log.Info("InterfaceService Detach: sending a response with success")
 
 	return &empty.Empty{}, nil
 }
