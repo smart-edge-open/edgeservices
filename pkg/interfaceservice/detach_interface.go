@@ -22,7 +22,7 @@ func detachPortFromOvs(port pb.Port) error {
 	if err == nil {
 		log.Info("Removed OVS port: ", name)
 	} else {
-		log.Info(string(output))
+		log.Info("removing port: "+string(output))
 		return errors.Wrapf(err, string(output))
 	}
 

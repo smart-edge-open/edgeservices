@@ -32,7 +32,7 @@ func getKernelNetworkDevices() ([]helpers.NetworkDevice, error) {
 func getBr(port string) string {
 	br, err := Vsctl("ovs-vsctl", "port-to-br", port)
 	if err != nil {
-		log.Info(err.Error())
+		log.Info("no br for "+ port +" "+ err.Error())
 		return ""
 	}
 	return string(bytes.TrimSpace(br))
