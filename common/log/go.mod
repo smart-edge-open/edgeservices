@@ -3,4 +3,4 @@
 
 module github.com/otcshare/edgeservices/common/log
 
-go 1.15
+go 1.16

@@ -13,4 +13,4 @@ require (
 
 replace rsu v0.0.0 => ./cmd
 
-go 1.15
+go 1.16
