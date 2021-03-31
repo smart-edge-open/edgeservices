@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
-	client "github.com/open-ness/edgenode/pkg/edgedns/test"
+	client "github.com/open-ness/edgeservices/pkg/edgedns/test"
 )
 
 // Send a DNS query to the test server

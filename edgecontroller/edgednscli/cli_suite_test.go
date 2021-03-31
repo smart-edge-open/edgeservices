@@ -12,7 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	cli "github.com/open-ness/edgenode/edgecontroller/edgednscli"
+	cli "github.com/open-ness/edgeservices/edgecontroller/edgednscli"
 )
 
 var (

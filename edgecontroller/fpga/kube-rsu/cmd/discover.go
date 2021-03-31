@@ -18,7 +18,7 @@ func listImages(node string) error {
 	var cmd *exec.Cmd
 
 	// #nosec
-	cmd = exec.Command("ssh", "root@"+node,
+	cmd = exec.Command("ssh", node,
 		"ls -lh", "/temp/vran_images/", "| awk '{print $6,$7,\"\t\",$5,\"\t\",$9}'")
 
 	stdout, _ := cmd.StdoutPipe()
@@ -53,7 +53,7 @@ func listDevices(node string) error {
 	var cmd *exec.Cmd
 
 	// #nosec
-	cmd = exec.Command("ssh", node, "lspci", "-knnd:0b30")
+	cmd = exec.Command("ssh", node, "sudo", "lspci", "-knnd:0b30")
 
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()

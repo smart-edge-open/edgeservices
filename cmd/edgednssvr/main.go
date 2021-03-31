@@ -12,11 +12,11 @@ import (
 	"syscall"
 	"time"
 
-	logger "github.com/open-ness/common/log"
-	edgedns "github.com/open-ness/edgenode/pkg/edgedns"
-	"github.com/open-ness/edgenode/pkg/edgedns/grpc"
-	"github.com/open-ness/edgenode/pkg/edgedns/storage"
-	"github.com/open-ness/edgenode/pkg/util"
+	logger "github.com/open-ness/edgeservices/common/log"
+	edgedns "github.com/open-ness/edgeservices/pkg/edgedns"
+	"github.com/open-ness/edgeservices/pkg/edgedns/grpc"
+	"github.com/open-ness/edgeservices/pkg/edgedns/storage"
+	"github.com/open-ness/edgeservices/pkg/util"
 )
 
 var log = logger.DefaultLogger.WithField("main", nil)

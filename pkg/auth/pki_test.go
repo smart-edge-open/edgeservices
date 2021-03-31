@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
-	"github.com/open-ness/edgenode/pkg/auth"
+	"github.com/open-ness/edgeservices/pkg/auth"
 	. "github.com/undefinedlabs/go-mpatch"
 )
 

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/open-ness/edgenode/pkg/certsigner"
-	"github.com/open-ness/edgenode/pkg/service"
+	"github.com/open-ness/edgeservices/pkg/certsigner"
+	"github.com/open-ness/edgeservices/pkg/service"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )

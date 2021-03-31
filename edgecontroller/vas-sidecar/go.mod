@@ -3,7 +3,7 @@
 
 module vas-sidecar
 
-go 1.15
+go 1.16
 
 require (
         eaa v0.0.0

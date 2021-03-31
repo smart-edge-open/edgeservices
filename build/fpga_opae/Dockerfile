@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2019-2020 Intel Corporation
 
-FROM centos:7.8.2003
+FROM centos:7.9.2009
 
 WORKDIR /root/opae
 
@@ -12,8 +12,8 @@ RUN yum install -y gcc gcc-c++ cmake make autoconf automake libxml2 libxml2-deve
 RUN easy_install pip==20.3.3 && pip install intelhex
 
 # RT repo
-RUN wget http://linuxsoft.cern.ch/cern/centos/7/rt/CentOS-RT.repo -O /etc/yum.repos.d/CentOS-RT.repo
-RUN wget http://linuxsoft.cern.ch/cern/centos/7/os/x86_64/RPM-GPG-KEY-cern -O /etc/pki/rpm-gpg/RPM-GPG-KEY-cern
+RUN wget http://linuxsoft.cern.ch/cern/centos/7.9.2009/rt/CentOS-RT.repo -O /etc/yum.repos.d/CentOS-RT.repo
+RUN wget http://linuxsoft.cern.ch/cern/centos/7.9.2009/os/x86_64/RPM-GPG-KEY-cern -O /etc/pki/rpm-gpg/RPM-GPG-KEY-cern
 
 # install kernel sources to compile DPDK
 RUN export isRT=$(uname -r | grep rt -c) && if [ $isRT = "1" ] ; then yum install -y "kernel-rt-devel-uname-r == $(uname -r)"; else yum install -y "kernel-devel-uname-r == $(uname -r)"; fi
@@ -52,4 +52,3 @@ RUN sudo -E bash -c 'cd OPAE/installation_packages && yum localinstall -y \
 COPY check_if_modules_loaded.sh .
 RUN export isRT=$(uname -r | grep rt -c) && if [ $isRT = "1" ] ; then sudo yum erase -y "kernel-rt-devel-uname-r == $(uname -r)"; else sudo yum erase -y "kernel-devel-uname-r == $(uname -r)"; fi
 RUN sudo rpm -e --nodeps kernel-headers
-RUN sudo rpm -e --nodeps kernel-devel

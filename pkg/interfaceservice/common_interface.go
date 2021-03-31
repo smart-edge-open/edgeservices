@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	pb "github.com/open-ness/edgenode/pkg/interfaceservice/pb"
+	pb "github.com/open-ness/edgeservices/pkg/interfaceservice/pb"
 	"github.com/pkg/errors"
 )
 
@@ -22,12 +22,14 @@ var devbindInterfacesInfo []string
 // updateDPDKDevbindOutput get an info from dpdk-devbind.py script. It
 // stores lines starting with PCI address like: XXXX:XX:XX.X only.
 func updateDPDKDevbindOutput() {
+	log.Info("updating interfaces...")
 	devbindOutput, _ := Devbind("./dpdk-devbind.py", "--status")
 	devbindInterfacesInfo = regexp.MustCompile(`[0-9a-fA-F]{4}(:[0-9a-fA-F]{2}){2}.\d .*`).
 		FindAllString(string(devbindOutput), -1)
 	for i := range devbindInterfacesInfo {
 		devbindInterfacesInfo[i] = strings.TrimSpace(devbindInterfacesInfo[i])
 	}
+	log.Info("updated successfully")
 }
 
 // getPortDrivers returns current driver and list of unused drivers
@@ -37,10 +39,13 @@ func getPortDrivers(pci string) (string, []string) {
 	}
 
 	portInfo := getLineFromDevbindInterfacesInfo(pci)
+	log.Info("dpdk-devbind line for port: ", pci, " ", portInfo)
 
 	if len(portInfo) > 0 {
 		drv := getListValues(portInfo, "drv")
+		log.Info("current drv from dpdk-devbind: ", drv)
 		unused := getListValues(portInfo, "unused")
+		log.Info("unused drv from dpdk-devbind: ", unused)
 		if drv != nil {
 			currentDrv := drv[0]
 			return currentDrv, unused
@@ -122,6 +127,7 @@ func bindDriver(port pb.Port) error {
 	}
 
 	drv, err := findDrvToBind(port, current, unused)
+	log.Info("Binding drv ", drv, " for port ", port.Pci)
 	if err != nil {
 		return err
 	}

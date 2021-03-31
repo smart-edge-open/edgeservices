@@ -62,7 +62,7 @@ func createWsConn(w http.ResponseWriter, r *http.Request) (int, error) {
 	conn, err := socket.Upgrade(w, r, nil)
 	if err != nil {
 		delete(eaaCtx.consumerConnections.m, commonName)
-		return 0, err
+		return http.StatusInternalServerError, err
 	}
 
 	eaaCtx.consumerConnections.m[commonName] = ConsumerConnection{

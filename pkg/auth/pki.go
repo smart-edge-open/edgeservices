@@ -7,6 +7,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -47,7 +48,7 @@ func readFileWithPerm(path string, perm os.FileMode) ([]byte, error) {
 	}
 	if fInfo.Size() > maxFileSizeToRead {
 		return nil, errors.New("File " + path +
-			" seems to be to long:" + string(fInfo.Size()))
+			" seems to be to long:" + fmt.Sprint(fInfo.Size()))
 	}
 	return ioutil.ReadAll(f)
 }

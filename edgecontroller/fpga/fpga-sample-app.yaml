@@ -28,13 +28,13 @@ spec:
       requests:
         #intel.com/intel_fec_lte: '1'
         intel.com/intel_fec_5g: '1'
-        hugepages-2Mi: 512Mi
-        memory: 512Mi
+        hugepages-1Gi: 1Gi
+        memory: 1Gi
       limits:
         #intel.com/intel_fec_lte: '1'
         intel.com/intel_fec_5g: '1'
-        hugepages-2Mi: 512Mi
-        memory: 512Mi
+        hugepages-1Gi: 1Gi
+        memory: 1Gi
   volumes:
   - name: hugepage
     emptyDir:

@@ -12,12 +12,12 @@ import (
 	"os"
 	"path/filepath"
 
-	logger "github.com/open-ness/common/log"
-	"github.com/open-ness/edgenode/pkg/config"
+	logger "github.com/open-ness/edgeservices/common/log"
+	"github.com/open-ness/edgeservices/pkg/config"
 
-	"github.com/open-ness/edgenode/pkg/auth"
-	pb "github.com/open-ness/edgenode/pkg/interfaceservice/pb"
-	"github.com/open-ness/edgenode/pkg/util"
+	"github.com/open-ness/edgeservices/pkg/auth"
+	pb "github.com/open-ness/edgeservices/pkg/interfaceservice/pb"
+	"github.com/open-ness/edgeservices/pkg/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

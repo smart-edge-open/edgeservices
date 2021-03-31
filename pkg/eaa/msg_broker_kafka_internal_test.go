@@ -13,7 +13,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	mockEAA "github.com/open-ness/edgenode/pkg/mock"
+	mockEAA "github.com/open-ness/edgeservices/pkg/mock"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-kafka/v2/pkg/kafka"
@@ -241,21 +241,35 @@ var _ = g.Describe("keyGenerator", func() {
 	})
 })
 
-func patch(o interface{}, name string, f interface{}, patches *[]*Patch) {
+var patches []*Patch
+
+func patchInstanceMethod(o interface{}, n string, f interface{}) *Patch {
 	t := reflect.TypeOf(o)
-	p, e := PatchInstanceMethodByName(t, name, f)
+	p, e := PatchInstanceMethodByName(t, n, f)
 
 	Expect(e).NotTo(HaveOccurred())
 
-	*patches = append(*patches, p)
+	patches = append(patches, p)
+
+	return p
 }
 
-func patchMethod(t, r interface{}, patches *[]*Patch) {
+func patchMethod(t, r interface{}) *Patch {
 	p, e := PatchMethodByReflectValue(reflect.ValueOf(t), r)
 
 	Expect(e).NotTo(HaveOccurred())
 
-	*patches = append(*patches, p)
+	patches = append(patches, p)
+
+	return p
+}
+
+func unpatchAll() {
+	for _, p := range patches {
+		p.Unpatch()
+	}
+
+	patches = []*Patch{}
 }
 
 var _ = g.Describe("Kafka Message Broker", func() {
@@ -274,7 +288,6 @@ var _ = g.Describe("Kafka Message Broker", func() {
 	topic := "sample topic"
 	subscriber := &kafka.Subscriber{}
 	publisher := &kafka.Publisher{}
-	patches := []*Patch{}
 
 	g.BeforeEach(func() {
 		mockCtrl = gomock.NewController(g.GinkgoT())
@@ -291,22 +304,23 @@ var _ = g.Describe("Kafka Message Broker", func() {
 
 		mockKafka.EXPECT().NewPublisher(gomock.Any(), gomock.Any()).Return(publisher, nil)
 
-		patch(publisher, "Publish", func(a *kafka.Publisher, topic string, msgs ...*message.Message) error {
-			return mockKafkaPublisher.Publish(topic, msgs...)
-		}, &patches)
+		patchInstanceMethod(publisher, "Publish",
+			func(a *kafka.Publisher, topic string, msgs ...*message.Message) error {
+				return mockKafkaPublisher.Publish(topic, msgs...)
+			})
 
-		patch(publisher, "Close", func(s *kafka.Publisher) error {
+		patchInstanceMethod(publisher, "Close", func(s *kafka.Publisher) error {
 			return mockKafkaPublisher.Close()
-		}, &patches)
+		})
 
-		patch(subscriber, "Subscribe",
+		patchInstanceMethod(subscriber, "Subscribe",
 			func(s *kafka.Subscriber, ctx context.Context, topic string) (<-chan *message.Message, error) {
 				return mockKafkaSubscriber.Subscribe(ctx, topic)
-			}, &patches)
+			})
 
-		patch(subscriber, "Close", func(s *kafka.Subscriber) error {
+		patchInstanceMethod(subscriber, "Close", func(s *kafka.Subscriber) error {
 			return mockKafkaSubscriber.Close()
-		}, &patches)
+		})
 
 		var e error
 		kafkaBroker, e = NewKafkaMsgBroker(&eaaCtx, "eaa_test_consumer", nil)
@@ -316,11 +330,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 
 	g.AfterEach(func() {
 		// clear patches first to do that before checking mocks
-		for _, p := range patches {
-			p.Unpatch()
-		}
-
-		patches = []*Patch{}
+		unpatchAll()
 
 		mockCtrl.Finish()
 
@@ -455,7 +465,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 				patchMethod(handleNotificationUpdates, func(_ <-chan *message.Message, _ *Context) {
 					sync <- true
 					close(sync)
-				}, &patches)
+				})
 
 				mc := make(chan *message.Message)
 
@@ -513,7 +523,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 			patchMethod(handleServiceUpdates, func(_ <-chan *message.Message, _ *Context) {
 				sync <- true
 				close(sync)
-			}, &patches)
+			})
 
 			mc := make(chan *message.Message)
 
@@ -569,7 +579,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 			patchMethod(handleClientUpdates, func(_ <-chan *message.Message, _ *Context) {
 				sync <- true
 				close(sync)
-			}, &patches)
+			})
 
 			mc := make(chan *message.Message)
 
@@ -614,8 +624,10 @@ var _ = g.Describe("Kafka Message Broker", func() {
 	})
 
 	g.Describe("addSubscriber", func() {
+		var dsscFirstCall *gomock.Call
 		g.BeforeEach(func() {
-			mockKafka.EXPECT().DefaultSaramaSubscriberConfig().Return(kafka.DefaultSaramaSubscriberConfig())
+			dsscFirstCall = mockKafka.EXPECT().DefaultSaramaSubscriberConfig().
+				Return(kafka.DefaultSaramaSubscriberConfig())
 		})
 
 		g.It("should create and remember notification subscriber and call handleNotificationUpdates",
@@ -625,7 +637,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 				patchMethod(handleNotificationUpdates, func(_ <-chan *message.Message, _ *Context) {
 					sync <- true
 					close(sync)
-				}, &patches)
+				})
 
 				subscribersCount := len(kafkaBroker.subs.m)
 
@@ -658,7 +670,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 				patchMethod(handleServiceUpdates, func(_ <-chan *message.Message, _ *Context) {
 					sync <- true
 					close(sync)
-				}, &patches)
+				})
 
 				subscribersCount := len(kafkaBroker.subs.m)
 
@@ -691,7 +703,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 				patchMethod(handleClientUpdates, func(_ <-chan *message.Message, _ *Context) {
 					sync <- true
 					close(sync)
-				}, &patches)
+				})
 
 				subscribersCount := len(kafkaBroker.subs.m)
 
@@ -723,7 +735,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 			patchMethod(handleClientUpdates, func(_ <-chan *message.Message, _ *Context) {
 				sync <- true
 				close(sync)
-			}, &patches)
+			})
 
 			subscribersCount := len(kafkaBroker.subs.m)
 
@@ -774,6 +786,14 @@ var _ = g.Describe("Kafka Message Broker", func() {
 			Expect(e).To(HaveOccurred())
 			Expect(len(kafkaBroker.subs.m)).To(BeEquivalentTo(subscribersCount))
 		})
+
+		g.It("should report an error when subsciber type is not supported", func() {
+			dsscFirstCall.AnyTimes()
+
+			e := kafkaBroker.addSubscriber(clientSubscriber+1000, topic, nil)
+
+			Expect(e).To(HaveOccurred())
+		})
 	})
 
 	g.Describe("removeAll", func() {
@@ -789,7 +809,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 			patchMethod(handleClientUpdates, func(_ <-chan *message.Message, _ *Context) {
 				sync <- true
 				close(sync)
-			}, &patches)
+			})
 
 			subscribersCount := len(kafkaBroker.subs.m)
 
@@ -833,7 +853,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 				patchMethod(handleClientUpdates, func(_ <-chan *message.Message, _ *Context) {
 					sync <- true
 					close(sync)
-				}, &patches)
+				})
 
 				subscribersCount := len(kafkaBroker.subs.m)
 
@@ -877,7 +897,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 				patchMethod(handleClientUpdates, func(_ <-chan *message.Message, _ *Context) {
 					sync <- true
 					close(sync)
-				}, &patches)
+				})
 
 				subscribersCount := len(kafkaBroker.subs.m)
 
@@ -938,7 +958,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 				g.It("should call original kafka implementation", func() {
 					c := &sarama.Config{}
 
-					patchMethod(kafka.DefaultSaramaSubscriberConfig, func() *sarama.Config { return c }, &patches)
+					patchMethod(kafka.DefaultSaramaSubscriberConfig, func() *sarama.Config { return c })
 
 					check := k.DefaultSaramaSubscriberConfig()
 
@@ -952,7 +972,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 
 					patchMethod(kafka.DefaultSaramaSyncPublisherConfig, func() *sarama.Config {
 						return c
-					}, &patches)
+					})
 
 					check := k.DefaultSaramaSyncPublisherConfig()
 
@@ -967,7 +987,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 					patchMethod(kafka.NewPublisher,
 						func(_ kafka.PublisherConfig, _ watermill.LoggerAdapter) (*kafka.Publisher, error) {
 							return p, nil
-						}, &patches)
+						})
 
 					check, e := k.NewPublisher(kafka.PublisherConfig{}, nil)
 
@@ -983,9 +1003,9 @@ var _ = g.Describe("Kafka Message Broker", func() {
 					patchMethod(kafka.NewWithPartitioningMarshaler,
 						func(_ kafka.GeneratePartitionKey) kafka.MarshalerUnmarshaler {
 							return tm
-						}, &patches)
+						})
 
-					check := kafka.NewWithPartitioningMarshaler(
+					check := k.NewWithPartitioningMarshaler(
 						func(_ string, _ *message.Message) (string, error) { return "", nil })
 
 					km, ok := check.(TestMarshaler)
@@ -1002,7 +1022,7 @@ var _ = g.Describe("Kafka Message Broker", func() {
 					patchMethod(kafka.NewSubscriber,
 						func(_ kafka.SubscriberConfig, _ watermill.LoggerAdapter) (*kafka.Subscriber, error) {
 							return s, nil
-						}, &patches)
+						})
 
 					check, e := k.NewSubscriber(kafka.SubscriberConfig{}, nil)
 

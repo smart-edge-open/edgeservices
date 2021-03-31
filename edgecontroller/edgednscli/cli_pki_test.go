@@ -16,6 +16,27 @@ import (
 )
 
 var (
+	// CAKey generated with:
+	// openssl genpkey -algorithm RSA -out cakey.pem
+
+	// this key is here just to allow to regenerate the rest
+	// 	CAKey = []byte(`-----BEGIN PRIVATE KEY-----
+	// MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAOtKSk/bKAOY2wKI
+	// i936z2JjWRPeIOePYa278lkPin3oXr5SmiZTVEbmV6hoL88B9UXP9291N5PsKAfF
+	// RPzhcW8w7MJgmkmoWch+iqfeme3tbDRnVcDzOs1v3BnQDEEffoTccnNuX9Ji0Xq1
+	// oFH5ys4jy+fEVh2bBSe8Nm/zMMdlAgMBAAECgYEAxWrT5yTu8fWy7PE8ycfDcb4B
+	// 45Wg7ilzv53OvcM4ZGQv+mi8RiPstoBWVEr2si3maekQp0gmlcqz27E9LSDLVvBD
+	// eTRb48JqOxenTHZVPj9AO1n9CPlhV6XiUqdbu328LTi4VCgCYLLkQlJ1/zQAotbi
+	// mggEdgwN8V15LLpblgECQQD5Q74E8U++9TlwAebkfgr+xUUAa011GifuMUgb5dVi
+	// NSpPwA821s/OYG5ksG70pO7VDUxpZ/QTWT6LlJdjXW/FAkEA8aXhs+ymHpZZAZlm
+	// zOxlo7RjDe/bPp1pJ8mBkHo1K106fx0vm4Zcx7REzarYrOqfJ/wmK/2b7Ixbs2xL
+	// 907TIQI/Vqg2Z4F9N+YJEeeXXdhz+h6a3opvY0a0mxqG9yvwAzR4gUFECMylchoU
+	// Ru0Ppf2xCmCVMA/zysY7+EqwVtslAkEAs6L8ETQYHd7olb7C5A3MVRERHdgz5O1B
+	// sbkjnxKqGe15Qeuha31L1Y2WJEogPxM/c4sHmWYzlnqU5OHZ6yPm4QJBAPKsMron
+	// 7YN7OzQze3Uu0UQoOEfTRTrybgdodz/YhbGVfj3KIK4cS9v2YVusXcAEzw+hgfWZ
+	// najMYyTaQOUOoX8=
+	// -----END PRIVATE KEY-----`)
+
 	// CACert generated with:
 	// openssl req -new -x509 -key cakey.pem -days 36500 \
 	// -subj "/C=TT/ST=TestCA/L=TestCA/O=TestCA/OU=TestCA/CN=TestCA" \
@@ -57,22 +78,22 @@ u7w2aa5w9B9vwg==
 	// ServerCert generated with:
 	// openssl req -new -key serverkey.pem -out server.csr \
 	// -subj "/C=TT/ST=Server/L=Server/O=Server/OU=Server/CN=localhost"
-	// openssl x509 -req -in server.csr -CA cacert.pem -CAkey cakey.pem \
-	// -days 36500 -out servercert.pem -CAcreateserial
+	// openssl x509 -req -extfile <(printf "subjectAltName=DNS:localhost") -in server.csr \
+	// -CA cacert.pem -CAkey cakey.pem -days 36500 -out servercert.pem -CAcreateserial
 	ServerCert = []byte(`-----BEGIN CERTIFICATE-----
-MIICQDCCAakCCQDx/yry8Dvq/zANBgkqhkiG9w0BAQsFADBiMQswCQYDVQQGEwJU
-VDEPMA0GA1UECAwGVGVzdENBMQ8wDQYDVQQHDAZUZXN0Q0ExDzANBgNVBAoMBlRl
-c3RDQTEPMA0GA1UECwwGVGVzdENBMQ8wDQYDVQQDDAZUZXN0Q0EwIBcNMTkwNzA0
-MDcwMDU5WhgPMjExOTA2MTAwNzAwNTlaMGUxCzAJBgNVBAYTAlRUMQ8wDQYDVQQI
-DAZTZXJ2ZXIxDzANBgNVBAcMBlNlcnZlcjEPMA0GA1UECgwGU2VydmVyMQ8wDQYD
-VQQLDAZTZXJ2ZXIxEjAQBgNVBAMMCWxvY2FsaG9zdDCBnzANBgkqhkiG9w0BAQEF
-AAOBjQAwgYkCgYEA82n68fyCuOAmFIQcs3aV4twcSZ6lBYhjAvqngTuME/jFHziL
-RX2CGE0PbrZeGs/BaY4Xyd5hy9DAW6862gyBWvVy7gteUnwPhUP+IItoC23ppyXy
-INgp3yulJFHl9LhCZF6b/gAFWWUuurncvkIObvtDrlR09obpFTQst+b6nXkCAwEA
-ATANBgkqhkiG9w0BAQsFAAOBgQCv3lQwd9nrMcUIuuj+c9NcUiXMgw3fep3joQVL
-M/olrJzclxV0lUfp1AAukjs15BzDbuQU3c+GJkZO0zkIC5hxj+qj8sALs5pd8ckb
-XehDtstG7rATzANfoGGQdX5mWZxnUKmd9E2zwqCkCmgDuPQWB45qdV2f255UamDl
-vPqWmA==
+MIICajCCAdOgAwIBAgIUVy/z7c0lDyiB45G+ut0s/aytvAcwDQYJKoZIhvcNAQEL
+BQAwYjELMAkGA1UEBhMCVFQxDzANBgNVBAgMBlRlc3RDQTEPMA0GA1UEBwwGVGVz
+dENBMQ8wDQYDVQQKDAZUZXN0Q0ExDzANBgNVBAsMBlRlc3RDQTEPMA0GA1UEAwwG
+VGVzdENBMCAXDTIxMDIxMDEyMDQzNFoYDzIxMjEwMTE3MTIwNDM0WjBlMQswCQYD
+VQQGEwJUVDEPMA0GA1UECAwGU2VydmVyMQ8wDQYDVQQHDAZTZXJ2ZXIxDzANBgNV
+BAoMBlNlcnZlcjEPMA0GA1UECwwGU2VydmVyMRIwEAYDVQQDDAlsb2NhbGhvc3Qw
+gZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAPNp+vH8grjgJhSEHLN2leLcHEme
+pQWIYwL6p4E7jBP4xR84i0V9ghhND262XhrPwWmOF8neYcvQwFuvOtoMgVr1cu4L
+XlJ8D4VD/iCLaAtt6acl8iDYKd8rpSRR5fS4QmRem/4ABVllLrq53L5CDm77Q65U
+dPaG6RU0LLfm+p15AgMBAAGjGDAWMBQGA1UdEQQNMAuCCWxvY2FsaG9zdDANBgkq
+hkiG9w0BAQsFAAOBgQBG5xF3jdfcW8EkdeLTLa2wy5hzE+35p2pwOFUP7zkjkCaq
+2QcbvhkcoAR9KomH7qa2JPino1+2O5R0ATzv4CwzKpQvRAm+jVroxuTP3TI4yy4j
+tqIWTyZrFqr1w/5yCh6lE5Panv/FEezv9WguBnFG04Vj0c/toUTqxCKKjH613w==
 -----END CERTIFICATE-----`)
 	// ClientKey generated with:
 	// openssl genpkey -algorithm RSA -out clientkey.pem

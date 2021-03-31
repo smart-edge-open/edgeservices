@@ -69,6 +69,10 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 	if eaaCtx.serviceInfo.m == nil {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusInternalServerError)
+
+		eaaCtx.serviceInfo.RUnlock()
+
+		return
 	}
 	eaaCtx.serviceInfo.RUnlock()
 
@@ -106,7 +110,6 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
 
 	eaaCtx.serviceInfo.RLock()
 	defer eaaCtx.serviceInfo.RUnlock()
@@ -135,7 +138,6 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	eaaCtx := r.Context().Value(contextKey("appliance-ctx")).(*Context)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
 
 	var (
 		subs       *SubscriptionList
@@ -203,6 +205,8 @@ func PushNotificationToSubscribers(w http.ResponseWriter, r *http.Request) {
 		if _, ok := err.(objectAlreadyExistsError); !ok {
 			log.Errf("Error when adding a Publisher of type: '%v', id: '%v'. Error: %s",
 				notificationPublisher, notifTopic, err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 	}
 

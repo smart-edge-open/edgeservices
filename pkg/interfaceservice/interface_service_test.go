@@ -22,13 +22,13 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
-	log "github.com/open-ness/common/log"
-	"github.com/open-ness/edgenode/internal/authtest"
-	"github.com/open-ness/edgenode/pkg/auth"
-	"github.com/open-ness/edgenode/pkg/config"
-	elahelpers "github.com/open-ness/edgenode/pkg/ela/helpers"
-	ifs "github.com/open-ness/edgenode/pkg/interfaceservice"
-	pb "github.com/open-ness/edgenode/pkg/interfaceservice/pb"
+	log "github.com/open-ness/edgeservices/common/log"
+	"github.com/open-ness/edgeservices/internal/authtest"
+	"github.com/open-ness/edgeservices/pkg/auth"
+	"github.com/open-ness/edgeservices/pkg/config"
+	elahelpers "github.com/open-ness/edgeservices/pkg/ela/helpers"
+	ifs "github.com/open-ness/edgeservices/pkg/interfaceservice"
+	pb "github.com/open-ness/edgeservices/pkg/interfaceservice/pb"
 	monkey "github.com/undefinedlabs/go-mpatch"
 )
 

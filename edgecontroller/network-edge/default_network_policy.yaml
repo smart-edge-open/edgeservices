@@ -9,5 +9,10 @@ metadata:
 spec:
   podSelector: {}
   policyTypes:
-  - Ingress
-  ingress: []
+    - Ingress
+  ingress:
+    - from:
+      - ipBlock:
+          # Workaround for kube-ovn which doesn't detect the ingress
+          # when no rule is specified.
+          cidr: 0.0.0.0/32

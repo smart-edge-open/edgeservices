@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2019 Intel Corporation
+# Copyright (c) 2019-2021 Intel Corporation
 
-FROM centos:7.8.2003
+FROM centos:8.3.2011
 
 WORKDIR /root/
 
@@ -11,7 +11,7 @@ RUN yum install -y unzip sudo \
 COPY syscfg_package.zip .
 RUN mkdir -p /root/syscfg \
         && unzip syscfg_package.zip -d /root/syscfg_package \
-        && rpm -ivh --prefix=/usr/bin /root/syscfg_package/Linux_x64/RHEL/*.rpm
+        && rpm -ivh --prefix=/usr/bin /root/syscfg_package/Linux_x64/RHEL/RHEL8/*.rpm
 
 ARG username=biosfw
 ARG user_dir=/home/$username

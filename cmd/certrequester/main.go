@@ -4,13 +4,19 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
-	"github.com/open-ness/common/log"
-	"github.com/open-ness/edgenode/pkg/certrequester"
+	"github.com/open-ness/edgeservices/common/log"
+	"github.com/open-ness/edgeservices/pkg/certrequester"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+)
+
+const (
+	certPath = "./certs/cert.pem"
+	keyPath  = "./certs/key.pem"
 )
 
 func main() {
@@ -29,7 +35,7 @@ func main() {
 	configPath := flag.String("cfg", "certrequest.json", "CSR config path")
 	flag.Parse()
 
-	err = certrequester.GetCertificate(clientset, *configPath)
+	err = certrequester.GetCertificate(context.Background(), clientset, *configPath, certPath, keyPath)
 	if err != nil {
 		log.Errf("Failed to generate certificate: %s\n", err.Error())
 		os.Exit(1)
