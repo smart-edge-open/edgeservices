@@ -7,9 +7,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/otcshare/edgeservices/pkg/ela/helpers"
+	. "github.com/open-ness/edgeservices/pkg/ela/helpers"
 
-	pb "github.com/otcshare/edgeservices/pkg/ela/pb"
+	pb "github.com/open-ness/edgeservices/pkg/ela/pb"
 )
 
 var _ = Describe("Traffic rules are verified.", func() {

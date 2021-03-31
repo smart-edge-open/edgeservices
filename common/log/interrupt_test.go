@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otcshare/edgeservices/common/log"
+	"github.com/open-ness/edgeservices/common/log"
 )
 
 func TestSignalVerbosityChanges(t *testing.T) {

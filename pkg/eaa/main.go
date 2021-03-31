@@ -15,9 +15,9 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	logger "github.com/otcshare/edgeservices/common/log"
-	"github.com/otcshare/edgeservices/pkg/config"
-	"github.com/otcshare/edgeservices/pkg/util"
+	logger "github.com/open-ness/edgeservices/common/log"
+	"github.com/open-ness/edgeservices/pkg/config"
+	"github.com/open-ness/edgeservices/pkg/util"
 	"github.com/pkg/errors"
 )
 

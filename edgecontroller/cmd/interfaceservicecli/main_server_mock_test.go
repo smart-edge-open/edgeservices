@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/otcshare/edgeservices/edgecontroller/pb/interfaceservice"
+	pb "github.com/open-ness/edgeservices/edgecontroller/pb/interfaceservice"
 	"google.golang.org/grpc"
 )
 

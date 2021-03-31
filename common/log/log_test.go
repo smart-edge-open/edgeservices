@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/otcshare/edgeservices/common/log"
+	"github.com/open-ness/edgeservices/common/log"
 )
 
 func TestDefaultLoggerSetOutput(t *testing.T) {
