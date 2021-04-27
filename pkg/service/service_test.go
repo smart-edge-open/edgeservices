@@ -60,7 +60,7 @@ func setConfigPath(f StartFunction) {
 	funcName := runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 
 	// An example of funcName:
-	// github.com/otcshare/edgeservices/pkg/certsigner.(*CertificateSigner).Run-fm
+	// github.com/open-ness/edgeservices/pkg/certsigner.(*CertificateSigner).Run-fm
 	// we need to find the position of the first dot after last slash
 	lastSlashPos := strings.LastIndex(funcName, "/")
 	// If there's no slash in the function name then reset the position to 0

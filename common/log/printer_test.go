@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/otcshare/edgeservices/common/log"
+	"github.com/open-ness/edgeservices/common/log"
 )
 
 func TestPrinterPrint(t *testing.T) {

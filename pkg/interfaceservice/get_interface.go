@@ -7,8 +7,8 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/otcshare/edgeservices/pkg/ela/helpers"
-	pb "github.com/otcshare/edgeservices/pkg/interfaceservice/pb"
+	"github.com/open-ness/edgeservices/pkg/ela/helpers"
+	pb "github.com/open-ness/edgeservices/pkg/interfaceservice/pb"
 	"github.com/pkg/errors"
 )
 

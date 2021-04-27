@@ -3,7 +3,7 @@
 
 package eaa
 
-import "github.com/otcshare/edgeservices/pkg/util"
+import "github.com/open-ness/edgeservices/pkg/util"
 
 // CertsInfo describes paths for certs used in configuration
 type CertsInfo struct {
