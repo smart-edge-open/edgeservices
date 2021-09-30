@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	logger "github.com/open-ness/edgeservices/common/log"
+	logger "github.com/smart-edge-open/edgeservices/common/log"
 )
 
 var log = logger.DefaultLogger.WithField("hddl", nil)

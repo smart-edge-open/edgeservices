@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/open-ness/edgeservices/common/log"
-	"github.com/open-ness/edgeservices/pkg/certrequester"
-	"github.com/open-ness/edgeservices/pkg/util"
+	logger "github.com/smart-edge-open/edgeservices/common/log"
+	"github.com/smart-edge-open/edgeservices/pkg/certrequester"
+	"github.com/smart-edge-open/edgeservices/pkg/util"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"

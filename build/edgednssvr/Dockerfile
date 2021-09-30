@@ -6,6 +6,8 @@ FROM alpine:3.12.0 AS edgedns-deps-image
 RUN printf "http://nl.alpinelinux.org/alpine/v3.12/main\nhttp://nl.alpinelinux.org/alpine/v3.12/community" >> /etc/apk/repositories
 RUN apk add --no-cache sudo
 
+RUN apk add -u apk-tools busybox
+
 FROM edgedns-deps-image
 
 ENV DNS_FWDR=""

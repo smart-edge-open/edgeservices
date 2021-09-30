@@ -7,8 +7,8 @@ import (
 	"os"
 
 	// Imports required to run agent
-	"github.com/open-ness/edgeservices/pkg/interfaceservice"
-	"github.com/open-ness/edgeservices/pkg/service"
+	"github.com/smart-edge-open/edgeservices/pkg/interfaceservice"
+	"github.com/smart-edge-open/edgeservices/pkg/service"
 )
 
 // EdgeServices array contains function pointers to services start functions

@@ -5,6 +5,8 @@ FROM alpine:3.12.0 AS eaa-deps-image
 
 RUN apk add --no-cache bash sudo
 
+RUN apk add -u apk-tools busybox
+
 FROM eaa-deps-image
 
 ARG username=eaa

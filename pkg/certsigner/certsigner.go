@@ -13,9 +13,9 @@ import (
 	"fmt"
 	"time"
 
-	logger "github.com/open-ness/edgeservices/common/log"
-	configutil "github.com/open-ness/edgeservices/pkg/config"
-	"github.com/open-ness/edgeservices/pkg/util"
+	logger "github.com/smart-edge-open/edgeservices/common/log"
+	configutil "github.com/smart-edge-open/edgeservices/pkg/config"
+	"github.com/smart-edge-open/edgeservices/pkg/util"
 
 	"github.com/pkg/errors"
 	capi "k8s.io/api/certificates/v1"

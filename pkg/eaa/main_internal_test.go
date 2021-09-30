@@ -18,8 +18,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	g "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-ness/edgeservices/pkg/config"
-	mockEAA "github.com/open-ness/edgeservices/pkg/mock"
+	"github.com/smart-edge-open/edgeservices/pkg/config"
+	mockEAA "github.com/smart-edge-open/edgeservices/pkg/mock"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/undefinedlabs/go-mpatch"

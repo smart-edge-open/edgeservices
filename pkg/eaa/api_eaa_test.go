@@ -24,7 +24,7 @@ import (
 	. "github.com/undefinedlabs/go-mpatch"
 
 	"github.com/gorilla/websocket"
-	"github.com/open-ness/edgeservices/pkg/eaa"
+	"github.com/smart-edge-open/edgeservices/pkg/eaa"
 )
 
 const (

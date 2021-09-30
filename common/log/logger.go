@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	slog "github.com/open-ness/edgeservices/common/log/syslog"
+	slog "github.com/smart-edge-open/edgeservices/common/log/syslog"
 )
 
 // Logger implements syslog logging funcs and can be connected to a syslog

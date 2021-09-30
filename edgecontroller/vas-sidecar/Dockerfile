@@ -10,6 +10,8 @@ ENV no_proxy=$no_proxy,eaa.openness
 RUN yum install -y sudo \
 	&& yum clean all
 
+RUN yum -y upgrade bind-license glib2 bind-export-libs gnutls systemd systemd-udev systemd-pam nettle openssl-libs
+
 ARG username=vas
 ARG user_dir=/home/$username
 

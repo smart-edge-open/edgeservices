@@ -11,7 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-ness/edgeservices/edgecontroller/edgednscli"
+	"github.com/smart-edge-open/edgeservices/edgecontroller/edgednscli"
 )
 
 var _ = Describe("CLI test", func() {

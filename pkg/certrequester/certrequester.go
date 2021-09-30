@@ -9,9 +9,9 @@ import (
 	"crypto/x509/pkix"
 	"net"
 
-	logger "github.com/open-ness/edgeservices/common/log"
-	"github.com/open-ness/edgeservices/pkg/config"
-	"github.com/open-ness/edgeservices/pkg/util"
+	logger "github.com/smart-edge-open/edgeservices/common/log"
+	"github.com/smart-edge-open/edgeservices/pkg/config"
+	"github.com/smart-edge-open/edgeservices/pkg/util"
 	"github.com/pkg/errors"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

@@ -10,8 +10,8 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	eaa "github.com/open-ness/edgeservices/pkg/eaa"
-	mockEAA "github.com/open-ness/edgeservices/pkg/mock"
+	eaa "github.com/smart-edge-open/edgeservices/pkg/eaa"
+	mockEAA "github.com/smart-edge-open/edgeservices/pkg/mock"
 )
 
 var _ = Describe("Kafka Message Broker", func() {
