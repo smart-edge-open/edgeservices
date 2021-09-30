@@ -9,7 +9,7 @@ import (
 
 	"time"
 
-	"github.com/open-ness/edgeservices/pkg/auth"
+	"github.com/smart-edge-open/edgeservices/pkg/auth"
 	"github.com/pkg/errors"
 )
 

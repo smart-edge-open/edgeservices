@@ -9,7 +9,7 @@ Common logging library with Syslog support
 
 ## Getting Started
 
-In its most basic form, the log package from `open-ness/edgeservices/common`
+In its most basic form, the log package from `smart-edge-open/edgeservices/common`
 repository can be used by calling package level print funcs, i.e.
 `Debug(f|ln)`, `Info(f|ln)`, `Err(f|ln)`, etc.
 
@@ -42,7 +42,7 @@ larger monolith that tags itself. This may look like
 ```
 package api
 
-import "github.com/open-ness/edgeservices/common/log"
+import "github.com/smart-edge-open/edgeservices/common/log"
 
 var log = log.DefaultLogger.WithField("component", "api")
 

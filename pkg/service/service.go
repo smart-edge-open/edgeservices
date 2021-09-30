@@ -16,9 +16,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	logger "github.com/open-ness/edgeservices/common/log"
-	"github.com/open-ness/edgeservices/pkg/config"
-	"github.com/open-ness/edgeservices/pkg/util"
+	logger "github.com/smart-edge-open/edgeservices/common/log"
+	"github.com/smart-edge-open/edgeservices/pkg/config"
+	"github.com/smart-edge-open/edgeservices/pkg/util"
 )
 
 // StartFunction is func typedef for starting service
@@ -131,7 +131,7 @@ func RunServices(services []StartFunction) bool {
 		funcName := runtime.FuncForPC(reflect.ValueOf(runner).Pointer()).Name()
 
 		// An example of funcName:
-		// github.com/open-ness/edgeservices/pkg/certsigner.(*CertificateSigner).Run-fm
+		// github.com/smart-edge-open/edgeservices/pkg/certsigner.(*CertificateSigner).Run-fm
 		// we need to find the position of the first dot after last slash
 		lastSlashPos := strings.LastIndex(funcName, "/")
 		// If there's no slash in the function name then reset the position to 0

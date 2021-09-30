@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2019 Intel Corporation
 
-module github.com/open-ness/edgeservices/edgecontroller
+module github.com/smart-edge-open/edgeservices/edgecontroller
 
 go 1.16
 

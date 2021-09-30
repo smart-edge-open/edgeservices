@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/open-ness/edgeservices/common/log"
+	"github.com/smart-edge-open/edgeservices/common/log"
 )
 
 func TestPrinterPrint(t *testing.T) {

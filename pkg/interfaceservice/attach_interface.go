@@ -4,7 +4,7 @@
 package interfaceservice
 
 import (
-	pb "github.com/open-ness/edgeservices/pkg/interfaceservice/pb"
+	pb "github.com/smart-edge-open/edgeservices/pkg/interfaceservice/pb"
 	"github.com/pkg/errors"
 )
 

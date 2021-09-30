@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/open-ness/edgeservices/pkg/edgedns/pb"
+	"github.com/smart-edge-open/edgeservices/pkg/edgedns/pb"
 	"google.golang.org/grpc"
 )
 

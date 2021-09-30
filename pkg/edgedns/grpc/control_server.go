@@ -12,11 +12,11 @@ import (
 	"net"
 	"path/filepath"
 
-	edgedns "github.com/open-ness/edgeservices/pkg/edgedns"
+	edgedns "github.com/smart-edge-open/edgeservices/pkg/edgedns"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	logger "github.com/open-ness/edgeservices/common/log"
-	"github.com/open-ness/edgeservices/pkg/edgedns/pb"
+	logger "github.com/smart-edge-open/edgeservices/common/log"
+	"github.com/smart-edge-open/edgeservices/pkg/edgedns/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"

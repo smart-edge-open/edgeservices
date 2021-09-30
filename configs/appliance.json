@@ -8,11 +8,11 @@
         "ConnectionTimeout": "2s"
     },
     "Services": {
-        "github.com/open-ness/edgeservices/pkg/certsigner": "configs/certsigner.json",
-        "github.com/open-ness/edgeservices/pkg/eaa": "configs/eaa.json",
-        "github.com/open-ness/edgeservices/pkg/ela": "configs/ela.json",
-        "github.com/open-ness/edgeservices/pkg/eda": "configs/eda.json",
-        "github.com/open-ness/edgeservices/pkg/eva": "configs/eva.json",
-        "github.com/open-ness/edgeservices/pkg/interfaceservice": "configs/interfaceservice.json"
+        "github.com/smart-edge-open/edgeservices/pkg/certsigner": "configs/certsigner.json",
+        "github.com/smart-edge-open/edgeservices/pkg/eaa": "configs/eaa.json",
+        "github.com/smart-edge-open/edgeservices/pkg/ela": "configs/ela.json",
+        "github.com/smart-edge-open/edgeservices/pkg/eda": "configs/eda.json",
+        "github.com/smart-edge-open/edgeservices/pkg/eva": "configs/eva.json",
+        "github.com/smart-edge-open/edgeservices/pkg/interfaceservice": "configs/interfaceservice.json"
     }
 }

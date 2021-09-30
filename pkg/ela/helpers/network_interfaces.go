@@ -18,7 +18,7 @@ import (
 
 	"github.com/kata-containers/runtime/virtcontainers/pkg/nsenter"
 
-	pb "github.com/open-ness/edgeservices/pkg/ela/pb"
+	pb "github.com/smart-edge-open/edgeservices/pkg/ela/pb"
 	"github.com/pkg/errors"
 )
 

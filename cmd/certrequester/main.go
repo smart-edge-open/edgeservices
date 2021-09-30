@@ -8,8 +8,8 @@ import (
 	"flag"
 	"os"
 
-	"github.com/open-ness/edgeservices/common/log"
-	"github.com/open-ness/edgeservices/pkg/certrequester"
+	"github.com/smart-edge-open/edgeservices/common/log"
+	"github.com/smart-edge-open/edgeservices/pkg/certrequester"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )

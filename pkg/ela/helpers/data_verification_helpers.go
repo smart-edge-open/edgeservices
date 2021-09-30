@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	pb "github.com/open-ness/edgeservices/pkg/ela/pb"
+	pb "github.com/smart-edge-open/edgeservices/pkg/ela/pb"
 )
 
 // VerifyAddressMask verifies IP address and mask pair
