@@ -6,17 +6,9 @@ module github.com/smart-edge-open/edgeservices
 go 1.16
 
 require (
-	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
-	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/Shopify/sarama v1.26.0
 	github.com/ThreeDotsLabs/watermill v1.1.1
 	github.com/ThreeDotsLabs/watermill-kafka/v2 v2.2.0
-	github.com/containernetworking/cni v0.8.0 // indirect
-	github.com/containernetworking/plugins v0.8.7 // indirect
-	github.com/digitalocean/go-openvswitch v0.0.0-20191122155805-8ce3b4218729 // indirect
-	github.com/docker/distribution v2.7.1+incompatible // indirect
-	github.com/docker/docker v1.13.1 // indirect
-	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
@@ -34,15 +26,14 @@ require (
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/undefinedlabs/go-mpatch v1.0.6
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
 	google.golang.org/genproto v0.0.0-20200831141814-d751682dd103
 	google.golang.org/grpc v1.31.0
-	google.golang.org/grpc/examples v0.0.0-20210209174707-61962d0e8e4e // indirect
+	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	k8s.io/api v0.19.3
 	k8s.io/apimachinery v0.19.3
 	k8s.io/client-go v0.19.3
-	k8s.io/kubernetes v1.19.3
+	k8s.io/kubernetes v1.19.11
 )
 
 replace k8s.io/api => k8s.io/api v0.19.3
